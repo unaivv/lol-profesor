@@ -3,12 +3,17 @@ import cors from 'cors';
 import axios from 'axios';
 import https from 'https';
 import dotenv from 'dotenv';
+import path from 'path';
 import { PlayerData, RankedStats, Match, LiveGameData, DetailedMatch, Participant, ChampionMastery, SpectatorGameData, SpectatorParticipant, BannedChampion, PlayerComprehensiveData, RankedStatsExtended } from './types';
+import { initCache, getSummonerName, setSummonerName, getMultipleSummonerNames, setMatchParticipants, getMatchParticipants } from './cache';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
+
+// Initialize SQLite cache
+initCache();
 
 // Middleware
 app.use(cors());
@@ -201,7 +206,7 @@ app.get('/api/matches/:puuid', async (req: Request, res: Response) => {
 app.get('/api/matches/:puuid/details', async (req: Request, res: Response) => {
   try {
     const { puuid } = req.params;
-    const count = parseInt(req.query.count as string) || 10;
+    const count = parseInt(req.query.count as string) || 50;
     const start = parseInt(req.query.start as string) || 0;
 
     // Get match IDs
@@ -214,7 +219,7 @@ app.get('/api/matches/:puuid/details', async (req: Request, res: Response) => {
     const detailedMatches: DetailedMatch[] = [];
 
     // Get details for each match with ALL participants
-    for (const matchId of matchIds.slice(0, 5)) { // Limit to 5 for performance
+    for (const matchId of matchIds.slice(0, count)) {
       try {
         const matchResponse = await riotApi.get<any>(
           `${BASE_URL}/lol/match/v5/matches/${matchId}`
@@ -223,33 +228,81 @@ app.get('/api/matches/:puuid/details', async (req: Request, res: Response) => {
         const matchData = matchResponse.data;
 
         // Map ALL participants from the match
-        const participants: Participant[] = matchData.info.participants.map((p: any) => ({
-          participantId: p.participantId,
-          teamId: p.teamId,
-          win: p.win,
-          championId: p.championId,
-          championName: p.championName,
-          kills: p.kills,
-          deaths: p.deaths,
-          assists: p.assists,
-          goldEarned: p.goldEarned,
-          totalMinionsKilled: p.totalMinionsKilled,
-          visionWardsBoughtInGame: p.visionWardsBoughtInGame,
-          damageDealtToChampions: p.totalDamageDealtToChampions,
-          damageTaken: p.totalDamageTaken,
-          totalHeal: p.totalHeal,
-          timePlayed: p.timePlayed,
-          item0: p.item0,
-          item1: p.item1,
-          item2: p.item2,
-          item3: p.item3,
-          item4: p.item4,
-          item5: p.item5,
-          item6: p.item6,
-          championLevel: p.champLevel,
-          summoner1Id: p.summoner1Id,
-          summoner2Id: p.summoner2Id
-        }));
+        const participants: Participant[] = []
+        const participantPuuids = matchData.metadata.participants || []
+        
+        // Fetch all summoner names in parallel with timeout
+        const fetchSummonerNames = async () => {
+          const results: { name: string; icon: number }[] = []
+          
+          const namePromises = participantPuuids.map(async (puuid: string) => {
+            if (!puuid) return { name: '', icon: 1 }
+            
+            try {
+              const accountResp = await riotApi.get(
+                `${BASE_URL}/riot/account/v1/accounts/by-puuid/${puuid}`
+              )
+              if (accountResp.data?.gameName) {
+                return { name: accountResp.data.gameName, icon: 1 }
+              }
+            } catch {
+              // Fallback to summoner API
+              try {
+                const summonerResp = await riotApi.get(
+                  `${REGIONAL_URL}/lol/summoner/v4/summoners/by-puuid/${puuid}`
+                )
+                return { 
+                  name: summonerResp.data?.name || '', 
+                  icon: summonerResp.data?.profileIconId || 1 
+                }
+              } catch {
+                return { name: '', icon: 1 }
+              }
+            }
+            return { name: '', icon: 1 }
+          })
+          
+          return Promise.all(namePromises)
+        }
+        
+        const summonerData = await fetchSummonerNames()
+        
+        for (let i = 0; i < matchData.info.participants.length; i++) {
+          const p = matchData.info.participants[i]
+          const nameData = summonerData[i] || { name: '', icon: 1 }
+          const puuid = participantPuuids[i] || ''
+          
+          participants.push({
+            participantId: p.participantId,
+            teamId: p.teamId,
+            win: p.win,
+            championId: p.championId,
+            championName: p.championName,
+            summonerName: nameData.name,
+            profileIconId: nameData.icon,
+            puuid: puuid,
+            kills: p.kills,
+            deaths: p.deaths,
+            assists: p.assists,
+            goldEarned: p.goldEarned,
+            totalMinionsKilled: p.totalMinionsKilled,
+            visionWardsBoughtInGame: p.visionWardsBoughtInGame,
+            damageDealtToChampions: p.totalDamageDealtToChampions,
+            damageTaken: p.totalDamageTaken,
+            totalHeal: p.totalHeal,
+            timePlayed: p.timePlayed,
+            item0: p.item0,
+            item1: p.item1,
+            item2: p.item2,
+            item3: p.item3,
+            item4: p.item4,
+            item5: p.item5,
+            item6: p.item6,
+            championLevel: p.champLevel,
+            summoner1Id: p.summoner1Id,
+            summoner2Id: p.summoner2Id
+          })
+        }
 
         const detailedMatch: DetailedMatch = {
           gameId: matchId,
@@ -259,6 +312,7 @@ app.get('/api/matches/:puuid/details', async (req: Request, res: Response) => {
           gameType: matchData.info.gameType,
           gameVersion: matchData.info.gameVersion,
           mapId: matchData.info.mapId,
+          queueId: matchData.info.queueId,
           participants: participants
         };
 
@@ -271,6 +325,38 @@ app.get('/api/matches/:puuid/details', async (req: Request, res: Response) => {
     res.json(detailedMatches);
   } catch (error) {
     handleApiError(error, res, 'Failed to fetch detailed match history');
+  }
+});
+
+// Get match timeline (minuto a minuto)
+app.get('/api/match/:matchId/timeline', async (req: Request, res: Response) => {
+  try {
+    const { matchId } = req.params;
+
+    const response = await riotApi.get(
+      `${BASE_URL}/lol/match/v5/matches/${matchId}/timeline`
+    );
+
+    const timelineData = response.data;
+
+    const processedTimeline = {
+      gameId: matchId,
+      frames: timelineData.info.frames?.slice(0, 60) || [],
+      participants: timelineData.info.participants?.map((p: any) => ({
+        participantId: p.participantId,
+        puuid: p.puuid,
+        championId: p.championId,
+        championName: p.championName
+      })) || []
+    };
+
+    res.json(processedTimeline);
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      res.status(404).json({ error: 'Timeline not available for this match (may be too old)' });
+    } else {
+      handleApiError(error, res, 'Failed to fetch match timeline');
+    }
   }
 });
 
@@ -474,8 +560,14 @@ app.get('/api/player/:gameName/:tagLine/comprehensive', async (req: Request, res
 
     // Extract ranked data
     const rankedData = rankedResponse.status === 'fulfilled' ? rankedResponse.value.data : [];
-    const soloQueue = rankedData.find(entry => entry.queueType === 'RANKED_SOLO_5x5');
-    const flexQueue = rankedData.find(entry => entry.queueType === 'RANKED_FLEX_SR');
+    
+    // Filter for different queue types - Riot changed queue type names
+    const soloQueue = rankedData.find((entry: any) => 
+      entry.queueType === 'RANKED_SOLO_5x5' || entry.queueType === 'RANKED' || entry.queueType?.includes('SOLO')
+    );
+    const flexQueue = rankedData.find((entry: any) => 
+      entry.queueType === 'RANKED_FLEX_SR' || entry.queueType === 'FLEX' || entry.queueType?.includes('FLEX')
+    );
 
     const rankedStats: RankedStatsExtended = {
       solo: soloQueue ? {
@@ -510,22 +602,118 @@ app.get('/api/player/:gameName/:tagLine/comprehensive', async (req: Request, res
     // Extract current game
     const currentGame = spectatorResponse.status === 'fulfilled' ? spectatorResponse.value.data : null;
 
-    // Get match details
-    const matchIds = matchIdsResponse.status === 'fulfilled' ? matchIdsResponse.value.data.slice(0, 10) : [];
+    // Get match IDs
+    const matchIds = matchIdsResponse.status === 'fulfilled' ? matchIdsResponse.value.data.slice(0, 20) : [];
     const detailedMatches: DetailedMatch[] = [];
 
-    await Promise.allSettled(
-      matchIds.map(async (matchId) => {
+    // Function to fetch and cache summoner name
+    const fetchAndCacheSummonerName = async (puuid: string): Promise<{ name: string; icon: number }> => {
+      if (!puuid) return { name: '', icon: 1 }
+      
+      // Check SQLite cache first
+      const cached = getSummonerName(puuid)
+      if (cached) {
+        return { name: cached.gameName, icon: cached.icon }
+      }
+      
+      // Fetch from API if not cached
+      try {
+        const accountResp = await riotApi.get(
+          `${BASE_URL}/riot/account/v1/accounts/by-puuid/${puuid}`
+        )
+        if (accountResp.data?.gameName) {
+          setSummonerName(puuid, accountResp.data.gameName, accountResp.data.tagLine, 1)
+          return { name: accountResp.data.gameName, icon: 1 }
+        }
+      } catch {
+        // Fallback to summoner API
         try {
-          const matchResponse = await riotApi.get<any>(`${BASE_URL}/lol/match/v5/matches/${matchId}`);
-          const matchData = matchResponse.data;
+          const summonerResp = await riotApi.get(
+            `${REGIONAL_URL}/lol/summoner/v4/summoners/by-puuid/${puuid}`
+          )
+          const name = summonerResp.data?.name || ''
+          const icon = summonerResp.data?.profileIconId || 1
+          if (name) setSummonerName(puuid, name, '', icon)
+          return { name, icon }
+        } catch {
+          return { name: '', icon: 1 }
+        }
+      }
+      return { name: '', icon: 1 }
+    }
 
-          const participants: Participant[] = matchData.info.participants.map((p: any) => ({
+    // Get unique puuids from all matches and check which ones we need to fetch
+    const allPuuids = new Set<string>()
+    for (const matchId of matchIds) {
+      const cachedMatch = getMatchParticipants(matchId) as any
+      if (cachedMatch) {
+        detailedMatches.push({
+          gameId: matchId,
+          gameCreation: cachedMatch.gameCreation,
+          gameDuration: cachedMatch.gameDuration,
+          gameMode: cachedMatch.gameMode,
+          gameType: cachedMatch.gameType,
+          gameVersion: '14.1.1',
+          mapId: 11,
+          queueId: cachedMatch.queueId,
+          participants: cachedMatch.participants
+        })
+        continue
+      }
+      
+      // Not cached, need to fetch from API
+      try {
+        const matchResponse = await riotApi.get<any>(`${BASE_URL}/lol/match/v5/matches/${matchId}`)
+        const matchData = matchResponse.data
+        const participantPuuids = matchData.metadata.participants || []
+        participantPuuids.forEach((p: string) => { if (p) allPuuids.add(p) })
+      } catch {
+        // Skip matches that fail
+      }
+    }
+
+    // Batch fetch missing summoner names (max 40 to avoid rate limits)
+    const puuidsToFetch = Array.from(allPuuids).slice(0, 40)
+    console.log(`[COMPREHENSIVE] Fetching ${puuidsToFetch.length} new summoner names...`)
+    
+    const namePromises = puuidsToFetch.map(puuid => fetchAndCacheSummonerName(puuid))
+    await Promise.all(namePromises)
+
+    // Now process remaining matches (that weren't cached)
+    for (const matchId of matchIds) {
+      // Skip if already cached
+      if (detailedMatches.find(m => m.gameId === matchId)) continue
+      
+      try {
+        const matchResponse = await riotApi.get<any>(`${BASE_URL}/lol/match/v5/matches/${matchId}`);
+        const matchData = matchResponse.data;
+
+        const participantPuuids = matchData.metadata.participants || []
+        
+        const participants: Participant[] = []
+        for (let i = 0; i < matchData.info.participants.length; i++) {
+          const p = matchData.info.participants[i]
+          const puuid = participantPuuids[i] || ''
+          
+          let summonerName = ''
+          let profileIconId = 1
+          
+          // Use cached names from SQLite
+          const cached = getSummonerName(puuid)
+          if (cached) {
+            summonerName = cached.gameName
+            profileIconId = cached.icon
+          }
+          
+          participants.push({
             participantId: p.participantId,
             teamId: p.teamId,
             win: p.win,
             championId: p.championId,
             championName: p.championName,
+            summonerName: summonerName,
+            profileIconId: profileIconId,
+            puuid: puuid,
             kills: p.kills,
             deaths: p.deaths,
             assists: p.assists,
@@ -546,23 +734,29 @@ app.get('/api/player/:gameName/:tagLine/comprehensive', async (req: Request, res
             championLevel: p.champLevel,
             summoner1Id: p.summoner1Id,
             summoner2Id: p.summoner2Id
-          }));
-
-          detailedMatches.push({
-            gameId: matchId,
-            gameCreation: matchData.info.gameCreation,
-            gameDuration: matchData.info.gameDuration,
-            gameMode: matchData.info.gameMode,
-            gameType: matchData.info.gameType,
-            gameVersion: matchData.info.gameVersion,
-            mapId: matchData.info.mapId,
-            participants
-          });
-        } catch (err) {
-          console.warn(`Failed to fetch match ${matchId}`);
+          })
         }
-      })
-    );
+
+        const matchSummary = {
+          gameId: matchId,
+          gameCreation: matchData.info.gameCreation,
+          gameDuration: matchData.info.gameDuration,
+          gameMode: matchData.info.gameMode,
+          gameType: matchData.info.gameType,
+          gameVersion: matchData.info.gameVersion,
+          mapId: matchData.info.mapId,
+          queueId: matchData.info.queueId,
+          participants
+        }
+        
+        detailedMatches.push(matchSummary)
+        
+        // Cache match participants in SQLite
+        setMatchParticipants(matchId, matchData.info, participants)
+      } catch (err) {
+        console.warn(`Failed to fetch match ${matchId}`);
+      }
+    }
 
     // Build comprehensive response
     const comprehensiveData: PlayerComprehensiveData = {
@@ -590,6 +784,16 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  const staticPath = process.env.STATIC_PATH || path.join(__dirname, '..', '..', 'dist');
+  app.use(express.static(staticPath));
+
+  app.get('*', (req: Request, res: Response) => {
+    res.sendFile(path.join(staticPath, 'index.html'));
+  });
+}
 
 // Start server
 app.listen(PORT, () => {

@@ -112,6 +112,9 @@ export interface Participant {
   win: boolean;
   championId: number;
   championName: string;
+  summonerName: string;
+  profileIconId: number;
+  puuid: string;
   kills: number;
   deaths: number;
   assists: number;
@@ -143,6 +146,7 @@ export interface DetailedMatch {
   gameType: string;
   gameVersion: string;
   mapId: number;
+  queueId?: number;
   participants: Participant[];
 }
 
