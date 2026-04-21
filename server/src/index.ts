@@ -672,12 +672,20 @@ app.get('/api/player/:gameName/:tagLine/comprehensive', async (req: Request, res
       }
     }
 
-    // Batch fetch missing summoner names (max 40 to avoid rate limits)
-    const puuidsToFetch = Array.from(allPuuids).slice(0, 40)
-    console.log(`[COMPREHENSIVE] Fetching ${puuidsToFetch.length} new summoner names...`)
+    // Batch fetch missing summoner names with sequential delays to avoid rate limits
+    const puuidsToFetch = Array.from(allPuuids).slice(0, 150)
+    console.log(`[COMPREHENSIVE] Fetching names for ${puuidsToFetch.length} unique players...`)
     
-    const namePromises = puuidsToFetch.map(puuid => fetchAndCacheSummonerName(puuid))
-    await Promise.all(namePromises)
+    let fetched = 0
+    for (const puuid of puuidsToFetch) {
+      await fetchAndCacheSummonerName(puuid)
+      fetched++
+      if (fetched % 20 === 0) {
+        console.log(`[COMPREHENSIVE] Fetched ${fetched}/${puuidsToFetch.length} names...`)
+        await new Promise(r => setTimeout(r, 100)) // Small delay every 20 fetches
+      }
+    }
+    console.log(`[COMPREHENSIVE] Done fetching ${fetched} names`)
 
     // Now process remaining matches (that weren't cached)
     for (const matchId of matchIds) {
@@ -752,7 +760,12 @@ app.get('/api/player/:gameName/:tagLine/comprehensive', async (req: Request, res
         detailedMatches.push(matchSummary)
         
         // Cache match participants in SQLite
-        setMatchParticipants(matchId, matchData.info, participants)
+        try {
+          setMatchParticipants(matchId, matchData.info, participants)
+          console.log(`[CACHE] Cached match ${matchId} with ${participants.length} participants`)
+        } catch (cacheErr) {
+          console.error(`[CACHE] Error caching match ${matchId}:`, cacheErr)
+        }
       } catch (err) {
         console.warn(`Failed to fetch match ${matchId}`);
       }
