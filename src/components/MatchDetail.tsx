@@ -123,7 +123,6 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
 
   const participants = match.participants || []
   const currentPlayer = playerPuuid ? participants.find(p => p.puuid === playerPuuid) : participants[0]
-  const teamId = currentPlayer?.teamId || 100
   const teamWon = currentPlayer?.win || false
 
   const blueTeam = participants.filter(p => p.teamId === 100)
@@ -379,7 +378,7 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
                   <PlayerRow
                     key={player.participantId}
                     player={player}
-                    isCurrentPlayer={player.teamId === teamId}
+                    isCurrentPlayer={player.puuid === playerPuuid}
                   />
                 ))}
               </div>
@@ -393,7 +392,7 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
                   <PlayerRow
                     key={player.participantId}
                     player={player}
-                    isCurrentPlayer={player.teamId === teamId}
+                    isCurrentPlayer={player.puuid === playerPuuid}
                   />
                 ))}
               </div>
