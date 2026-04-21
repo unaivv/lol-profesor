@@ -199,34 +199,49 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
   }
 
   const extractKeyEvents = () => {
-    if (!timeline?.frames) return []
+    if (!timeline?.frames || !timeline.participants) return []
     
-    const keyEvents: Array<{ time: string; type: string; typeLabel: string }> = []
+    const participantMap = new Map(timeline.participants.map((p: any) => [p.participantId, p.championName]))
     
-    timeline.frames.forEach((frame) => {
-      const minute = Math.floor(frame.timestamp / 60000)
-      const seconds = Math.floor((frame.timestamp % 60000) / 1000)
-      const timeStr = `${minute}:${seconds.toString().padStart(2, '0')}`
+    const keyEvents: Array<{ time: string; type: string; typeLabel: string; killer?: string }> = []
+    
+    for (const frame of timeline.frames) {
+      const totalMs = frame.timestamp
+      const totalSec = Math.floor(totalMs / 1000)
+      const minutes = Math.floor(totalSec / 60)
+      const seconds = totalSec % 60
+      const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`
       
-      frame.events?.forEach(event => {
-        if (['CHAMPION_KILL', 'ELITE_MONSTER_KILL', 'BUILDING_KILL'].includes(event.type)) {
-          let typeLabel = 'Evento'
-          if (event.type === 'CHAMPION_KILL') typeLabel = 'Kill'
-          else if (event.type === 'ELITE_MONSTER_KILL') {
-            typeLabel = event.monsterSubType || event.monsterType || 'Objetivo'
-          }
-          else if (event.type === 'BUILDING_KILL') typeLabel = 'Torre'
-          
+      for (const event of (frame.events || [])) {
+        const eventType = event.type
+        if (eventType === 'CHAMPION_KILL') {
+          const killerName = participantMap.get(event.killerId) || 'Unknown'
+          const victimName = participantMap.get(event.victimId) || 'Unknown'
           keyEvents.push({
             time: timeStr,
-            type: event.type,
-            typeLabel
+            type: eventType,
+            typeLabel: `${killerName} killed ${victimName}`,
+            killer: killerName
+          })
+        } else if (eventType === 'ITEM_PURCHASED') {
+          keyEvents.push({
+            time: timeStr,
+            type: eventType,
+            typeLabel: `Item bought`,
+            killer: participantMap.get(event.participantId) || 'Unknown'
+          })
+        } else if (eventType === 'WARD_PLACED') {
+          keyEvents.push({
+            time: timeStr,
+            type: eventType,
+            typeLabel: `Ward placed`,
+            killer: participantMap.get(event.participantId) || 'Unknown'
           })
         }
-      })
-    })
+      }
+    }
     
-    return keyEvents.slice(0, 12)
+    return keyEvents.slice(0, 15)
   }
 
   const keyEvents = extractKeyEvents()

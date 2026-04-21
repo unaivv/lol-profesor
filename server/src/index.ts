@@ -760,12 +760,12 @@ app.get('/api/player/:gameName/:tagLine/comprehensive', async (req: Request, res
         detailedMatches.push(matchSummary)
         
         // Cache match participants in SQLite
-        try {
-          setMatchParticipants(matchId, matchData.info, participants)
-          console.log(`[CACHE] Cached match ${matchId} with ${participants.length} participants`)
-        } catch (cacheErr) {
-          console.error(`[CACHE] Error caching match ${matchId}:`, cacheErr)
-        }
+        // Caching disabled temporarily due to mismatch - skipping
+        // try {
+        //   setMatchParticipants(matchId, matchData.info, participants)
+        // } catch (cacheErr) {
+        //   console.log(`[CACHE] Skipped caching match`)
+        // }
       } catch (err) {
         console.warn(`Failed to fetch match ${matchId}`);
       }
