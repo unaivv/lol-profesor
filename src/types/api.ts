@@ -79,6 +79,9 @@ export interface Participant {
   win: boolean
   championId: number
   championName: string
+  summonerName: string
+  profileIconId: number
+  puuid?: string
   kills: number
   deaths: number
   assists: number
@@ -150,6 +153,55 @@ export interface Match {
 // Detailed Match with all participants
 export interface DetailedMatch extends Match {
   participants: Participant[]
+}
+
+export interface MatchTimeline {
+  gameId: string
+  frames: TimelineFrame[]
+  participants: TimelineParticipant[]
+}
+
+export interface TimelineParticipant {
+  participantId: number
+  puuid?: string
+  championId: number
+  championName: string
+}
+
+export interface TimelineFrame {
+  timestamp: number
+  events: TimelineEvent[]
+  participantFrames: Record<number, ParticipantFrame>
+}
+
+export interface TimelineEvent {
+  type: 'CHAMPION_KILL' | 'CHAMPION_SPECIAL_KILL' | 'ELITE_MONSTER_KILL' | 'ITEM_PURCHASED' | 'ITEM_SOLD' | 'ITEM_DESTROYED' | 'SKILL_LEVEL_UP' | 'WARD_PLACED' | 'WARD_KILL' | 'BUILDING_KILL' | 'OBJECTIVE_BOUNTY_PRIME_BONUS_REWARD' | 'CAPTURE_POINT'
+  timestamp: number
+  participantId?: number
+  killerId?: number
+  victimId?: number
+  assistingParticipantIds?: number[]
+  monsterType?: string
+  monsterSubType?: string
+  teamId?: number
+  itemId?: number
+  level?: number
+  wardType?: string
+  buildingType?: string
+  laneType?: string
+  towerType?: string
+}
+
+export interface ParticipantFrame {
+  participantId: number
+  level: number
+  currentHealth: number
+  maxHealth: number
+  minionsKilled: number
+  jungleMinionsKilled: number
+  totalGold: number
+  xp: number
+  position?: { x: number; y: number }
 }
 
 // Ranked Statistics
@@ -270,6 +322,7 @@ export interface PlayerStatsProps {
 
 export interface MatchHistoryProps {
   matches: DetailedMatch[]
+  playerPuuid?: string
 }
 
 export interface LiveGameTrackerProps {
