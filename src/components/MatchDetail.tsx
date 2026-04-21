@@ -46,9 +46,10 @@ const getQueueName = (queueId?: number): string => {
 interface PlayerRowProps {
   player: Participant
   isCurrentPlayer: boolean
+  isMVP: boolean
 }
 
-const PlayerRow = ({ player, isCurrentPlayer }: PlayerRowProps) => {
+const PlayerRow = ({ player, isCurrentPlayer, isMVP }: PlayerRowProps) => {
   const kdaRatio = calculateKDARatio(player.kills, player.deaths, player.assists)
   const kdaColor = kdaRatio >= 4 ? '#10b981' : kdaRatio >= 2.5 ? '#2563eb' : kdaRatio >= 1 ? '#d97706' : '#dc2626'
   const items = getChampionItems(player)
@@ -95,6 +96,17 @@ const PlayerRow = ({ player, isCurrentPlayer }: PlayerRowProps) => {
           textOverflow: 'ellipsis'
         }}>
           {player.summonerName || player.championName || 'Unknown'}
+          {isMVP && (
+            <span style={{
+              marginLeft: '4px',
+              background: '#8b5cf6',
+              color: 'white',
+              fontSize: '7px',
+              fontWeight: 'bold',
+              padding: '1px 3px',
+              borderRadius: '3px'
+            }}>MVP</span>
+          )}
         </div>
         <div style={{ fontSize: '10px', color: '#64748b' }}>{player.championName}</div>
       </div>
@@ -105,10 +117,10 @@ const PlayerRow = ({ player, isCurrentPlayer }: PlayerRowProps) => {
         <span style={{ color: '#94a3b8', fontSize: '10px' }}>/</span>
         <span style={{ fontSize: '12px', fontWeight: 600, color: kdaColor }}>{player.assists}</span>
       </div>
-      <div style={{ display: 'flex', gap: '2px' }}>
-        {items.slice(0, 4).map((item, idx) => (
+      <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
+        {items.map((item, idx) => (
           <div key={idx} style={{ width: '20px', height: '20px', background: '#0f172a', borderRadius: '3px', overflow: 'hidden' }}>
-            {item > 0 && <img src={getItemIcon(item)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+            {item > 0 && <img src={getItemIcon(item)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />}
           </div>
         ))}
       </div>
@@ -127,6 +139,23 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
 
   const blueTeam = participants.filter(p => p.teamId === 100)
   const redTeam = participants.filter(p => p.teamId === 200)
+
+  const findMVP = (teamPlayers: Participant[]): number => {
+    if (!teamPlayers.length) return -1
+    let mvpId = teamPlayers[0].participantId
+    let maxScore = 0
+    for (const p of teamPlayers) {
+      const score = (p.kills * 3 + p.assists * 2 + (p.damageDealtToChampions || 0) / 5000) - (p.deaths * 1.5)
+      if (score > maxScore) {
+        maxScore = score
+        mvpId = p.participantId
+      }
+    }
+    return mvpId
+  }
+
+  const blueMVP = findMVP(blueTeam)
+  const redMVP = findMVP(redTeam)
 
   useEffect(() => {
     const fetchTimeline = async () => {
@@ -379,6 +408,7 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
                     key={player.participantId}
                     player={player}
                     isCurrentPlayer={player.puuid === playerPuuid}
+                    isMVP={player.participantId === blueMVP}
                   />
                 ))}
               </div>
@@ -393,6 +423,7 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
                     key={player.participantId}
                     player={player}
                     isCurrentPlayer={player.puuid === playerPuuid}
+                    isMVP={player.participantId === redMVP}
                   />
                 ))}
               </div>
