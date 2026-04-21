@@ -29,13 +29,13 @@ export function Footer({
 
     return (
       <div>
-        <h4 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Estadísticas Clave</h4>
-        <ul style={{ color: 'rgba(255, 255, 255, 0.9)', lineHeight: '1.8' }}>
-          <li>Nivel: {playerData.summonerLevel}</li>
-          <li>Región: {playerData.region || 'EUW'}</li>
-          <li>Partidas: {playerData.matches?.length || 0}</li>
-          <li>Ranking: {soloRanked ? `${soloRanked.tier} ${soloRanked.rank}` : 'Sin ranking'}</li>
-          <li>Win Rate: {soloRanked ? `${Math.round((soloRanked.wins / (soloRanked.wins + soloRanked.losses)) * 100)}%` : '0%'}</li>
+        <h4 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: 'white' }}>Estadísticas Clave</h4>
+        <ul style={{ color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.8', listStyle: 'none', padding: 0 }}>
+          <li style={{ padding: '4px 0' }}>Nivel: {playerData.summonerLevel}</li>
+          <li style={{ padding: '4px 0' }}>Región: {playerData.region || 'EUW'}</li>
+          <li style={{ padding: '4px 0' }}>Partidas: {playerData.matches?.length || 0}</li>
+          <li style={{ padding: '4px 0' }}>Ranking: {soloRanked ? `${soloRanked.tier} ${soloRanked.rank}` : 'Sin ranking'}</li>
+          <li style={{ padding: '4px 0' }}>Win Rate: {soloRanked ? `${Math.round((soloRanked.wins / (soloRanked.wins + soloRanked.losses)) * 100)}%` : '0%'}</li>
         </ul>
       </div>
     )
@@ -50,7 +50,7 @@ export function Footer({
           </div>
           <h3 style={{ fontSize: '20px', fontWeight: 'bold' }}>LoL Professor</h3>
         </div>
-        <p>
+        <p style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
           {playerData ? `Análisis profesional para ${playerData.gameName}#${playerData.tagLine}` : 'Análisis profesional para jugadores de League of Legends'}
         </p>
         <div style={{ marginTop: '12px', fontSize: '14px', color: 'rgba(255, 255, 255, 0.7)' }}>
@@ -59,21 +59,21 @@ export function Footer({
       </div>
       {renderPlayerInfo()}
       <div>
-        <h4 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Acciones Rápidas</h4>
-        <ul style={{ color: 'rgba(255, 255, 255, 0.9)', lineHeight: '1.8' }}>
-          <li>Ver historial completo</li>
-          <li>Analizar rendimiento</li>
-          <li>Comparar estadísticas</li>
-          <li>Exportar datos</li>
+        <h4 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: 'white' }}>Acciones Rápidas</h4>
+        <ul style={{ color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.8', listStyle: 'none', padding: 0 }}>
+          <li style={{ padding: '4px 0' }}>Ver historial completo</li>
+          <li style={{ padding: '4px 0' }}>Analizar rendimiento</li>
+          <li style={{ padding: '4px 0' }}>Comparar estadísticas</li>
+          <li style={{ padding: '4px 0' }}>Exportar datos</li>
         </ul>
       </div>
       <div>
-        <h4 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Enlaces</h4>
-        <ul style={{ color: 'rgba(255, 255, 255, 0.9)', lineHeight: '1.8' }}>
-          <li>Documentación</li>
-          <li>API de Riot Games</li>
-          <li>Soporte</li>
-          <li>Términos de uso</li>
+        <h4 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: 'white' }}>Enlaces</h4>
+        <ul style={{ color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.8', listStyle: 'none', padding: 0 }}>
+          <li style={{ padding: '4px 0' }}>Documentación</li>
+          <li style={{ padding: '4px 0' }}>API de Riot Games</li>
+          <li style={{ padding: '4px 0' }}>Soporte</li>
+          <li style={{ padding: '4px 0' }}>Términos de uso</li>
         </ul>
       </div>
     </>
@@ -86,9 +86,18 @@ export function Footer({
   }
 
   return (
-    <footer className="footer" style={{ marginTop: '60px' }}>
+    <footer style={{ 
+      marginTop: '60px',
+      background: 'linear-gradient(135deg, #3b82f6, #9333ea)',
+      color: 'white',
+      padding: '60px 20px 40px'
+    }}>
       <div className="container">
-        <div className="footer-content">
+        <div style={{ 
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '40px'
+        }}>
           {renderContent()}
         </div>
         <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.2)', marginTop: '40px', paddingTop: '32px', textAlign: 'center' }}>

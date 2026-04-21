@@ -125,17 +125,43 @@ export function StatsPage() {
   const rankedData = playerData.rankedStats
   const isExtended = rankedData && 'solo' in rankedData
   const soloRanked = isExtended ? (rankedData as any).solo : rankedData
-  const hasRanked = soloRanked !== null && soloRanked !== undefined
+  const flexRanked = isExtended ? (rankedData as any).flex : null
+  const hasSoloRanked = soloRanked !== null && soloRanked !== undefined
+  const hasFlexRanked = flexRanked !== null && flexRanked !== undefined
+  const hasAnyRanked = hasSoloRanked || hasFlexRanked
 
   return (
-    <div className="gradient-bg min-h-screen">
-      <Header />
+    <div style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #f3e8ff 100%)', minHeight: '100vh' }}>
+      <Header 
+        variant="profile"
+        actions={
+          <button
+            onClick={handleSearchNew}
+            style={{
+              padding: '10px 20px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #3b82f6, #9333ea)',
+              color: 'white',
+              border: 'none',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+            }}
+          >
+            <Search size={18} />
+            Buscar Otro
+          </button>
+        }
+      />
 
-      <main className="container" style={{ paddingTop: '32px', paddingBottom: '32px' }}>
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
         {/* Profile Header */}
-        <div className="stats-card mb-6">
-          <div className="stats-card-header">
-            <h1 className="hero-title" style={{ fontSize: '32px', marginBottom: '8px' }}>
+        <div style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)', borderRadius: '16px', padding: '24px', marginBottom: '24px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+          <div>
+            <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: 'white', marginBottom: '8px' }}>
               {playerData.gameName}
               <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 400 }}>#{playerData.tagLine}</span>
             </h1>
@@ -146,48 +172,89 @@ export function StatsPage() {
         </div>
 
         {/* Stats Overview Cards */}
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-blue-600" />
+        <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+          <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Trophy size={24} color="#2563eb" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-900">{playerData.summonerLevel}</div>
-              <div className="text-xs text-slate-500">Nivel</div>
+              <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e293b' }}>{playerData.summonerLevel}</div>
+              <div style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>Nivel</div>
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <Target className="w-5 h-5 text-emerald-600" />
+          <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Target size={24} color="#059669" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-900">{playerData.matches?.length || 0}</div>
-              <div className="text-xs text-slate-500">Partidas</div>
+              <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e293b' }}>{playerData.matches?.length || 0}</div>
+              <div style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>Partidas</div>
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-              <Star className="w-5 h-5 text-purple-600" />
+          {/* Solo Duo Ranked */}
+          {hasSoloRanked && (
+            <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #7c3aed, #5b21b6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Star size={20} color="white" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Clasificatorias</div>
+                <div style={{ fontSize: '18px', fontWeight: 'bold', background: 'linear-gradient(135deg, #7c3aed, #5b21b6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  {soloRanked.tier} {soloRanked.rank}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>{soloRanked.leaguePoints} LP</div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>{soloRanked.wins}G {soloRanked.losses}P</div>
+              </div>
+            </div>
+          )}
+          
+          {/* Flex Ranked */}
+          {hasFlexRanked && (
+            <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #ea580c, #c2410c)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Star size={20} color="white" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Flexible</div>
+                <div style={{ fontSize: '18px', fontWeight: 'bold', background: 'linear-gradient(135deg, #ea580c, #c2410c)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  {flexRanked.tier} {flexRanked.rank}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>{flexRanked.leaguePoints} LP</div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>{flexRanked.wins}G {flexRanked.losses}P</div>
+              </div>
+            </div>
+          )}
+          
+          {/* No Ranked */}
+          {!hasAnyRanked && (
+            <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Star size={24} color="#94a3b8" />
+              </div>
+              <div>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#94a3b8' }}>Unranked</div>
+                <div style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>Sin ranked</div>
+              </div>
+            </div>
+          )}
+          <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Zap size={24} color="#ea580c" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-900">{hasRanked ? soloRanked.tier : '-'}</div>
-              <div className="text-xs text-slate-500">Rango</div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-orange-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-slate-900">{playerData.region}</div>
-              <div className="text-xs text-slate-500">Región</div>
+              <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e293b' }}>{playerData.region}</div>
+              <div style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>Región</div>
             </div>
           </div>
         </div>
 
         {/* Modern Tab Navigation - Design System */}
-        <div className="stats-card mb-6" style={{ padding: '16px' }}>
-          <div className="flex flex-wrap gap-2 justify-center">
+        <div style={{ padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '24px' }}>
+          <div className="flex flex-wrap gap-3 justify-center">
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
@@ -195,7 +262,23 @@ export function StatsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`tab-button flex items-center gap-2 flex-1 min-w-[120px] justify-center ${isActive ? 'tab-button-active' : 'tab-button-inactive'}`}
+                  style={{
+                    padding: '14px 28px',
+                    borderRadius: '12px',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    justifyContent: 'center',
+                    flex: '1',
+                    minWidth: '120px',
+                    background: isActive ? 'linear-gradient(to right, #2563eb, #9333ea)' : '#f8fafc',
+                    color: isActive ? 'white' : '#475569',
+                    border: isActive ? 'none' : '1px solid #e2e8f0',
+                    boxShadow: isActive ? '0 10px 15px -3px rgba(59, 130, 246, 0.3)' : 'none'
+                  }}
                 >
                   <Icon size={18} />
                   <span>{tab.label}</span>
@@ -206,13 +289,15 @@ export function StatsPage() {
         </div>
 
         {/* Tab Content */}
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ padding: '0 4px' }}>
           {activeTab === 'summary' && (
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
               <div className="xl:col-span-8 space-y-6">
-                <RankedComparisonCard rankedStats={playerData.rankedStats as any} />
+                <div style={{ padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+                  <RankedComparisonCard rankedStats={playerData.rankedStats as any} />
+                </div>
                 {hasMatches ? (
-                  <MatchHistory matches={playerData.matches || []} />
+                  <MatchHistory matches={playerData.matches || []} playerPuuid={playerData.puuid} />
                 ) : (
                   <EmptyState
                     icon={Target}

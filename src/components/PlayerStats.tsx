@@ -45,7 +45,7 @@ const getRankColor = (tier: string): string => {
   return colors[tier] || 'text-slate-500'
 }
 
-export function PlayerStats({ playerData, rankedStats }: PlayerStatsProps) {
+export function PlayerStats({ rankedStats }: PlayerStatsProps) {
   // Extraer solo ranked si es RankedStatsExtended
   const soloRanked = getSoloRanked(rankedStats)
 

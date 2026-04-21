@@ -11,18 +11,35 @@ interface HeaderProps {
 
 export function Header({ 
   title = 'LoL Professor', 
-  subtitle = 'Análisis Elite de League of Legends',
+  subtitle = '',
   showFeatures = true,
   actions,
   variant = 'default'
 }: HeaderProps) {
   const renderLogo = () => (
-    <div className="logo">
-      <div className="logo-icon">
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ 
+        width: '48px', 
+        height: '48px', 
+        background: 'linear-gradient(135deg, #3b82f6, #9333ea)', 
+        borderRadius: '16px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        color: 'white',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+      }}>
         <Sparkles size={24} />
       </div>
       <div>
-        <h1 className="logo-text">{title}</h1>
+        <h1 style={{ 
+          fontSize: '28px', 
+          fontWeight: 'bold',
+          background: 'linear-gradient(135deg, #3b82f6, #9333ea)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}>{title}</h1>
         {subtitle && (
           <p style={{ fontSize: '14px', color: '#6b7280', fontWeight: '500' }}>
             {subtitle}
@@ -53,20 +70,20 @@ export function Header({
     switch (variant) {
       case 'minimal':
         return (
-          <div className="header-content">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '80px' }}>
             {renderLogo()}
           </div>
         )
       case 'profile':
         return (
-          <div className="header-content">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '80px' }}>
             {renderLogo()}
             {actions}
           </div>
         )
       default:
         return (
-          <div className="header-content">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '80px' }}>
             {renderLogo()}
             {showFeatures && renderFeatures()}
             {actions}
@@ -76,8 +93,16 @@ export function Header({
   }
 
   return (
-    <header className="header">
-      <div className="container">
+    <header style={{ 
+      background: 'rgba(255, 255, 255, 0.9)',
+      backdropFilter: 'blur(10px)',
+      borderBottom: '1px solid rgba(99, 102, 241, 0.1)',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+      position: 'sticky',
+      top: 0,
+      zIndex: 50
+    }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
         {renderContent()}
       </div>
     </header>

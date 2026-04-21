@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, User, Sparkles, Zap, Target, AlertCircle } from 'lucide-react'
+import { Search, User, Zap, Target, AlertCircle } from 'lucide-react'
 
 interface SearchBarProps {
   onPlayerFound: (playerData: any) => void
@@ -7,7 +7,7 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ onPlayerFound, onError }: SearchBarProps) {
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState('MeowthTeamRocket#TRCKT')
   const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [searchSuccess, setSearchSuccess] = useState<string | null>(null)
@@ -53,8 +53,17 @@ export function SearchBar({ onPlayerFound, onError }: SearchBarProps) {
       }
 
       const fullData = await comprehensiveResponse.json()
-      console.log('Comprehensive data received:', fullData)
-      console.log('Matches:', fullData.matches?.length || 0)
+      console.log('=== FULL DATA ===')
+      console.log('gameName:', fullData.gameName)
+      console.log('puuid:', fullData.puuid)
+      console.log('Matches count:', fullData.matches?.length || 0)
+      if (fullData.matches?.[0]?.participants?.length) {
+        console.log('First match participants:', fullData.matches[0].participants.map((p: any) => ({
+          summonerName: p.summonerName,
+          championName: p.championName,
+          puuid: p.puuid
+        })))
+      }
       console.log('Mastery:', fullData.mastery?.length || 0)
       console.log('Current game:', fullData.currentGame ? 'Yes' : 'No')
 
@@ -77,35 +86,17 @@ export function SearchBar({ onPlayerFound, onError }: SearchBarProps) {
   }
 
   return (
-    <div className="search-container">
-      <div className="search-card">
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 20px' }}>
+      <div style={{ background: 'white', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden' }}>
         {/* Decorative Header */}
-        <div className="search-header">
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.2)' }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to top, transparent, rgba(255, 255, 255, 0.1))' }}></div>
-          </div>
-          <div style={{ position: 'relative', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className="search-header-content">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '8px' }}>
-                <div style={{ position: 'relative' }}>
-                  <div style={{ width: '64px', height: '64px', background: 'rgba(255, 255, 255, 0.2)', backdropFilter: 'blur(10px)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Sparkles size={32} style={{ color: 'white' }} />
-                  </div>
-                  <div style={{ position: 'absolute', top: '-4px', right: '-4px', width: '16px', height: '16px', background: '#fbbf24', borderRadius: '50%', animation: 'pulse 2s infinite' }}></div>
-                </div>
-                <h1 style={{ fontSize: '36px', fontWeight: 'bold', color: 'white' }}>
-                  LoL Professor
-                </h1>
-              </div>
-              <p style={{ color: 'rgba(219, 234, 254, 1)', fontSize: '20px', fontWeight: '500' }}>
-                Análisis Élite de Estadísticas de League of Legends
-              </p>
-            </div>
-          </div>
+        <div style={{ height: '140px', background: 'linear-gradient(135deg, #3b82f6, #9333ea)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p style={{ color: 'white', fontSize: '24px', fontWeight: 'bold' }}>
+            Busca cualquier jugador
+          </p>
         </div>
 
-        <div className="search-body">
-          <form onSubmit={handleSearch} className="search-form">
+        <div style={{ padding: '40px', marginTop: '-40px' }}>
+          <form onSubmit={handleSearch} style={{ background: 'white', borderRadius: '20px', padding: '40px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6' }}>
@@ -117,7 +108,7 @@ export function SearchBar({ onPlayerFound, onError }: SearchBarProps) {
                   <span style={{ fontWeight: '600' }}>Datos Precisos</span>
                 </div>
               </div>
-              <p style={{ color: '#6b7280', fontSize: '18px' }}>
+              <p style={{ color: '#475569', fontSize: '18px' }}>
                 Ingresa el nombre de invocador o Riot ID para obtener estadísticas detalladas
               </p>
             </div>
@@ -188,14 +179,18 @@ export function SearchBar({ onPlayerFound, onError }: SearchBarProps) {
                 <button
                   type="submit"
                   disabled={isSearching || !searchQuery.trim()}
-                  className="button-primary"
                   style={{
                     padding: '16px 32px',
                     fontSize: '16px',
                     borderRadius: '12px',
                     minWidth: '120px',
                     border: 'none',
-                    cursor: isSearching || !searchQuery.trim() ? 'not-allowed' : 'pointer'
+                    cursor: isSearching || !searchQuery.trim() ? 'not-allowed' : 'pointer',
+                    background: 'linear-gradient(135deg, #3b82f6, #9333ea)',
+                    color: 'white',
+                    fontWeight: '600',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                    transition: 'all 0.3s ease'
                   }}
                 >
                   {isSearching ? (
@@ -246,10 +241,10 @@ export function SearchBar({ onPlayerFound, onError }: SearchBarProps) {
               </div>
             )}
 
-            <div className="search-badges">
-              <span className="badge badge-primary">Nombre de invocador</span>
-              <span className="badge badge-secondary">Formato: Nombre#Etiqueta</span>
-              <span className="badge badge-success">Datos en tiempo real</span>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '24px', flexWrap: 'wrap' }}>
+              <span style={{ padding: '8px 16px', borderRadius: '20px', fontSize: '14px', fontWeight: '500', background: '#dbeafe', color: '#1e40af', border: 'none' }}>Nombre de invocador</span>
+              <span style={{ padding: '8px 16px', borderRadius: '20px', fontSize: '14px', fontWeight: '500', background: '#f3e8ff', color: '#6b21a8', border: 'none' }}>Formato: Nombre#Etiqueta</span>
+              <span style={{ padding: '8px 16px', borderRadius: '20px', fontSize: '14px', fontWeight: '500', background: '#dcfce7', color: '#166534', border: 'none' }}>Datos en tiempo real</span>
             </div>
           </form>
         </div>

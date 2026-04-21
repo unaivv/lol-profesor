@@ -43,20 +43,20 @@ export function LandingPage() {
   }
 
   return (
-    <div className="gradient-bg min-h-screen">
+    <div style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #f3e8ff 100%)', minHeight: '100vh' }}>
       {/* Generic Header */}
       <Header />
 
       {/* Hero Section */}
-      <div className="hero-section">
-        <div className="container">
-          <h2 className="hero-title">
+      <div style={{ padding: '80px 20px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+          <h2 style={{ fontSize: '48px', fontWeight: 'bold', marginBottom: '16px', lineHeight: '1.2' }}>
             Analiza tu rendimiento como un{' '}
             <span style={{ background: 'linear-gradient(135deg, #3b82f6, #9333ea)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               Profesional
             </span>
           </h2>
-          <p className="hero-subtitle">
+          <p style={{ fontSize: '20px', color: '#6b7280', maxWidth: '800px', margin: '0 auto 32px' }}>
             Estadísticas detalladas, historial completo de partidas y análisis en tiempo real para llevar tu juego al siguiente nivel
           </p>
         </div>
@@ -64,7 +64,7 @@ export function LandingPage() {
 
       {/* Main Content */}
       <main>
-        <div className="container" style={{ paddingTop: '32px', paddingBottom: '32px' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px 32px' }}>
           <SearchBar onPlayerFound={handlePlayerFound} onError={handleError} />
 
           {error && (
@@ -340,23 +340,23 @@ export function LandingPage() {
                 Busca cualquier jugador de League of Legends para descubrir estadísticas detalladas,
                 patrones de juego y áreas de mejora
               </p>
-              <div className="welcome-cards">
-                <div className="welcome-card">
-                  <div className="welcome-icon welcome-icon-blue">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', maxWidth: '1000px', margin: '0 auto', padding: '0 20px' }}>
+                <div style={{ background: 'white', borderRadius: '20px', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', border: '1px solid #e5e7eb', transition: 'transform 0.3s ease, box-shadow 0.3s ease' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto', background: '#dbeafe', color: '#1e40af' }}>
                     <Target size={24} />
                   </div>
                   <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', marginBottom: '8px' }}>Estadísticas Precisas</h3>
                   <p style={{ color: '#6b7280', fontSize: '14px' }}>Datos en tiempo real directamente de Riot Games</p>
                 </div>
-                <div className="welcome-card">
-                  <div className="welcome-icon welcome-icon-purple">
+                <div style={{ background: 'white', borderRadius: '20px', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', border: '1px solid #e5e7eb', transition: 'transform 0.3s ease, box-shadow 0.3s ease' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto', background: '#f3e8ff', color: '#6b21a8' }}>
                     <Shield size={24} />
                   </div>
                   <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', marginBottom: '8px' }}>Análisis Profundo</h3>
                   <p style={{ color: '#6b7280', fontSize: '14px' }}>Historial completo y métricas de rendimiento</p>
                 </div>
-                <div className="welcome-card">
-                  <div className="welcome-icon welcome-icon-green">
+                <div style={{ background: 'white', borderRadius: '20px', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', border: '1px solid #e5e7eb', transition: 'transform 0.3s ease, box-shadow 0.3s ease' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto', background: '#dcfce7', color: '#166534' }}>
                     <Trophy size={24} />
                   </div>
                   <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', marginBottom: '8px' }}>Mejora Continua</h3>

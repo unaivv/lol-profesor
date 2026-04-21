@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Star, Trophy, Target, Zap, Crown, Clock } from 'lucide-react'
-import { DetailedMatch, Participant } from '../types/api'
+import { DetailedMatch } from '../types/api'
 
 interface MasteryStatsProps {
   matches: DetailedMatch[]

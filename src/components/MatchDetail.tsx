@@ -60,9 +60,26 @@ const PlayerRow = ({ player, isCurrentPlayer }: PlayerRowProps) => {
       gap: '8px',
       padding: '8px 10px',
       borderRadius: '8px',
-      background: isCurrentPlayer ? 'rgba(234, 179, 8, 0.1)' : 'transparent',
+      background: isCurrentPlayer ? 'rgba(234, 179, 8, 0.15)' : 'transparent',
       border: isCurrentPlayer ? '2px solid #eab308' : '1px solid transparent',
+      position: 'relative',
     }}>
+      {isCurrentPlayer && (
+        <div style={{
+          position: 'absolute',
+          top: '-4px',
+          left: '-4px',
+          background: '#eab308',
+          color: 'white',
+          fontSize: '8px',
+          fontWeight: 'bold',
+          padding: '2px 4px',
+          borderRadius: '4px',
+          zIndex: 10
+        }}>
+          TÚ
+        </div>
+      )}
       <img
         src={getChampionIcon(player.championId, player.championName)}
         alt={player.championName}

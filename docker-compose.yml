@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  lol-professor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - RIOT_API_KEY=${RIOT_API_KEY}
+    restart: unless-stopped
+
+    networks:
+      - lol-network
+
+networks:
+  lol-network:
+    driver: bridge

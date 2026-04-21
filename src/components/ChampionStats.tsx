@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Users, Trophy, TrendingUp, BarChart3, Target, Swords } from 'lucide-react'
-import { DetailedMatch, Participant } from '../types/api'
+import { DetailedMatch } from '../types/api'
 
 interface ChampionStatsProps {
   matches: DetailedMatch[]
