@@ -219,7 +219,11 @@ export function MatchCard({ match, playerPuuid, onExpand, isExpanded }: MatchCar
 }
 
 export function getChampionItems(player: Participant): number[] {
-  return [player.item0, player.item1, player.item2, player.item3, player.item4, player.item5, player.item6].filter(i => i !== 0)
+  return [player.item0 || 0, player.item1 || 0, player.item2 || 0, player.item3 || 0, player.item4 || 0, player.item5 || 0, player.item6 || 0]
+}
+
+export function hasItem(player: Participant, itemId: number): boolean {
+  return player.item0 === itemId || player.item1 === itemId || player.item2 === itemId || player.item3 === itemId || player.item4 === itemId || player.item5 === itemId || player.item6 === itemId
 }
 
 export function getItemIcon(itemId: number): string {

@@ -118,11 +118,21 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP }: PlayerRowProps) => {
         <span style={{ fontSize: '12px', fontWeight: 600, color: kdaColor }}>{player.assists}</span>
       </div>
       <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
-        {items.map((item, idx) => (
-          <div key={idx} style={{ width: '20px', height: '20px', background: '#0f172a', borderRadius: '3px', overflow: 'hidden' }}>
-            {item > 0 && <img src={getItemIcon(item)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />}
-          </div>
-        ))}
+        {[0,1,2,3,4,5,6].map(idx => {
+          const item = items[idx]
+          return (
+            <div key={idx} style={{ 
+              width: '20px', 
+              height: '20px', 
+              background: item > 0 ? '#0f172a' : 'rgba(15, 23, 42, 0.3)', 
+              borderRadius: '3px', 
+              overflow: 'hidden',
+              border: item === 0 ? '1px dashed #475569' : 'none'
+            }}>
+              {item > 0 && <img src={getItemIcon(item)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -371,14 +381,21 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
                 border: '1px solid #fde047'
               }}>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                  {items.map((item, idx) => (
-                    <div key={idx} style={{ width: '40px', height: '40px', background: '#0f172a', borderRadius: '6px', overflow: 'hidden' }}>
-                      {item > 0 && <img src={getItemIcon(item)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                    </div>
-                  ))}
-                  {Array.from({ length: Math.max(0, 6 - items.length) }).map((_, idx) => (
-                    <div key={`empty-${idx}`} style={{ width: '40px', height: '40px', background: 'rgba(15, 23, 42, 0.1)', borderRadius: '6px', border: '1px dashed #94a3b8' }} />
-                  ))}
+                  {[0,1,2,3,4,5,6].map(idx => {
+                    const item = items[idx]
+                    return (
+                      <div key={idx} style={{ 
+                        width: '40px', 
+                        height: '40px', 
+                        background: item > 0 ? '#0f172a' : 'rgba(15, 23, 42, 0.1)', 
+                        borderRadius: '6px', 
+                        overflow: 'hidden',
+                        border: item === 0 ? '1px dashed #94a3b8' : 'none'
+                      }}>
+                        {item > 0 && <img src={getItemIcon(item)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />}
+                      </div>
+                    )
+                  })}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
