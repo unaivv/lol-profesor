@@ -123,12 +123,20 @@ export function StatsPage() {
 
   // Manejar tanto RankedStats simple como RankedStatsExtended
   const rankedData = playerData.rankedStats
+  console.log('-rankedData:', rankedData)
+  console.log('-solo:', rankedData?.solo)
+  console.log('-flex:', rankedData?.flex)
   const isExtended = rankedData && 'solo' in rankedData
   const soloRanked = isExtended ? (rankedData as any).solo : rankedData
   const flexRanked = isExtended ? (rankedData as any).flex : null
   const hasSoloRanked = soloRanked !== null && soloRanked !== undefined
   const hasFlexRanked = flexRanked !== null && flexRanked !== undefined
   const hasAnyRanked = hasSoloRanked || hasFlexRanked
+  console.log('-soloRanked:', soloRanked)
+  console.log('-flexRanked:', flexRanked)
+  console.log('-hasSoloRanked:', hasSoloRanked)
+  console.log('-hasFlexRanked:', hasFlexRanked)
+  console.log('-hasAnyRanked:', hasAnyRanked)
 
   return (
     <div style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #f3e8ff 100%)', minHeight: '100vh' }}>

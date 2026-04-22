@@ -560,6 +560,8 @@ app.get('/api/player/:gameName/:tagLine/comprehensive', async (req: Request, res
 
     // Extract ranked data
     const rankedData = rankedResponse.status === 'fulfilled' ? rankedResponse.value.data : [];
+    console.log('[RANKED] Full ranked data:', rankedData);
+    console.log('[RANKED] Status:', rankedResponse.status);
     
     // Filter for different queue types - Riot changed queue type names
     const soloQueue = rankedData.find((entry: any) => 
@@ -568,7 +570,11 @@ app.get('/api/player/:gameName/:tagLine/comprehensive', async (req: Request, res
     const flexQueue = rankedData.find((entry: any) => 
       entry.queueType === 'RANKED_FLEX_SR' || entry.queueType === 'FLEX' || entry.queueType?.includes('FLEX')
     );
+    console.log('[RANKED] soloQueue:', soloQueue);
+    console.log('[RANKED] flexQueue:', flexQueue);
 
+    console.log('[RANKED] rankedStats being sent:', { solo: soloQueue ? 'has data' : 'null', flex: flexQueue ? 'has data' : 'null' });
+    
     const rankedStats: RankedStatsExtended = {
       solo: soloQueue ? {
         tier: soloQueue.tier,

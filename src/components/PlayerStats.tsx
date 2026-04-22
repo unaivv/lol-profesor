@@ -46,8 +46,10 @@ const getRankColor = (tier: string): string => {
 }
 
 export function PlayerStats({ rankedStats }: PlayerStatsProps) {
+  console.log('PLAYER STATS - rankedStats:', rankedStats)
   // Extraer solo ranked si es RankedStatsExtended
   const soloRanked = getSoloRanked(rankedStats)
+  console.log('PLAYER STATS - soloRanked:', soloRanked)
 
   const winRate = soloRanked
     ? Math.round((soloRanked.wins / (soloRanked.wins + soloRanked.losses)) * 100)
