@@ -61,8 +61,8 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP }: PlayerRowProps) => {
   const kdaColor = kdaRatio >= 4 ? '#10b981' : kdaRatio >= 2.5 ? '#2563eb' : kdaRatio >= 1 ? '#d97706' : '#dc2626'
   const items = getChampionItems(player)
   const trinket = getTrinket(player)
-  const visionScore = (player.visionScore ?? 0) || 
-                      ((player.visionWardsBoughtInGame || 0) + (player.wardsPlaced || 0) + (player.wardsKilled || 0))
+  const visionScore = (player.visionScore ?? 0) ||
+    ((player.visionWardsBoughtInGame || 0) + (player.wardsPlaced || 0) + (player.wardsKilled || 0))
 
   return (
     <div style={{
@@ -113,9 +113,9 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP }: PlayerRowProps) => {
         style={{ width: '32px', height: '32px', borderRadius: '6px' }}
       />
       <div style={{ flex: 1, minWidth: '0' }}>
-        <div style={{ 
-          fontSize: '12px', 
-          fontWeight: isCurrentPlayer ? 700 : 500, 
+        <div style={{
+          fontSize: '12px',
+          fontWeight: isCurrentPlayer ? 700 : 500,
           color: isCurrentPlayer ? '#b45309' : '#1e293b',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
@@ -133,14 +133,14 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP }: PlayerRowProps) => {
         <span style={{ fontSize: '12px', fontWeight: 600, color: kdaColor }}>{player.assists}</span>
       </div>
       <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
-        {[0,1,2,3,4,5].map(idx => {
+        {[0, 1, 2, 3, 4, 5].map(idx => {
           const item = items[idx]
           return (
-            <div key={idx} style={{ 
-              width: '20px', 
-              height: '20px', 
-              background: item > 0 ? '#0f172a' : 'rgba(15, 23, 42, 0.3)', 
-              borderRadius: '3px', 
+            <div key={idx} style={{
+              width: '20px',
+              height: '20px',
+              background: item > 0 ? '#0f172a' : 'rgba(15, 23, 42, 0.3)',
+              borderRadius: '3px',
               overflow: 'hidden',
               border: item === 0 ? '1px dashed #475569' : 'none'
             }}>
@@ -150,30 +150,30 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP }: PlayerRowProps) => {
         })}
       </div>
       {trinket > 0 && (
-        <div style={{ 
-          width: '20px', 
-          height: '20px', 
-          background: '#0f172a', 
-          borderRadius: '3px', 
+        <div style={{
+          width: '20px',
+          height: '20px',
+          background: '#0f172a',
+          borderRadius: '3px',
           overflow: 'hidden'
         }}>
           <img src={getItemIcon(trinket)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
         </div>
       )}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '2px', 
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '2px',
         minWidth: '40px',
         padding: '2px 6px',
         background: visionScore >= 25 ? 'rgba(59, 130, 246, 0.15)' : 'rgba(100, 116, 139, 0.1)',
         borderRadius: '4px'
       }}>
         <span style={{ fontSize: '10px' }}>👁️</span>
-        <span style={{ 
-          fontSize: '11px', 
-          fontWeight: 600, 
-          color: visionScore >= 25 ? '#3b82f6' : '#64748b' 
+        <span style={{
+          fontSize: '11px',
+          fontWeight: 600,
+          color: visionScore >= 25 ? '#3b82f6' : '#64748b'
         }}>
           {visionScore}
         </span>
@@ -186,6 +186,7 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
   const [timeline, setTimeline] = useState<MatchTimeline | null>(null)
   const [timelineLoading, setTimelineLoading] = useState(false)
   const [timelineError, setTimelineError] = useState<string | null>(null)
+  const [activeEventTime, setActiveEventTime] = useState<string | null>(null)
   const blueListRef = useRef<HTMLDivElement>(null)
   const redListRef = useRef<HTMLDivElement>(null)
 
@@ -237,159 +238,171 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
 
   const getEventIcon = (type: string) => {
     switch (type) {
-        case 'CHAMPION_KILL':
-            return <Skull size={12} />
-        case 'ELITE_MONSTER_KILL':
-            return <Shield size={12} style={{ color: '#f97316' }} />
-        case 'BUILDING_KILL':
-            return <Target size={12} style={{ color: '#ef4444' }} />
-        case 'ITEM_PURCHASED':
-        case 'ITEM_SOLD':
-        case 'ITEM_DESTROYED':
-            return <Zap size={12} style={{ color: '#10b981' }} />
-        case 'SKILL_LEVEL_UP':
-        case 'LEVEL_UP':
-            return <Target size={12} style={{ color: '#8b5cf6' }} />
-        case 'WARD_PLACED':
-            return <Target size={12} style={{ color: '#06b6d4' }} />
-        case 'WARD_KILL':
-            return <Target size={12} style={{ color: '#f59e0b' }} />
-        default:
-            return <Target size={12} />
+      case 'CHAMPION_KILL':
+        return <Skull size={12} />
+      case 'ELITE_MONSTER_KILL':
+        return <Shield size={12} style={{ color: '#f97316' }} />
+      case 'BUILDING_KILL':
+        return <Target size={12} style={{ color: '#ef4444' }} />
+      case 'ITEM_PURCHASED':
+      case 'ITEM_SOLD':
+      case 'ITEM_DESTROYED':
+        return <Zap size={12} style={{ color: '#10b981' }} />
+      case 'SKILL_LEVEL_UP':
+      case 'LEVEL_UP':
+        return <Target size={12} style={{ color: '#8b5cf6' }} />
+      case 'WARD_PLACED':
+        return <Target size={12} style={{ color: '#06b6d4' }} />
+      case 'WARD_KILL':
+        return <Target size={12} style={{ color: '#f59e0b' }} />
+      default:
+        return <Target size={12} />
     }
-}
+  }
 
-const extractKeyEvents = () => {
+  const extractKeyEvents = () => {
     if (!timeline?.frames || !match?.participants) return { blue: [], red: [], merged: [] }
-    
+
     // Create participant map with summonerName and teamId
     const participantMap = new Map(
-        match.participants.map(p => [p.participantId, { 
-            summonerName: p.summonerName || p.championName || 'Unknown',
-            teamId: p.teamId
-        }])
+      match.participants.map(p => [p.participantId, {
+        summonerName: p.summonerName || p.championName || 'Unknown',
+        teamId: p.teamId
+      }])
     )
-    
+
     interface TimelineEvent {
-        id: string
-        time: string
-        seconds: number
-        type: string
-        typeLabel: string
-        killer?: string
-        team: 'blue' | 'red'
+      id: string
+      time: string
+      seconds: number
+      type: string
+      typeLabel: string
+      killer?: string
+      team: 'blue' | 'red'
     }
-    
+
     const blueEvents: TimelineEvent[] = []
     const redEvents: TimelineEvent[] = []
-    
+
     // Collect all events from all frames
     for (const frame of timeline.frames) {
-        for (const event of (frame.events || [])) {
-            const eventTimeStr = formatTimestamp(event.timestamp)
-            const eventSeconds = Math.floor(event.timestamp / 1000)
-            const eventType = event.type
-            
-            if (eventType === 'CHAMPION_KILL' && event.killerId != null && event.victimId != null) {
-                const killerInfo = participantMap.get(event.killerId)
-                const killerName = killerInfo ? killerInfo.summonerName : 'Unknown'
-                const victimInfo = participantMap.get(event.victimId)
-                const victimName = victimInfo ? victimInfo.summonerName : 'Unknown'
-                const killerTeamId = killerInfo ? killerInfo.teamId : 0
-                const eventLabel = `${killerName} 💀 ${victimName}`
-                const ev: TimelineEvent = { 
-                    id: `kill-${event.killerId}-${event.victimId}-${eventSeconds}`, 
-                    time: eventTimeStr, 
-                    seconds: eventSeconds, 
-                    type: eventType, 
-                    typeLabel: eventLabel, 
-                    killer: killerName,
-                    team: killerTeamId === 100 ? 'blue' : 'red'
-                }
-                if (killerTeamId === 100) blueEvents.push(ev)
-                else if (killerTeamId === 200) redEvents.push(ev)
-                
-            } else if (eventType === 'ELITE_MONSTER_KILL' && event.killerId != null) {
-                const killerInfo = participantMap.get(event.killerId)
-                const killerName = killerInfo ? killerInfo.summonerName : 'Unknown'
-                const killerTeamId = killerInfo ? killerInfo.teamId : 0
-                let monsterName = event.monsterType || 'monstruo épico'
-                if (event.monsterSubType) monsterName += ` (${event.monsterSubType})`
-                const eventLabel = `${killerName} 🐉 Mata ${monsterName}`
-                const ev: TimelineEvent = { 
-                    id: `monster-${eventSeconds}-${killerName}`, 
-                    time: eventTimeStr, 
-                    seconds: eventSeconds, 
-                    type: eventType, 
-                    typeLabel: eventLabel, 
-                    killer: killerName,
-                    team: killerTeamId === 100 ? 'blue' : 'red'
-                }
-                if (killerTeamId === 100) blueEvents.push(ev)
-                else if (killerTeamId === 200) redEvents.push(ev)
-                
-            } else if (eventType === 'BUILDING_KILL' && event.killerId != null) {
-                const killerInfo = participantMap.get(event.killerId)
-                const killerName = killerInfo ? killerInfo.summonerName : 'Unknown'
-                const killerTeamId = killerInfo ? killerInfo.teamId : 0
-                const buildingType = event.buildingType || 'estructura'
-                const teamLabel = killerTeamId === 100 ? 'enemiga' : 'aliada'
-                const eventLabel = `${killerName} 🏰 Destruye ${buildingType} ${teamLabel}`
-                const ev: TimelineEvent = { 
-                    id: `build-${eventSeconds}-${killerName}`, 
-                    time: eventTimeStr, 
-                    seconds: eventSeconds, 
-                    type: eventType, 
-                    typeLabel: eventLabel, 
-                    killer: killerName,
-                    team: killerTeamId === 100 ? 'blue' : 'red'
-                }
-                if (killerTeamId === 100) blueEvents.push(ev)
-                else if (killerTeamId === 200) redEvents.push(ev)
-            }
+      for (const event of (frame.events || [])) {
+        const eventTimeStr = formatTimestamp(event.timestamp)
+        const eventSeconds = Math.floor(event.timestamp / 1000)
+        const eventType = event.type
+
+        if (eventType === 'CHAMPION_KILL' && event.killerId != null && event.victimId != null) {
+          const killerInfo = participantMap.get(event.killerId)
+          const killerName = killerInfo ? killerInfo.summonerName : 'Unknown'
+          const victimInfo = participantMap.get(event.victimId)
+          const victimName = victimInfo ? victimInfo.summonerName : 'Unknown'
+          const killerTeamId = killerInfo ? killerInfo.teamId : 0
+          const eventLabel = `${killerName} 💀 ${victimName}`
+          const ev: TimelineEvent = {
+            id: `kill-${event.killerId}-${event.victimId}-${eventSeconds}`,
+            time: eventTimeStr,
+            seconds: eventSeconds,
+            type: eventType,
+            typeLabel: eventLabel,
+            killer: killerName,
+            team: killerTeamId === 100 ? 'blue' : 'red'
+          }
+          if (killerTeamId === 100) blueEvents.push(ev)
+          else if (killerTeamId === 200) redEvents.push(ev)
+
+        } else if (eventType === 'ELITE_MONSTER_KILL' && event.killerId != null) {
+          const killerInfo = participantMap.get(event.killerId)
+          const killerName = killerInfo ? killerInfo.summonerName : 'Unknown'
+          const killerTeamId = killerInfo ? killerInfo.teamId : 0
+          let monsterName = event.monsterType || 'monstruo épico'
+          if (event.monsterSubType) monsterName += ` (${event.monsterSubType})`
+          const eventLabel = `${killerName} 🐉 Mata ${monsterName}`
+          const ev: TimelineEvent = {
+            id: `monster-${eventSeconds}-${killerName}`,
+            time: eventTimeStr,
+            seconds: eventSeconds,
+            type: eventType,
+            typeLabel: eventLabel,
+            killer: killerName,
+            team: killerTeamId === 100 ? 'blue' : 'red'
+          }
+          if (killerTeamId === 100) blueEvents.push(ev)
+          else if (killerTeamId === 200) redEvents.push(ev)
+
+        } else if (eventType === 'BUILDING_KILL' && event.killerId != null) {
+          const killerInfo = participantMap.get(event.killerId)
+          const killerName = killerInfo ? killerInfo.summonerName : 'Unknown'
+          const killerTeamId = killerInfo ? killerInfo.teamId : 0
+          const buildingType = event.buildingType || 'estructura'
+          const teamLabel = killerTeamId === 100 ? 'enemiga' : 'aliada'
+          const eventLabel = `${killerName} 🏰 Destruye ${buildingType} ${teamLabel}`
+          const ev: TimelineEvent = {
+            id: `build-${eventSeconds}-${killerName}`,
+            time: eventTimeStr,
+            seconds: eventSeconds,
+            type: eventType,
+            typeLabel: eventLabel,
+            killer: killerName,
+            team: killerTeamId === 100 ? 'blue' : 'red'
+          }
+          if (killerTeamId === 100) blueEvents.push(ev)
+          else if (killerTeamId === 200) redEvents.push(ev)
         }
+      }
     }
-    
+
     // Sort by time
     const sortEvents = (events: TimelineEvent[]) => events.sort((a, b) => a.seconds - b.seconds)
-    const sortedBlue = sortEvents(blueEvents)
-    const sortedRed = sortEvents(redEvents)
-    
+
+    // Deduplicate events using a Map (keep first occurrence)
+    const deduplicate = (events: TimelineEvent[]) => {
+      const seen = new Map<string, TimelineEvent>()
+      for (const event of events) {
+        if (!seen.has(event.id)) {
+          seen.set(event.id, event)
+        }
+      }
+      return Array.from(seen.values())
+    }
+
+    const sortedBlue = deduplicate(sortEvents(blueEvents))
+    const sortedRed = deduplicate(sortEvents(redEvents))
+
     // Create merged timeline - pair events that happen at the same time
     const merged: Array<{ id: string; time: string; seconds: number; blue?: TimelineEvent; red?: TimelineEvent }> = []
     let blueIdx = 0
     let redIdx = 0
-    
+
     while (blueIdx < sortedBlue.length || redIdx < sortedRed.length) {
-        const blue = sortedBlue[blueIdx]
-        const red = sortedRed[redIdx]
-        
-        if (blue && (!red || blue.seconds <= red.seconds)) {
-            merged.push({
-                id: `merged-${blue.seconds}`,
-                time: blue.time,
-                seconds: blue.seconds,
-                blue
-            })
-            // Check if there's also a red event at exactly the same second
-            if (red && red.seconds === blue.seconds) {
-                merged[merged.length - 1].red = red
-                redIdx++
-            }
-            blueIdx++
-        } else if (red) {
-            merged.push({
-                id: `merged-${red.seconds}`,
-                time: red.time,
-                seconds: red.seconds,
-                red
-            })
-            redIdx++
+      const blue = sortedBlue[blueIdx]
+      const red = sortedRed[redIdx]
+
+      if (blue && (!red || blue.seconds <= red.seconds)) {
+        merged.push({
+          id: `merged-${blue.seconds}`,
+          time: blue.time,
+          seconds: blue.seconds,
+          blue
+        })
+        // Check if there's also a red event at exactly the same second
+        if (red && red.seconds === blue.seconds) {
+          merged[merged.length - 1].red = red
+          redIdx++
         }
+        blueIdx++
+      } else if (red) {
+        merged.push({
+          id: `merged-${red.seconds}`,
+          time: red.time,
+          seconds: red.seconds,
+          red
+        })
+        redIdx++
+      }
     }
-    
+
     return { blue: sortedBlue, red: sortedRed, merged }
-}
+  }
 
   const keyEvents = extractKeyEvents()
 
@@ -445,14 +458,14 @@ const extractKeyEvents = () => {
           <X size={20} color="#64748b" />
         </button>
 
-        <div style={{ 
-          flex: 1, 
+        <div style={{
+          flex: 1,
           overflowY: 'auto',
           padding: '24px'
         }}>
-          <div style={{ 
-            background: 'linear-gradient(90deg, #1e293b 0%, #0f172a 100%)', 
-            margin: '-24px -24px 24px -24px', 
+          <div style={{
+            background: 'linear-gradient(90deg, #1e293b 0%, #0f172a 100%)',
+            margin: '-24px -24px 24px -24px',
             padding: '20px 24px',
             borderRadius: '16px 16px 0 0'
           }}>
@@ -493,9 +506,9 @@ const extractKeyEvents = () => {
                 <Shield size={16} color="#3b82f6" />
                 Tu Performance
               </h3>
-              <div style={{ 
-                background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', 
-                borderRadius: '12px', 
+              <div style={{
+                background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                borderRadius: '12px',
                 padding: '16px',
                 border: '1px solid #93c5fd'
               }}>
@@ -541,21 +554,21 @@ const extractKeyEvents = () => {
                 <Target size={16} color="#f59e0b" />
                 Tu Build
               </h3>
-              <div style={{ 
-                background: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)', 
-                borderRadius: '12px', 
+              <div style={{
+                background: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)',
+                borderRadius: '12px',
                 padding: '16px',
                 border: '1px solid #fde047'
               }}>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                  {[0,1,2,3,4,5].map(idx => {
+                  {[0, 1, 2, 3, 4, 5].map(idx => {
                     const item = items[idx]
                     return (
-                      <div key={idx} style={{ 
-                        width: '40px', 
-                        height: '40px', 
-                        background: item > 0 ? '#0f172a' : 'rgba(15, 23, 42, 0.1)', 
-                        borderRadius: '6px', 
+                      <div key={idx} style={{
+                        width: '40px',
+                        height: '40px',
+                        background: item > 0 ? '#0f172a' : 'rgba(15, 23, 42, 0.1)',
+                        borderRadius: '6px',
                         overflow: 'hidden',
                         border: item === 0 ? '1px dashed #94a3b8' : 'none'
                       }}>
@@ -619,14 +632,15 @@ const extractKeyEvents = () => {
               <Zap size={16} color="#8b5cf6" />
               Timeline - Línea de Tiempo
             </h3>
-            
+
             {/* Timeline Visual con línea horizontal */}
-            <div style={{ 
-              background: '#f8fafc', 
-              borderRadius: '12px', 
+            <div style={{
+              background: '#f8fafc',
+              borderRadius: '12px',
               padding: '20px',
               border: '1px solid #e2e8f0',
-              minHeight: '160px'
+              minHeight: '160px',
+              overflowX: 'hidden'
             }}>
               {timelineLoading ? (
                 <div style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
@@ -644,34 +658,34 @@ const extractKeyEvents = () => {
                     <div style={{
                       position: 'absolute',
                       top: '50%',
-                      left: '40px',
-                      right: '40px',
+                      left: '0',
+                      right: '0',
                       height: '3px',
                       background: 'linear-gradient(90deg, #3b82f6 0%, #6366f1 50%, #ef4444 100%)',
                       borderRadius: '2px',
                       transform: 'translateY(-50%)'
                     }} />
-                    
+
                     {/* Marcas de tiempo */}
                     {[0, 25, 50, 75, 100].map((percent) => {
                       const timeMin = Math.floor((match.gameDuration * percent) / 100 / 60)
                       return (
                         <div key={percent} style={{
                           position: 'absolute',
-                          top: '50%',
-                          left: `calc(40px + ${percent}%)`,
+                          top: '55%',
+                          left: `${percent}%`,
                           transform: 'translate(-50%, -50%)',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center'
                         }}>
-                          <div style={{ 
-                            width: '1px', 
-                            height: '12px', 
-                            background: '#cbd5e1' 
+                          <div style={{
+                            width: '1px',
+                            height: '12px',
+                            background: '#cbd5e1'
                           }} />
-                          <div style={{ 
-                            fontSize: '10px', 
+                          <div style={{
+                            fontSize: '10px',
                             color: '#64748b',
                             marginTop: '4px',
                             whiteSpace: 'nowrap'
@@ -681,14 +695,16 @@ const extractKeyEvents = () => {
                         </div>
                       )
                     })}
-                    
+
                     {/* Puntos del Equipo Azul - clickables */}
                     {keyEvents.blue.map((event, idx) => {
                       const percent = match.gameDuration > 0 ? (event.seconds / match.gameDuration) * 100 : 0
+                      const isActive = activeEventTime === `${event.seconds}`
                       return (
                         <div
                           key={`blue-${idx}`}
                           onClick={() => {
+                            setActiveEventTime(`${event.seconds}`)
                             const el = document.getElementById(`timeline-${event.seconds}`)
                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
                           }}
@@ -696,10 +712,10 @@ const extractKeyEvents = () => {
                           style={{
                             position: 'absolute',
                             top: 'calc(50% - 24px)',
-                            left: `calc(40px + ${percent}%)`,
+                            left: `${percent}%`,
                             transform: 'translateX(-50%)',
-                            width: '12px',
-                            height: '12px',
+                            width: isActive ? '16px' : '12px',
+                            height: isActive ? '16px' : '12px',
                             background: '#3b82f6',
                             borderRadius: '50%',
                             border: '2px solid white',
@@ -729,14 +745,16 @@ const extractKeyEvents = () => {
                         </div>
                       )
                     })}
-                    
+
                     {/* Puntos del Equipo Rojo - clickables */}
                     {keyEvents.red.map((event, idx) => {
                       const percent = match.gameDuration > 0 ? (event.seconds / match.gameDuration) * 100 : 0
+                      const isActive = activeEventTime === `${event.seconds}`
                       return (
                         <div
                           key={`red-${idx}`}
                           onClick={() => {
+                            setActiveEventTime(`${event.seconds}`)
                             const el = document.getElementById(`timeline-${event.seconds}`)
                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
                           }}
@@ -744,10 +762,10 @@ const extractKeyEvents = () => {
                           style={{
                             position: 'absolute',
                             top: 'calc(50% - 24px)',
-                            left: `calc(40px + ${percent}%)`,
+                            left: `${percent}%`,
                             transform: 'translateX(-50%)',
-                            width: '12px',
-                            height: '12px',
+                            width: isActive ? '16px' : '12px',
+                            height: isActive ? '16px' : '12px',
                             background: '#ef4444',
                             borderRadius: '50%',
                             border: '2px solid white',
@@ -778,7 +796,7 @@ const extractKeyEvents = () => {
                       )
                     })}
                   </div>
-                  
+
                   {/* Leyenda */}
                   <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -797,19 +815,21 @@ const extractKeyEvents = () => {
                 </div>
               )}
             </div>
-            
+
             {/* Lista de eventos detallada con timeline sincronizado */}
             <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '12px', marginTop: '24px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Zap size={16} color="#8b5cf6" />
               Línea de Tiempo Sincronizada
             </h3>
-            
-            <div style={{ 
-              background: '#f8fafc', 
-              borderRadius: '12px', 
+
+            <div style={{
+              background: '#f8fafc',
+              borderRadius: '12px',
               padding: '16px',
               border: '1px solid #e2e8f0',
-              minHeight: '120px'
+              minHeight: '120px',
+              width: '100%',
+              boxSizing: 'border-box'
             }}>
               {timelineLoading ? (
                 <div style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
@@ -822,59 +842,67 @@ const extractKeyEvents = () => {
               ) : keyEvents && keyEvents.merged.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {/* Header */}
-                  <div style={{ display: 'flex', padding: '4px 8px', fontSize: '10px', fontWeight: 600, color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
-                    <div style={{ width: '50px' }}>Tiempo</div>
-                    <div style={{ width: '50%', paddingLeft: '8px' }}>Azul</div>
-                    <div style={{ width: '50%', paddingLeft: '8px' }}>Rojo</div>
+                  <div style={{ display: 'flex', padding: '4px 4px', fontSize: '10px', fontWeight: 600, color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
+                    <div style={{ width: '40px', flexShrink: 0 }}>Tiempo</div>
+                    <div style={{ flex: 1, minWidth: 0, paddingLeft: '4px' }}>Azul</div>
+                    <div style={{ flex: 1, minWidth: 0, paddingLeft: '4px' }}>Rojo</div>
                   </div>
-                  
+
                   {/* Merged events - synced by time */}
-                  <div ref={blueListRef} style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    {keyEvents.merged.map((row, rowIdx) => (
-                      <div 
-                        key={row.id || `row-${rowIdx}`}
-                        id={`timeline-${row.seconds}`}
-                        style={{ 
-                          display: 'flex', 
-                          padding: '6px 8px',
-                          background: rowIdx % 2 === 0 ? 'white' : '#f8fafc',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          borderBottom: '1px solid #f1f5f9',
-                          transition: 'background 0.2s'
-                        }}
-                      >
-                        {/* Tiempo */}
-                        <div style={{ width: '50px', fontWeight: 600, color: '#64748b' }}>
-                          {row.time}
+                  <div ref={blueListRef} style={{ maxHeight: '300px', overflowY: 'auto', overflowX: 'hidden', width: '100%' }}>
+                    {keyEvents.merged.map((row, rowIdx) => {
+                      const isActive = activeEventTime === `${row.seconds}`;
+                      return (
+                        <div
+                          key={row.id || `row-${rowIdx}`}
+                          id={`timeline-${row.seconds}`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '4px 4px',
+                            background: rowIdx % 2 === 0 ? 'white' : '#f8fafc',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            borderBottom: '1px solid #f1f5f9',
+                            transition: 'background 0.2s, border 0.2s',
+                            border: isActive ? '2px solid #3b82f6' : '1px solid transparent',
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {/* Tiempo */}
+                          <div style={{ width: '40px', fontWeight: 600, color: '#64748b', flexShrink: 0 }}>
+                            {row.time}
+                          </div>
+
+                          {/* Blue event */}
+                          <div style={{ flex: 1, minWidth: 0, paddingLeft: '4px', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                            {row.blue ? (
+                              <>
+                                <div style={{ width: '6px', height: '6px', background: '#3b82f6', borderRadius: '50%', flexShrink: 0 }} />
+                                <span style={{ color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.blue.typeLabel}</span>
+                              </>
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>—</span>
+                            )}
+                          </div>
+
+                          {/* Red event */}
+                          <div style={{ flex: 1, minWidth: 0, paddingLeft: '4px', display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                            {row.red ? (
+                              <>
+                                <div style={{ width: '6px', height: '6px', background: '#ef4444', borderRadius: '50%', flexShrink: 0 }} />
+                                <span style={{ color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.red.typeLabel}</span>
+                              </>
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>—</span>
+                            )}
+                          </div>
                         </div>
-                        
-                        {/* Blue event */}
-                        <div style={{ width: '50%', paddingLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          {row.blue ? (
-                            <>
-                              <div style={{ width: '6px', height: '6px', background: '#3b82f6', borderRadius: '50%', flexShrink: 0 }} />
-                              <span style={{ color: '#1e293b' }}>{row.blue.typeLabel}</span>
-                            </>
-                          ) : (
-                            <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>—</span>
-                          )}
-                        </div>
-                        
-                        {/* Red event */}
-                        <div style={{ width: '50%', paddingLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          {row.red ? (
-                            <>
-                              <div style={{ width: '6px', height: '6px', background: '#ef4444', borderRadius: '50%', flexShrink: 0 }} />
-                              <span style={{ color: '#1e293b' }}>{row.red.typeLabel}</span>
-                            </>
-                          ) : (
-                            <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>—</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      );
+                    })}
+                  </div>El tim
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>
@@ -882,15 +910,15 @@ const extractKeyEvents = () => {
                 </div>
               )}
             </div>
-            
+
             {/* Lista detallada (old style) */}
             <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '12px', marginTop: '24px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Zap size={16} color="#8b5cf6" />
               Equipo Azul
             </h3>
-            <div style={{ 
-              background: '#f8fafc', 
-              borderRadius: '12px', 
+            <div style={{
+              background: '#f8fafc',
+              borderRadius: '12px',
               padding: '16px',
               border: '1px solid #e2e8f0',
               minHeight: '80px'
@@ -898,10 +926,11 @@ const extractKeyEvents = () => {
               {keyEvents && keyEvents.blue.length > 0 ? (
                 <div ref={blueListRef} style={{ maxHeight: '300px', overflowY: 'auto' }}>
                   {keyEvents.blue.map((event, idx) => (
-                    <div 
+                    <div
                       key={event.id || idx}
                       id={`blue-${event.seconds}`}
                       onClick={() => {
+                        setActiveEventTime(`${event.seconds}`);
                         const el = document.getElementById(`timeline-${event.seconds}`)
                         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
                       }}
@@ -910,13 +939,13 @@ const extractKeyEvents = () => {
                         alignItems: 'center',
                         gap: '6px',
                         padding: '8px 12px',
-                        background: 'white',
+                        background: activeEventTime === `${event.seconds}` ? '#e0e7ff' : 'white',
                         borderRadius: '6px',
                         fontSize: '11px',
-                        border: '1px solid #f1f5f9',
+                        border: activeEventTime === `${event.seconds}` ? '2px solid #3b82f6' : '1px solid #f1f5f9',
                         marginBottom: '4px',
                         cursor: 'pointer',
-                        transition: 'background 0.2s'
+                        transition: 'background 0.2s, border 0.2s'
                       }}
                     >
                       <span style={{ fontWeight: 600, color: '#64748b' }}>{event.time}</span>
@@ -931,14 +960,14 @@ const extractKeyEvents = () => {
                 </div>
               )}
             </div>
-            
+
             <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '12px', marginTop: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Zap size={16} color="#ef4444" />
               Equipo Rojo
             </h3>
-            <div style={{ 
-              background: '#f8fafc', 
-              borderRadius: '12px', 
+            <div style={{
+              background: '#f8fafc',
+              borderRadius: '12px',
               padding: '16px',
               border: '1px solid #e2e8f0',
               minHeight: '80px'
@@ -946,7 +975,7 @@ const extractKeyEvents = () => {
               {keyEvents && keyEvents.red.length > 0 ? (
                 <div ref={redListRef} style={{ maxHeight: '300px', overflowY: 'auto' }}>
                   {keyEvents.red.map((event, idx) => (
-                    <div 
+                    <div
                       key={event.id || idx}
                       id={`red-${event.seconds}`}
                       onClick={() => {
