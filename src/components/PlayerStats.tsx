@@ -40,25 +40,25 @@ export function PlayerStats({ rankedStats }: PlayerStatsProps) {
         </div>
       </div>
 
-      <div className="p-5 space-y-5">
+      <div className="p-6 space-y-6">
         {soloRanked ? (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {/* Rank Principal - Compacto */}
-            <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-lg bg-slate-100">
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 rounded-xl overflow-hidden shadow-lg bg-slate-50 flex-shrink-0">
                 <img 
                   src={soloRanked ? getRankEmblemUrl(soloRanked.tier) : ''} 
                   alt={soloRanked.tier}
-                  className="w-full h-full object-contain p-1"
+                  className="w-full h-full object-contain p-0.5"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                     (e.target as HTMLImageElement).parentElement!.style.background = 'linear-gradient(135deg, #64748b, #475569)';
-                    (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-white font-bold text-xl flex items-center justify-center h-full">${soloRanked.tier[0]}</span>`;
+                    (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-white font-bold text-lg flex items-center justify-center h-full">${soloRanked.tier[0]}</span>`;
                   }}
                 />
               </div>
-              <div className="flex-1">
-                <div className="text-2xl font-bold text-slate-800">
+              <div className="flex-1 min-w-0">
+                <div className="text-xl font-bold text-slate-800 truncate">
                   {soloRanked.tier} {soloRanked.rank}
                 </div>
                 <div className="text-slate-500 text-sm">{soloRanked.leaguePoints} LP</div>
@@ -68,16 +68,16 @@ export function PlayerStats({ rankedStats }: PlayerStatsProps) {
             {/* Stats Grid Compacto */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-emerald-50 rounded-xl p-3 text-center border border-emerald-100">
-                <div className="text-emerald-600 text-xs font-medium mb-1">Victorias</div>
-                <div className="text-xl font-bold text-emerald-700">{soloRanked.wins}</div>
+                <div className="text-emerald-600 text-xs font-semibold mb-1">Victorias</div>
+                <div className="text-lg font-bold text-emerald-700">{soloRanked.wins}</div>
               </div>
               <div className="bg-rose-50 rounded-xl p-3 text-center border border-rose-100">
-                <div className="text-rose-600 text-xs font-medium mb-1">Derrotas</div>
-                <div className="text-xl font-bold text-rose-700">{soloRanked.losses}</div>
+                <div className="text-rose-600 text-xs font-semibold mb-1">Derrotas</div>
+                <div className="text-lg font-bold text-rose-700">{soloRanked.losses}</div>
               </div>
               <div className={`rounded-xl p-3 text-center border ${winRate >= 50 ? 'bg-emerald-50 border-emerald-100' : 'bg-orange-50 border-orange-100'}`}>
-                <div className={`text-xs font-medium mb-1 ${winRate >= 50 ? 'text-emerald-600' : 'text-orange-600'}`}>Win Rate</div>
-                <div className={`text-xl font-bold ${winRate >= 50 ? 'text-emerald-700' : 'text-orange-700'}`}>{winRate}%</div>
+                <div className={`text-xs font-semibold mb-1 ${winRate >= 50 ? 'text-emerald-600' : 'text-orange-600'}`}>Win Rate</div>
+                <div className={`text-lg font-bold ${winRate >= 50 ? 'text-emerald-700' : 'text-orange-700'}`}>{winRate}%</div>
               </div>
             </div>
 
@@ -87,7 +87,7 @@ export function PlayerStats({ rankedStats }: PlayerStatsProps) {
                 <span className="text-slate-500">Progreso hacia siguiente división</span>
                 <span className="font-semibold text-slate-700">{soloRanked.leaguePoints}/100 LP</span>
               </div>
-              <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all"
                   style={{ width: `${Math.min(soloRanked.leaguePoints, 100)}%` }}
@@ -96,15 +96,15 @@ export function PlayerStats({ rankedStats }: PlayerStatsProps) {
             </div>
 
             {/* Badges Compactos */}
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2 pt-1">
               {soloRanked.veteran && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200">
-                  <Award className="w-3 h-3" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                  <Award className="w-3.5 h-3.5" />
                   Veterano
                 </span>
               )}
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                <Trophy className="w-3 h-3" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                <Trophy className="w-3.5 h-3.5" />
                 {totalGames} partidas
               </span>
             </div>
