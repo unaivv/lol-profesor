@@ -40,16 +40,16 @@ export function PlayerStats({ rankedStats }: PlayerStatsProps) {
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="p-5 space-y-5">
         {soloRanked ? (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {/* Rank Principal - Compacto */}
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg">
+              <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-lg bg-slate-100">
                 <img 
                   src={soloRanked ? getRankEmblemUrl(soloRanked.tier) : ''} 
                   alt={soloRanked.tier}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain p-1"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                     (e.target as HTMLImageElement).parentElement!.style.background = 'linear-gradient(135deg, #64748b, #475569)';
@@ -66,28 +66,28 @@ export function PlayerStats({ rankedStats }: PlayerStatsProps) {
             </div>
 
             {/* Stats Grid Compacto */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-emerald-50 rounded-lg p-2 text-center border border-emerald-100">
-                <div className="text-emerald-600 text-xs font-medium mb-0.5">Victorias</div>
-                <div className="text-lg font-bold text-emerald-700">{soloRanked.wins}</div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-emerald-50 rounded-xl p-3 text-center border border-emerald-100">
+                <div className="text-emerald-600 text-xs font-medium mb-1">Victorias</div>
+                <div className="text-xl font-bold text-emerald-700">{soloRanked.wins}</div>
               </div>
-              <div className="bg-rose-50 rounded-lg p-2 text-center border border-rose-100">
-                <div className="text-rose-600 text-xs font-medium mb-0.5">Derrotas</div>
-                <div className="text-lg font-bold text-rose-700">{soloRanked.losses}</div>
+              <div className="bg-rose-50 rounded-xl p-3 text-center border border-rose-100">
+                <div className="text-rose-600 text-xs font-medium mb-1">Derrotas</div>
+                <div className="text-xl font-bold text-rose-700">{soloRanked.losses}</div>
               </div>
-              <div className={`rounded-lg p-2 text-center border ${winRate >= 50 ? 'bg-emerald-50 border-emerald-100' : 'bg-orange-50 border-orange-100'}`}>
-                <div className={`text-xs font-medium mb-0.5 ${winRate >= 50 ? 'text-emerald-600' : 'text-orange-600'}`}>Win Rate</div>
-                <div className={`text-lg font-bold ${winRate >= 50 ? 'text-emerald-700' : 'text-orange-700'}`}>{winRate}%</div>
+              <div className={`rounded-xl p-3 text-center border ${winRate >= 50 ? 'bg-emerald-50 border-emerald-100' : 'bg-orange-50 border-orange-100'}`}>
+                <div className={`text-xs font-medium mb-1 ${winRate >= 50 ? 'text-emerald-600' : 'text-orange-600'}`}>Win Rate</div>
+                <div className={`text-xl font-bold ${winRate >= 50 ? 'text-emerald-700' : 'text-orange-700'}`}>{winRate}%</div>
               </div>
             </div>
 
             {/* Barra de Progreso */}
-            <div className="space-y-1">
+            <div className="space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="text-slate-500">Progreso hacia siguiente división</span>
                 <span className="font-semibold text-slate-700">{soloRanked.leaguePoints}/100 LP</span>
               </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all"
                   style={{ width: `${Math.min(soloRanked.leaguePoints, 100)}%` }}

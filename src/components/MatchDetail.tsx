@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { DetailedMatch, Participant, MatchTimeline } from '../types/api'
-import { getChampionItems, calculateKDARatio } from './MatchCard'
+import { getChampionItems, getTrinket, calculateKDARatio } from './MatchCard'
 import { Skull, Shield, Target, Zap, X } from 'lucide-react'
 
 interface MatchDetailProps {
@@ -132,7 +132,7 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP }: PlayerRowProps) => {
         <span style={{ fontSize: '12px', fontWeight: 600, color: kdaColor }}>{player.assists}</span>
       </div>
       <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
-        {[0,1,2,3,4,5,6].map(idx => {
+        {[0,1,2,3,4,5].map(idx => {
           const item = items[idx]
           return (
             <div key={idx} style={{ 
@@ -524,7 +524,7 @@ const extractKeyEvents = () => {
                 border: '1px solid #fde047'
               }}>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                  {[0,1,2,3,4,5,6].map(idx => {
+                  {[0,1,2,3,4,5].map(idx => {
                     const item = items[idx]
                     return (
                       <div key={idx} style={{ 

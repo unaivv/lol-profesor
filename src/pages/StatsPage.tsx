@@ -5,6 +5,7 @@ import { ChampionStats } from '../components/ChampionStats'
 import { RankedComparisonCard } from '../components/RankedComparisonCard'
 import { SpectatorCard } from '../components/SpectatorCard'
 import { ChampionMasteryCard } from '../components/ChampionMasteryCard'
+import { PerformanceRadar } from '../components/PerformanceRadar'
 import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
 import { PlayerData } from '../types/api'
@@ -123,20 +124,12 @@ export function StatsPage() {
 
   // Manejar tanto RankedStats simple como RankedStatsExtended
   const rankedData = playerData.rankedStats
-  console.log('-rankedData:', rankedData)
-  console.log('-solo:', rankedData?.solo)
-  console.log('-flex:', rankedData?.flex)
   const isExtended = rankedData && 'solo' in rankedData
   const soloRanked = isExtended ? (rankedData as any).solo : rankedData
   const flexRanked = isExtended ? (rankedData as any).flex : null
   const hasSoloRanked = soloRanked !== null && soloRanked !== undefined
   const hasFlexRanked = flexRanked !== null && flexRanked !== undefined
   const hasAnyRanked = hasSoloRanked || hasFlexRanked
-  console.log('-soloRanked:', soloRanked)
-  console.log('-flexRanked:', flexRanked)
-  console.log('-hasSoloRanked:', hasSoloRanked)
-  console.log('-hasFlexRanked:', hasFlexRanked)
-  console.log('-hasAnyRanked:', hasAnyRanked)
 
   return (
     <div style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #f3e8ff 100%)', minHeight: '100vh' }}>
@@ -316,6 +309,7 @@ export function StatsPage() {
                 )}
               </div>
               <div className="xl:col-span-4 space-y-6">
+                <PerformanceRadar matches={playerData.matches || []} playerPuuid={playerData.puuid} />
                 <SpectatorCard puuid={playerData.puuid} />
                 <PlayerStats playerData={playerData} rankedStats={playerData.rankedStats} />
                 {playerData.mastery && playerData.mastery.length > 0 && (
@@ -382,7 +376,6 @@ export function StatsPage() {
               </div>
               <div className="xl:col-span-4 space-y-6">
                 <PlayerStats playerData={playerData} rankedStats={playerData.rankedStats} />
-                <RankedComparisonCard rankedStats={playerData.rankedStats as any} />
               </div>
             </div>
           )}

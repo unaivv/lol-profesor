@@ -230,11 +230,15 @@ export function MatchCard({ match, playerPuuid, onExpand, isExpanded }: MatchCar
 }
 
 export function getChampionItems(player: Participant): number[] {
-  return [player.item0 || 0, player.item1 || 0, player.item2 || 0, player.item3 || 0, player.item4 || 0, player.item5 || 0, player.item6 || 0]
+  return [player.item0 || 0, player.item1 || 0, player.item2 || 0, player.item3 || 0, player.item4 || 0, player.item5 || 0]
+}
+
+export function getTrinket(player: Participant): number {
+  return player.item6 || 0
 }
 
 export function hasItem(player: Participant, itemId: number): boolean {
-  return player.item0 === itemId || player.item1 === itemId || player.item2 === itemId || player.item3 === itemId || player.item4 === itemId || player.item5 === itemId || player.item6 === itemId
+  return player.item0 === itemId || player.item1 === itemId || player.item2 === itemId || player.item3 === itemId || player.item4 === itemId || player.item5 === itemId
 }
 
 export function getItemIcon(itemId: number): string {
@@ -242,4 +246,4 @@ export function getItemIcon(itemId: number): string {
   return `https://ddragon.leagueoflegends.com/cdn/14.5.1/img/item/${itemId}.png`
 }
 
-export { calculateKDARatio, getChampionIcon }
+export { calculateKDARatio, getChampionItems, getTrinket, getItemIcon }
