@@ -25,7 +25,7 @@ export function PlayerStats({ rankedStats }: PlayerStatsProps) {
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
       {/* Header Compacto */}
-      <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white p-4">
+      <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white px-5 py-3.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-blue-400" />

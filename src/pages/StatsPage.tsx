@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { PlayerStats } from '../components/PlayerStats'
 import { MatchHistory } from '../components/MatchHistory'
 import { ChampionStats } from '../components/ChampionStats'
-import { RankedComparisonCard } from '../components/RankedComparisonCard'
 import { SpectatorCard } from '../components/SpectatorCard'
 import { ChampionMasteryCard } from '../components/ChampionMasteryCard'
 import { PerformanceRadar } from '../components/PerformanceRadar'
@@ -294,9 +293,6 @@ export function StatsPage() {
           {activeTab === 'summary' && (
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
               <div className="xl:col-span-8 space-y-6">
-                <div style={{ padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
-                  <RankedComparisonCard rankedStats={playerData.rankedStats as any} />
-                </div>
                 {hasMatches ? (
                   <MatchHistory matches={playerData.matches || []} playerPuuid={playerData.puuid} />
                 ) : (
@@ -309,9 +305,9 @@ export function StatsPage() {
                 )}
               </div>
               <div className="xl:col-span-4 space-y-6">
+                <PlayerStats playerData={playerData} rankedStats={playerData.rankedStats} />
                 <PerformanceRadar matches={playerData.matches || []} playerPuuid={playerData.puuid} />
                 <SpectatorCard puuid={playerData.puuid} />
-                <PlayerStats playerData={playerData} rankedStats={playerData.rankedStats} />
                 {playerData.mastery && playerData.mastery.length > 0 && (
                   <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-4">
                     <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
