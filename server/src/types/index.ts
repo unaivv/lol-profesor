@@ -37,7 +37,7 @@ export interface Match {
   kills: number;
   deaths: number;
   assists: number;
-goldEarned: number;
+  goldEarned: number;
   totalMinionsKilled: number;
   visionWardsBoughtInGame: number;
   visionScore: number;
@@ -223,11 +223,15 @@ export interface RankedStatsExtended {
 }
 
 // Comprehensive player data (all APIs combined)
+export type ChampionMasteryWithName = ChampionMastery & { championName: string };
+
 export interface PlayerComprehensiveData extends PlayerData {
   matches: DetailedMatch[];
   rankedStats: RankedStatsExtended;
   mastery: ChampionMastery[];
+  masteryWithNames: ChampionMasteryWithName[];
   currentGame: SpectatorGameData | null;
+  totalMatches: number;
 }
 
 export interface ApiResponse<T> {
