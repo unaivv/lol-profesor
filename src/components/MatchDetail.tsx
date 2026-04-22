@@ -15,6 +15,13 @@ const formatDuration = (seconds: number): string => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
 }
 
+const formatTimestamp = (ms: number): string => {
+  const totalSeconds = Math.floor(ms / 1000)
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
 const formatGold = (gold: number): string => {
   if (gold >= 1000) return `${(gold / 1000).toFixed(1)}k`
   return gold.toString()
@@ -62,7 +69,7 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP }: PlayerRowProps) => {
       padding: '8px 10px',
       borderRadius: '8px',
       background: isCurrentPlayer ? 'rgba(234, 179, 8, 0.15)' : 'transparent',
-      border: isCurrentPlayer ? '2px solid #eab308' : '1px solid transparent',
+      border: isCurrentPlayer ? '2px solid #eab308' : isMVP ? '2px solid #8b5cf6' : '1px solid transparent',
       position: 'relative',
     }}>
       {isCurrentPlayer && (
@@ -78,7 +85,23 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP }: PlayerRowProps) => {
           borderRadius: '4px',
           zIndex: 10
         }}>
-          TÚ
+          {isMVP ? 'TÚ MVP' : 'TÚ'}
+        </div>
+      )}
+      {!isCurrentPlayer && isMVP && (
+        <div style={{
+          position: 'absolute',
+          top: '-4px',
+          left: '-4px',
+          background: '#8b5cf6',
+          color: 'white',
+          fontSize: '8px',
+          fontWeight: 'bold',
+          padding: '2px 4px',
+          borderRadius: '4px',
+          zIndex: 10
+        }}>
+          MVP
         </div>
       )}
       <img
@@ -96,17 +119,6 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP }: PlayerRowProps) => {
           textOverflow: 'ellipsis'
         }}>
           {player.summonerName || player.championName || 'Unknown'}
-          {isMVP && (
-            <span style={{
-              marginLeft: '4px',
-              background: '#8b5cf6',
-              color: 'white',
-              fontSize: '7px',
-              fontWeight: 'bold',
-              padding: '1px 3px',
-              borderRadius: '3px'
-            }}>MVP</span>
-          )}
         </div>
         <div style={{ fontSize: '10px', color: '#64748b' }}>{player.championName}</div>
       </div>
@@ -190,59 +202,150 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
   }, [match.gameId])
 
   const getEventIcon = (type: string) => {
-    if (type === 'CHAMPION_KILL') return <Skull size={12} />
-    if (type === 'ELITE_MONSTER_KILL') {
-      return <Shield size={12} style={{ color: '#f97316' }} />
+    switch (type) {
+        case 'CHAMPION_KILL':
+            return <Skull size={12} />
+        case 'ELITE_MONSTER_KILL':
+            return <Shield size={12} style={{ color: '#f97316' }} />
+        case 'BUILDING_KILL':
+            return <Target size={12} style={{ color: '#ef4444' }} />
+        case 'ITEM_PURCHASED':
+        case 'ITEM_SOLD':
+        case 'ITEM_DESTROYED':
+            return <Zap size={12} style={{ color: '#10b981' }} />
+        case 'SKILL_LEVEL_UP':
+        case 'LEVEL_UP':
+            return <Target size={12} style={{ color: '#8b5cf6' }} />
+        case 'WARD_PLACED':
+            return <Target size={12} style={{ color: '#06b6d4' }} />
+        case 'WARD_KILL':
+            return <Target size={12} style={{ color: '#f59e0b' }} />
+        default:
+            return <Target size={12} />
     }
-    if (type === 'BUILDING_KILL') return <Target size={12} style={{ color: '#ef4444' }} />
-    return <Target size={12} />
-  }
+}
 
-  const extractKeyEvents = () => {
-    if (!timeline?.frames || !timeline.participants) return []
+const extractKeyEvents = () => {
+    if (!timeline?.frames || !match?.participants) return { blue: [], red: [] }
     
-    const participantMap = new Map(timeline.participants.map((p: any) => [p.participantId, p.championName]))
+    // Create participant map with summonerName and teamId
+    const participantMap = new Map(
+        match.participants.map(p => [p.participantId, { 
+            summonerName: p.summonerName || p.championName || 'Unknown',
+            teamId: p.teamId
+        }])
+    )
     
-    const keyEvents: Array<{ time: string; type: string; typeLabel: string; killer?: string }> = []
+    const blueEvents: Array<{ time: string; type: string; typeLabel: string; killer?: string }> = []
+    const redEvents: Array<{ time: string; type: string; typeLabel: string; killer?: string }> = []
     
+    // Collect all events from all frames
     for (const frame of timeline.frames) {
-      const totalMs = frame.timestamp
-      const totalSec = Math.floor(totalMs / 1000)
-      const minutes = Math.floor(totalSec / 60)
-      const seconds = totalSec % 60
-      const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`
-      
-      for (const event of (frame.events || [])) {
-        const eventType = event.type
-        if (eventType === 'CHAMPION_KILL') {
-          const killerName = participantMap.get(event.killerId) || 'Unknown'
-          const victimName = participantMap.get(event.victimId) || 'Unknown'
-          keyEvents.push({
-            time: timeStr,
-            type: eventType,
-            typeLabel: `${killerName} killed ${victimName}`,
-            killer: killerName
-          })
-        } else if (eventType === 'ITEM_PURCHASED') {
-          keyEvents.push({
-            time: timeStr,
-            type: eventType,
-            typeLabel: `Item bought`,
-            killer: participantMap.get(event.participantId) || 'Unknown'
-          })
-        } else if (eventType === 'WARD_PLACED') {
-          keyEvents.push({
-            time: timeStr,
-            type: eventType,
-            typeLabel: `Ward placed`,
-            killer: participantMap.get(event.participantId) || 'Unknown'
-          })
+        for (const event of (frame.events || [])) {
+            // Use event.timestamp for precise timing (relative to game start)
+            const eventTimeStr = formatTimestamp(event.timestamp)
+            const eventType = event.type
+            
+            // Filter to keep ONLY kills, objectives, dragons, and Baron
+            if (eventType === 'CHAMPION_KILL' && event.killerId != null && event.victimId != null) {
+                const killerInfo = participantMap.get(event.killerId)
+                const killerName = killerInfo ? killerInfo.summonerName : 'Unknown'
+                const victimInfo = participantMap.get(event.victimId)
+                const victimName = victimInfo ? victimInfo.summonerName : 'Unknown'
+                const killerTeamId = killerInfo ? killerInfo.teamId : 0
+                
+                const eventLabel = `${killerName} 💀 ${victimName}`
+                
+                if (killerTeamId === 100) {
+                    blueEvents.push({
+                        time: eventTimeStr,
+                        type: eventType,
+                        typeLabel: eventLabel,
+                        killer: killerName
+                    })
+                } else if (killerTeamId === 200) {
+                    redEvents.push({
+                        time: eventTimeStr,
+                        type: eventType,
+                        typeLabel: eventLabel,
+                        killer: killerName
+                    })
+                }
+            } else if (eventType === 'ELITE_MONSTER_KILL' && event.killerId != null) {
+                const killerInfo = participantMap.get(event.killerId)
+                const killerName = killerInfo ? killerInfo.summonerName : 'Unknown'
+                const killerTeamId = killerInfo ? killerInfo.teamId : 0
+                let monsterName = event.monsterType || 'monstruo épico'
+                if (event.monsterSubType) {
+                    monsterName += ` (${event.monsterSubType})`
+                }
+                const eventLabel = `${killerName} 🐉 Mata ${monsterName}`
+                
+                if (killerTeamId === 100) {
+                    blueEvents.push({
+                        time: eventTimeStr,
+                        type: eventType,
+                        typeLabel: eventLabel,
+                        killer: killerName
+                    })
+                } else if (killerTeamId === 200) {
+                    redEvents.push({
+                        time: eventTimeStr,
+                        type: eventType,
+                        typeLabel: eventLabel,
+                        killer: killerName
+                    })
+                }
+            } else if (eventType === 'BUILDING_KILL' && event.killerId != null) {
+                const killerInfo = participantMap.get(event.killerId)
+                const killerName = killerInfo ? killerInfo.summonerName : 'Unknown'
+                const killerTeamId = killerInfo ? killerInfo.teamId : 0
+                const buildingType = event.buildingType || 'estructura'
+                
+                // For building kills, determine if it's allied or enemy building based on teamId in event
+                // When you destroy a building, you belong to the team that did the destroying
+                // The building itself belongs to the opposite team
+                // So if killer is blue (100) and they destroyed a building, that building was red's
+                const teamLabel = killerTeamId === 100 ? 'enemiga' : 'aliada'
+                
+                const eventLabel = `${killerName} 🏰 Destruye ${buildingType} ${teamLabel}`
+                
+                if (killerTeamId === 100) {
+                    blueEvents.push({
+                        time: eventTimeStr,
+                        type: eventType,
+                        typeLabel: eventLabel,
+                        killer: killerName
+                    })
+                } else if (killerTeamId === 200) {
+                    redEvents.push({
+                        time: eventTimeStr,
+                        type: eventType,
+                        typeLabel: eventLabel,
+                        killer: killerName
+                    })
+                }
+            }
+            // Ignore all other events: ITEM_*, SKILL_LEVEL_UP, WARD_*, LEVEL_UP, etc.
         }
-      }
     }
     
-    return keyEvents.slice(0, 15)
-  }
+    // Sort each team's events by time (earliest first - oldest at top)
+    const sortEvents = (events: any[]) => {
+        return events
+            .sort((a, b) => {
+                // Convert time strings back to seconds for comparison
+                const timeA = parseInt(a.time.split(':')[0]) * 60 + parseInt(a.time.split(':')[1])
+                const timeB = parseInt(b.time.split(':')[0]) * 60 + parseInt(b.time.split(':')[1])
+                return timeA - timeB // Earliest first
+            })
+    }
+    
+    return {
+        blue: sortEvents(blueEvents),
+        red: sortEvents(redEvents)
+    }
+}
 
   const keyEvents = extractKeyEvents()
 
@@ -265,7 +368,7 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 1000,
-      padding: '20px'
+      overflow: 'hidden' // Prevent scrolling outside modal
     }}>
       <div style={{
         background: 'white',
@@ -273,15 +376,16 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
         width: '100%',
         maxWidth: '900px',
         maxHeight: '90vh',
-        overflow: 'auto',
-        position: 'relative'
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column'
       }}>
         <button
           onClick={onClose}
           style={{
             position: 'absolute',
-            top: '12px',
-            right: '12px',
+            top: '-12px',
+            right: '-12px',
             width: '36px',
             height: '36px',
             borderRadius: '50%',
@@ -297,7 +401,11 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
           <X size={20} color="#64748b" />
         </button>
 
-        <div style={{ padding: '24px' }}>
+        <div style={{ 
+          flex: 1, 
+          overflowY: 'auto',
+          padding: '24px'
+        }}>
           <div style={{ 
             background: 'linear-gradient(90deg, #1e293b 0%, #0f172a 100%)', 
             margin: '-24px -24px 24px -24px', 
@@ -482,24 +590,81 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
                 <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>
                   {timelineError}
                 </div>
-              ) : keyEvents.length > 0 ? (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {keyEvents.map((event, idx) => (
-                    <div key={idx} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '6px 10px',
-                      background: 'white',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      border: '1px solid #e2e8f0'
+              ) : keyEvents ? (
+                <div style={{ display: 'flex', gap: '20px' }}>
+                  {/* Blue Team Events (Left) */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h4 style={{ fontSize: '12px', fontWeight: 600, color: '#3b82f6', marginBottom: '8px' }}>
+                      Equipo Azul
+                    </h4>
+                    <div style={{ 
+                      maxHeight: '300px', 
+                      overflowY: 'auto',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '12px'
                     }}>
-                      <span style={{ fontWeight: 600, color: '#64748b' }}>{event.time}</span>
-                      {getEventIcon(event.type)}
-                      <span style={{ color: '#1e293b' }}>{event.typeLabel}</span>
+                      {keyEvents.blue.length > 0 ? (
+                        keyEvents.blue.map((event, idx) => (
+                          <div key={idx} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '8px 12px',
+                            background: 'white',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            border: '1px solid #f1f5f9'
+                          }}>
+                            <span style={{ fontWeight: 600, color: '#64748b' }}>{event.time}</span>
+                            {getEventIcon(event.type)}
+                            <span style={{ color: '#1e293b', flex: 1, minWidth: 0 }}>{event.typeLabel}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>
+                          No hay eventos
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  </div>
+                  
+                  {/* Red Team Events (Right) */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h4 style={{ fontSize: '12px', fontWeight: 600, color: '#ef4444', marginBottom: '8px' }}>
+                      Equipo Rojo
+                    </h4>
+                    <div style={{ 
+                      maxHeight: '300px', 
+                      overflowY: 'auto',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '12px'
+                    }}>
+                      {keyEvents.red.length > 0 ? (
+                        keyEvents.red.map((event, idx) => (
+                          <div key={idx} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '8px 12px',
+                            background: 'white',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            border: '1px solid #f1f5f9'
+                          }}>
+                            <span style={{ fontWeight: 600, color: '#64748b' }}>{event.time}</span>
+                            {getEventIcon(event.type)}
+                            <span style={{ color: '#1e293b', flex: 1, minWidth: 0 }}>{event.typeLabel}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>
+                          No hay eventos
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>
