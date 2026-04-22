@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { PlayerStats } from '../components/PlayerStats'
 import { MatchHistory } from '../components/MatchHistory'
 import { ChampionStats } from '../components/ChampionStats'
+import { RankedComparisonCard } from '../components/RankedComparisonCard'
 import { SpectatorCard } from '../components/SpectatorCard'
 import { ChampionMasteryCard } from '../components/ChampionMasteryCard'
 import { PerformanceRadar } from '../components/PerformanceRadar'
@@ -293,6 +294,7 @@ export function StatsPage() {
           {activeTab === 'summary' && (
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
               <div className="xl:col-span-8 space-y-6">
+                <RankedComparisonCard rankedStats={playerData.rankedStats as any} />
                 {hasMatches ? (
                   <MatchHistory matches={playerData.matches || []} playerPuuid={playerData.puuid} />
                 ) : (
@@ -307,7 +309,6 @@ export function StatsPage() {
               <div className="xl:col-span-4 space-y-6">
                 <PlayerStats playerData={playerData} rankedStats={playerData.rankedStats} />
                 <PerformanceRadar matches={playerData.matches || []} playerPuuid={playerData.puuid} />
-                <SpectatorCard puuid={playerData.puuid} />
                 {playerData.mastery && playerData.mastery.length > 0 && (
                   <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-4">
                     <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
