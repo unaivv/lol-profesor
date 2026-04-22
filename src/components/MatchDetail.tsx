@@ -60,6 +60,8 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP }: PlayerRowProps) => {
   const kdaRatio = calculateKDARatio(player.kills, player.deaths, player.assists)
   const kdaColor = kdaRatio >= 4 ? '#10b981' : kdaRatio >= 2.5 ? '#2563eb' : kdaRatio >= 1 ? '#d97706' : '#dc2626'
   const items = getChampionItems(player)
+  const visionScore = (player.visionScore ?? 0) || 
+                      ((player.visionWardsBoughtInGame || 0) + (player.wardsPlaced || 0) + (player.wardsKilled || 0))
 
   return (
     <div style={{
@@ -145,6 +147,24 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP }: PlayerRowProps) => {
             </div>
           )
         })}
+      </div>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '2px', 
+        minWidth: '40px',
+        padding: '2px 6px',
+        background: visionScore >= 25 ? 'rgba(59, 130, 246, 0.15)' : 'rgba(100, 116, 139, 0.1)',
+        borderRadius: '4px'
+      }}>
+        <span style={{ fontSize: '10px' }}>👁️</span>
+        <span style={{ 
+          fontSize: '11px', 
+          fontWeight: 600, 
+          color: visionScore >= 25 ? '#3b82f6' : '#64748b' 
+        }}>
+          {visionScore}
+        </span>
       </div>
     </div>
   )

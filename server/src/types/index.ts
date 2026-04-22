@@ -37,9 +37,12 @@ export interface Match {
   kills: number;
   deaths: number;
   assists: number;
-  goldEarned: number;
+goldEarned: number;
   totalMinionsKilled: number;
   visionWardsBoughtInGame: number;
+  visionScore: number;
+  wardsPlaced: number;
+  wardsKilled: number;
   damageDealtToChampions: number;
   damageTaken: number;
   totalHeal: number;
@@ -121,6 +124,9 @@ export interface Participant {
   goldEarned: number;
   totalMinionsKilled: number;
   visionWardsBoughtInGame: number;
+  visionScore: number;
+  wardsPlaced: number;
+  wardsKilled: number;
   damageDealtToChampions: number;
   damageTaken: number;
   totalHeal: number;
@@ -135,6 +141,14 @@ export interface Participant {
   championLevel: number;
   summoner1Id: number;
   summoner2Id: number;
+  perk0: number;
+  perk1: number;
+  perk2: number;
+  perk3: number;
+  perk4: number;
+  perk5: number;
+  perkPrimaryStyle: number;
+  perkSubStyle: number;
 }
 
 // Detailed match with all participants for match history display

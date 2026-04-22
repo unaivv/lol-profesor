@@ -165,6 +165,9 @@ app.get('/api/matches/:puuid', async (req: Request, res: Response) => {
             goldEarned: participant.goldEarned,
             totalMinionsKilled: participant.totalMinionsKilled,
             visionWardsBoughtInGame: participant.visionWardsBoughtInGame,
+            visionScore: participant.visionScore || 0,
+            wardsPlaced: participant.wardsPlaced || 0,
+            wardsKilled: participant.wardsKilled || 0,
             damageDealtToChampions: participant.totalDamageDealtToChampions,
             damageTaken: participant.totalDamageTaken,
             totalHeal: participant.totalHeal,
@@ -287,6 +290,9 @@ app.get('/api/matches/:puuid/details', async (req: Request, res: Response) => {
             goldEarned: p.goldEarned,
             totalMinionsKilled: p.totalMinionsKilled,
             visionWardsBoughtInGame: p.visionWardsBoughtInGame,
+            visionScore: p.visionScore || 0,
+            wardsPlaced: p.wardsPlaced || 0,
+            wardsKilled: p.wardsKilled || 0,
             damageDealtToChampions: p.totalDamageDealtToChampions,
             damageTaken: p.totalDamageTaken,
             totalHeal: p.totalHeal,
@@ -300,7 +306,15 @@ app.get('/api/matches/:puuid/details', async (req: Request, res: Response) => {
             item6: p.item6,
             championLevel: p.champLevel,
             summoner1Id: p.summoner1Id,
-            summoner2Id: p.summoner2Id
+            summoner2Id: p.summoner2Id,
+            perk0: p.perks?.styles?.[0]?.selections?.[0]?.perk || 0,
+            perk1: p.perks?.styles?.[0]?.selections?.[1]?.perk || 0,
+            perk2: p.perks?.styles?.[0]?.selections?.[2]?.perk || 0,
+            perk3: p.perks?.styles?.[1]?.selections?.[0]?.perk || 0,
+            perk4: p.perks?.styles?.[1]?.selections?.[1]?.perk || 0,
+            perk5: p.perks?.styles?.[1]?.selections?.[2]?.perk || 0,
+            perkPrimaryStyle: p.perks?.styles?.[0]?.style || 0,
+            perkSubStyle: p.perks?.styles?.[1]?.style || 0
           })
         }
 
@@ -734,6 +748,9 @@ app.get('/api/player/:gameName/:tagLine/comprehensive', async (req: Request, res
             goldEarned: p.goldEarned,
             totalMinionsKilled: p.totalMinionsKilled,
             visionWardsBoughtInGame: p.visionWardsBoughtInGame,
+            visionScore: p.visionScore || 0,
+            wardsPlaced: p.wardsPlaced || 0,
+            wardsKilled: p.wardsKilled || 0,
             damageDealtToChampions: p.totalDamageDealtToChampions,
             damageTaken: p.totalDamageTaken,
             totalHeal: p.totalHeal,
@@ -747,7 +764,15 @@ app.get('/api/player/:gameName/:tagLine/comprehensive', async (req: Request, res
             item6: p.item6,
             championLevel: p.champLevel,
             summoner1Id: p.summoner1Id,
-            summoner2Id: p.summoner2Id
+            summoner2Id: p.summoner2Id,
+            perk0: p.perks?.styles?.[0]?.selections?.[0]?.perk || 0,
+            perk1: p.perks?.styles?.[0]?.selections?.[1]?.perk || 0,
+            perk2: p.perks?.styles?.[0]?.selections?.[2]?.perk || 0,
+            perk3: p.perks?.styles?.[1]?.selections?.[0]?.perk || 0,
+            perk4: p.perks?.styles?.[1]?.selections?.[1]?.perk || 0,
+            perk5: p.perks?.styles?.[1]?.selections?.[2]?.perk || 0,
+            perkPrimaryStyle: p.perks?.styles?.[0]?.style || 0,
+            perkSubStyle: p.perks?.styles?.[1]?.style || 0
           })
         }
 

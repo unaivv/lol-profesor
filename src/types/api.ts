@@ -85,9 +85,12 @@ export interface Participant {
   kills: number
   deaths: number
   assists: number
-  goldEarned: number
+goldEarned: number
   totalMinionsKilled: number
   visionWardsBoughtInGame: number
+  visionScore: number
+  wardsPlaced: number
+  wardsKilled: number
   damageDealtToChampions: number
   damageTaken: number
   totalHeal: number
@@ -132,6 +135,9 @@ export interface Match {
   goldEarned?: number
   totalMinionsKilled?: number
   visionWardsBoughtInGame?: number
+  visionScore?: number
+  wardsPlaced?: number
+  wardsKilled?: number
   damageDealtToChampions?: number
   damageTaken?: number
   totalHeal?: number
