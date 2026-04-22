@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { PlayerStats } from '../components/PlayerStats'
 import { StatsOverview } from '../components/StatsOverview'
 import { MatchHistory } from '../components/MatchHistory'
@@ -7,10 +7,10 @@ import { RankedComparisonCard } from '../components/RankedComparisonCard'
 import { SpectatorCard } from '../components/SpectatorCard'
 import { ChampionMasteryCard } from '../components/ChampionMasteryCard'
 import { PerformanceRadar } from '../components/PerformanceRadar'
+import { MostPlayedChampions } from '../components/MostPlayedChampions'
 import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
 import { PlayerData } from '../types/api'
-import { getChampionName } from '../lib/champions'
 import { Sparkles, Search, Trophy, Users, Star, Zap, Target } from 'lucide-react'
 
 type TabId = 'summary' | 'champions' | 'mastery' | 'live'
@@ -73,45 +73,6 @@ export function StatsPage() {
     window.location.href = '/'
   }
 
-  const topChampions = useMemo(() => {
-    if (!playerData?.matches || !playerData?.puuid) return []
-    
-    const championCounts: Record<number, { championId: number; games: number; wins: number }> = {}
-    
-    playerData.matches.forEach(match => {
-      if (!match.participants) return
-      const player = match.participants.find(p => p.puuid === playerData.puuid)
-      if (!player) return
-      
-      const cid = player.championId
-      if (!championCounts[cid]) {
-        championCounts[cid] = { championId: cid, games: 0, wins: 0 }
-      }
-      championCounts[cid].games++
-      if (player.win) championCounts[cid].wins++
-    })
-    
-    return Object.values(championCounts)
-      .sort((a, b) => b.games - a.games)
-      .slice(0, 3)
-      .map(c => {
-        const masteryEntry = playerData.mastery?.find(m => m.championId === c.championId)
-        return {
-          championId: c.championId,
-          championName: getChampionName(c.championId),
-          championPoints: masteryEntry?.championPoints || 0,
-          championLevel: masteryEntry?.championLevel || 0,
-          championPointsSinceLastLevel: masteryEntry?.championPointsSinceLastLevel || 0,
-          championPointsUntilNextLevel: masteryEntry?.championPointsUntilNextLevel || 0,
-          chestGranted: masteryEntry?.chestGranted || false,
-          tokensEarned: masteryEntry?.tokensEarned || 0,
-          lastPlayTime: masteryEntry?.lastPlayTime || 0,
-          games: c.games,
-          wins: c.wins
-        }
-      })
-  }, [playerData?.matches, playerData?.puuid, playerData?.mastery])
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
@@ -126,7 +87,7 @@ export function StatsPage() {
             Cargando estadísticas...
           </h2>
           <p className="text-slate-500">Preparando tu análisis profesional</p>
-<div className="mt-6 flex justify-center gap-1">
+          <div className="mt-6 flex justify-center gap-1">
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -264,19 +225,11 @@ export function StatsPage() {
               </div>
               <div className="xl:col-span-4 space-y-6">
                 <PerformanceRadar matches={playerData.matches || []} playerPuuid={playerData.puuid} />
-                {topChampions.length > 0 && (
-                  <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-4">
-                    <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
-                      <Star className="w-5 h-5 text-yellow-500" />
-                      Más Jugados
-                    </h3>
-                    <div className="space-y-3">
-                      {topChampions.map((m, idx) => (
-                        <ChampionMasteryCard key={idx} mastery={m} />
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <MostPlayedChampions
+                  matches={playerData.matches || []}
+                  playerPuuid={playerData.puuid}
+                  mastery={playerData.mastery || []}
+                />
               </div>
             </div>
           )}
