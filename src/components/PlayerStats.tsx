@@ -16,7 +16,7 @@ function getSoloRanked(stats: RankedStats | RankedStatsExtended | null | undefin
 // Get rank icon URL from community dragon
 const getRankIconUrl = (tier: string): string => {
   const tierLower = tier.toLowerCase()
-  return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/tiers/${tierLower}.png`
+  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/tier/${tierLower}-plate.png`
 }
 
 export function PlayerStats({ rankedStats }: PlayerStatsProps) {
