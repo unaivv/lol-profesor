@@ -56,33 +56,38 @@ const getQueueName = (queueId?: number): string => {
   return queues[queueId || 0] || 'Otro'
 }
 
-const generateTags = (player: Participant, teamWon: boolean): string[] => {
-  const tags: string[] = []
+interface Tag {
+  label: string
+  description: string
+}
+
+const generateTags = (player: Participant, teamWon: boolean): Tag[] => {
+  const tags: Tag[] = []
   const kdaRatio = calculateKDARatio(player.kills, player.deaths, player.assists)
 
   if (player.kills >= 8 || kdaRatio >= 5) {
-    if (teamWon) tags.push('🎯 Ace')
+    if (teamWon) tags.push({ label: '🎯 Ace', description: 'Mató a 8+ enemigos o KDA muy alto' })
   }
 
   if (player.damageDealtToChampions && player.damageDealtToChampions > 20000) {
-    tags.push('🛡️ Dmg Dealer')
+    tags.push({ label: '🛡️ Dmg Dealer', description: 'Daño alto a campeones (20k+)' })
   }
 
   const csPerMin = player.totalMinionsKilled / (player.timePlayed / 60)
   if (csPerMin >= 8) {
-    tags.push('🌾 CS Master')
+    tags.push({ label: '🌾 CS Master', description: 'Mucho CS por minuto (8+)' })
   }
 
   if (!teamWon && player.kills + player.assists >= 10 && player.deaths <= 3) {
-    tags.push('💀 Carry')
+    tags.push({ label: '💀 Carry', description: 'Hizo mucho daño pero perdió' })
   }
 
   if (player.assists >= 8) {
-    tags.push('✨ Asistidor')
+    tags.push({ label: '✨ Asistidor', description: '8+ asistencias en la partida' })
   }
 
   if (player.damageTaken && player.damageTaken > 15000 && player.deaths <= 2) {
-    tags.push('🏃 Tanky')
+    tags.push({ label: '🏃 Tanky', description: 'Mucho daño absorbido (15k+)' })
   }
 
   return tags.slice(0, 3)
@@ -199,16 +204,22 @@ export function MatchCard({ match, playerPuuid, onExpand, isExpanded }: MatchCar
         {tags.length > 0 && (
           <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
             {tags.map((tag, idx) => (
-              <span key={idx} style={{ 
-                fontSize: '11px', 
-                padding: '2px 8px', 
-                background: 'rgba(234, 179, 8, 0.1)', 
-                borderRadius: '4px',
-                color: '#a16207',
-                fontWeight: 500,
-                whiteSpace: 'nowrap'
-              }}>
-                {tag}
+              <span 
+                key={idx} 
+                style={{ 
+                  fontSize: '11px', 
+                  padding: '2px 8px', 
+                  background: 'rgba(234, 179, 8, 0.1)', 
+                  borderRadius: '4px',
+                  color: '#a16207',
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                  cursor: 'help',
+                  position: 'relative'
+                }}
+                title={tag.description}
+              >
+                {tag.label}
               </span>
             ))}
           </div>
