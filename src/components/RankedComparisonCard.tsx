@@ -54,30 +54,30 @@ function RankedCard({ stats, title, icon: Icon }: { stats: RankedStats | null; t
   const winRate = Math.round((stats.wins / (stats.wins + stats.losses)) * 100)
 
   return (
-    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-10 h-10 rounded-lg overflow-hidden shadow-sm">
+    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+      <div className="flex items-center gap-4 mb-5">
+        <div className="w-14 h-14 rounded-xl overflow-hidden shadow-sm bg-slate-50 flex-shrink-0">
           <img 
             src={stats.tier ? getRankEmblemUrl(stats.tier) : ''} 
             alt={stats.tier}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain p-1"
             onError={(e) => {
               const color = getRankColor(stats.tier)
               ;(e.target as HTMLImageElement).style.display = 'none'
               ;(e.target as HTMLImageElement).parentElement!.style.background = color
-              ;(e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-white font-bold text-sm flex items-center justify-center h-full">${stats.tier[0]}</span>`
+              ;(e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-white font-bold text-lg flex items-center justify-center h-full">${stats.tier[0]}</span>`
             }}
           />
         </div>
-        <div>
-          <h3 className="font-bold text-sm text-slate-700">{title}</h3>
-          <p className="text-xs font-bold text-slate-600">{stats.tier} {stats.rank}</p>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-base text-slate-700">{title}</h3>
+          <p className="text-sm font-bold text-slate-600">{stats.tier} {stats.rank}</p>
         </div>
       </div>
 
-      <div className="mb-3">
-        <div className="text-2xl font-bold text-slate-900">{stats.leaguePoints} <span className="text-sm font-normal text-slate-500">LP</span></div>
-        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1">
+      <div className="mb-5">
+        <div className="text-3xl font-bold text-slate-900">{stats.leaguePoints} <span className="text-sm font-normal text-slate-500">LP</span></div>
+        <div className="h-2 bg-slate-100 rounded-full overflow-hidden mt-2">
           <div
             className={`h-full rounded-full bg-gradient-to-r ${getRankGradient(stats.tier)}`}
             style={{ width: `${Math.min(stats.leaguePoints, 100)}%` }}
@@ -85,23 +85,23 @@ function RankedCard({ stats, title, icon: Icon }: { stats: RankedStats | null; t
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 text-center">
+      <div className="grid grid-cols-3 gap-4 text-center py-3 bg-slate-50 rounded-xl">
         <div>
-          <div className="text-lg font-bold text-emerald-600">{stats.wins}</div>
-          <div className="text-[10px] text-slate-500 uppercase">Victorias</div>
+          <div className="text-xl font-bold text-emerald-600">{stats.wins}</div>
+          <div className="text-xs text-slate-500 uppercase tracking-wide">Victorias</div>
         </div>
         <div>
-          <div className="text-lg font-bold text-rose-600">{stats.losses}</div>
-          <div className="text-[10px] text-slate-500 uppercase">Derrotas</div>
+          <div className="text-xl font-bold text-rose-600">{stats.losses}</div>
+          <div className="text-xs text-slate-500 uppercase tracking-wide">Derrotas</div>
         </div>
         <div>
-          <div className={`text-lg font-bold ${winRate >= 50 ? 'text-emerald-600' : 'text-orange-600'}`}>{winRate}%</div>
-          <div className="text-[10px] text-slate-500 uppercase">Win Rate</div>
+          <div className={`text-xl font-bold ${winRate >= 50 ? 'text-emerald-600' : 'text-orange-600'}`}>{winRate}%</div>
+          <div className="text-xs text-slate-500 uppercase tracking-wide">Win Rate</div>
         </div>
       </div>
 
       {stats.hotStreak && (
-        <div className="mt-3 flex items-center gap-1.5 text-xs text-orange-600 bg-orange-50 rounded-lg px-2 py-1">
+        <div className="mt-4 flex items-center gap-2 text-sm text-orange-600 bg-orange-50 rounded-lg px-3 py-2">
           <TrendingUp className="w-3.5 h-3.5" />
           <span>En racha de victorias</span>
         </div>
