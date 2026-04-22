@@ -10,6 +10,7 @@ export interface PlayerData {
   profileIconId: number
   region: string
   matches?: DetailedMatch[]
+  totalMatches?: number        // Total ranked games this season from API
   rankedStats?: RankedStatsExtended | RankedStats | null
   mastery?: ChampionMastery[]
   currentGame?: SpectatorGameData | null
@@ -32,6 +33,7 @@ export interface ChampionMastery {
   chestGranted: boolean        // Cofre disponible
   tokensEarned: number         // Tokens S/M (niveles 6-7)
   summonerId: string
+  championName?: string       // Added for display
 }
 
 // Spectator API data (partida en vivo via Riot API)

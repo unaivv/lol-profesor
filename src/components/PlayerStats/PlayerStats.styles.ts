@@ -8,10 +8,10 @@ export const styles = {
   contentSpace: 'space-y-6',
   
   rankSection: 'flex items-center gap-5',
-  rankImageWrapper: 'w-16 h-16 rounded-xl overflow-hidden shadow-lg bg-slate-50 flex-shrink-0',
+  rankImageWrapper: 'w-24 h-24 rounded-xl overflow-hidden shadow-lg flex-shrink-0 bg-contain',
   rankImage: 'w-full h-full object-contain p-0.5',
   rankInfo: 'flex-1 min-w-0',
-  rankTitle: 'text-xl font-bold text-slate-800 truncate',
+  rankTitle: 'text-2xl font-bold truncate',
   rankLp: 'text-slate-500 text-sm',
   
   statsGrid: 'grid grid-cols-3 gap-3',

@@ -175,6 +175,7 @@ export interface ChampionMastery {
   chestGranted: boolean;        // Cofre disponible
   tokensEarned: number;         // Tokens S/M (niveles 6-7)
   summonerId: string;
+  championName?: string;       // Added for display
 }
 
 // Spectator API (from SPECTATOR-V4 API)

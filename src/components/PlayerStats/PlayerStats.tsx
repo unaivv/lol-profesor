@@ -3,6 +3,7 @@ import { PlayerStatsProps } from './PlayerStats.types'
 import { getRankEmblemUrl } from '@/lib/utils'
 import { styles } from './PlayerStats.styles'
 import { getSoloRanked } from './PlayerStats.utils'
+import { getRankColor } from '../RankedComparisonCard/RankedComparisonCard.utils'
 
 export function PlayerStats({ rankedStats }: PlayerStatsProps) {
   const soloRanked = getSoloRanked(rankedStats)
@@ -11,6 +12,7 @@ export function PlayerStats({ rankedStats }: PlayerStatsProps) {
     ? Math.round((soloRanked.wins / (soloRanked.wins + soloRanked.losses)) * 100)
     : 0
   const totalGames = soloRanked ? soloRanked.wins + soloRanked.losses : 0
+  const tierColor = soloRanked ? getRankColor(soloRanked.tier) : '#6b7280'
 
   return (
     <div className={styles.container}>
@@ -31,20 +33,18 @@ export function PlayerStats({ rankedStats }: PlayerStatsProps) {
         {soloRanked ? (
           <div className={styles.contentSpace}>
             <div className={styles.rankSection}>
-              <div className={styles.rankImageWrapper}>
-                <img 
-                  src={getRankEmblemUrl(soloRanked.tier)} 
-                  alt={soloRanked.tier}
-                  className={styles.rankImage}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                    (e.target as HTMLImageElement).parentElement!.style.background = 'linear-gradient(135deg, #64748b, #475569)';
-                    (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-white font-bold text-lg flex items-center justify-center h-full">${soloRanked.tier[0]}</span>`;
-                  }}
-                />
-              </div>
+              <div
+                className={styles.rankImageWrapper}
+                style={{
+                  backgroundImage: `url(${getRankEmblemUrl(soloRanked.tier)})`,
+                  backgroundSize: 'contain',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundColor: '#f1f5f9'
+                }}
+              />
               <div className={styles.rankInfo}>
-                <div className={styles.rankTitle}>
+                <div className={styles.rankTitle} style={{ color: tierColor }}>
                   {soloRanked.tier} {soloRanked.rank}
                 </div>
                 <div className={styles.rankLp}>{soloRanked.leaguePoints} LP</div>
@@ -97,6 +97,7 @@ export function PlayerStats({ rankedStats }: PlayerStatsProps) {
             <div className={styles.emptyIcon}>
               <Shield className="w-6 h-6 text-slate-400" />
             </div>
+            Hola
             <h3 className={styles.emptyTitle}>Sin datos clasificatorios</h3>
             <p className={styles.emptyText}>Completa tus 10 partidas de colocación</p>
           </div>

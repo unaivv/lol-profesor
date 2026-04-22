@@ -3,10 +3,11 @@ import { Trophy, Sword } from 'lucide-react'
 import { MatchHistoryProps, DetailedMatch } from '../types/api'
 import { MatchCard } from './MatchCard'
 import { MatchDetail } from './MatchDetail'
+import { WinRateChart } from './WinRateChart'
 
 export function MatchHistory({ matches, playerPuuid }: MatchHistoryProps) {
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null)
-  const validMatches = matches.filter((m): m is DetailedMatch => 
+  const validMatches = matches.filter((m): m is DetailedMatch =>
     m && typeof m.gameId === 'string' && Array.isArray(m.participants)
   )
 
@@ -44,9 +45,7 @@ export function MatchHistory({ matches, playerPuuid }: MatchHistoryProps) {
               <p style={{ fontSize: '14px', color: '#94a3b8', margin: 0 }}>{validMatches.length} partidas</p>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#94a3b8' }}>
-            <span>Click para ver detalles</span>
-          </div>
+          <WinRateChart matches={matches} playerPuuid={playerPuuid || ''} />
         </div>
       </div>
 

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { PlayerStats } from '../components/PlayerStats'
+import { StatsOverview } from '../components/StatsOverview'
 import { MatchHistory } from '../components/MatchHistory'
 import { ChampionStats } from '../components/ChampionStats'
 import { RankedComparisonCard } from '../components/RankedComparisonCard'
@@ -9,6 +10,7 @@ import { PerformanceRadar } from '../components/PerformanceRadar'
 import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
 import { PlayerData } from '../types/api'
+import { getChampionName } from '../lib/champions'
 import { Sparkles, Search, Trophy, Users, Star, Zap, Target } from 'lucide-react'
 
 type TabId = 'summary' | 'champions' | 'mastery' | 'live'
@@ -71,6 +73,45 @@ export function StatsPage() {
     window.location.href = '/'
   }
 
+  const topChampions = useMemo(() => {
+    if (!playerData?.matches || !playerData?.puuid) return []
+    
+    const championCounts: Record<number, { championId: number; games: number; wins: number }> = {}
+    
+    playerData.matches.forEach(match => {
+      if (!match.participants) return
+      const player = match.participants.find(p => p.puuid === playerData.puuid)
+      if (!player) return
+      
+      const cid = player.championId
+      if (!championCounts[cid]) {
+        championCounts[cid] = { championId: cid, games: 0, wins: 0 }
+      }
+      championCounts[cid].games++
+      if (player.win) championCounts[cid].wins++
+    })
+    
+    return Object.values(championCounts)
+      .sort((a, b) => b.games - a.games)
+      .slice(0, 3)
+      .map(c => {
+        const masteryEntry = playerData.mastery?.find(m => m.championId === c.championId)
+        return {
+          championId: c.championId,
+          championName: getChampionName(c.championId),
+          championPoints: masteryEntry?.championPoints || 0,
+          championLevel: masteryEntry?.championLevel || 0,
+          championPointsSinceLastLevel: masteryEntry?.championPointsSinceLastLevel || 0,
+          championPointsUntilNextLevel: masteryEntry?.championPointsUntilNextLevel || 0,
+          chestGranted: masteryEntry?.chestGranted || false,
+          tokensEarned: masteryEntry?.tokensEarned || 0,
+          lastPlayTime: masteryEntry?.lastPlayTime || 0,
+          games: c.games,
+          wins: c.wins
+        }
+      })
+  }, [playerData?.matches, playerData?.puuid, playerData?.mastery])
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
@@ -85,7 +126,7 @@ export function StatsPage() {
             Cargando estadísticas...
           </h2>
           <p className="text-slate-500">Preparando tu análisis profesional</p>
-          <div className="mt-6 flex justify-center gap-1">
+<div className="mt-6 flex justify-center gap-1">
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -120,20 +161,11 @@ export function StatsPage() {
     )
   }
 
-  const hasMatches = (playerData.matches?.length || 0) > 0
-
-  // Manejar tanto RankedStats simple como RankedStatsExtended
-  const rankedData = playerData.rankedStats
-  const isExtended = rankedData && 'solo' in rankedData
-  const soloRanked = isExtended ? (rankedData as any).solo : rankedData
-  const flexRanked = isExtended ? (rankedData as any).flex : null
-  const hasSoloRanked = soloRanked !== null && soloRanked !== undefined
-  const hasFlexRanked = flexRanked !== null && flexRanked !== undefined
-  const hasAnyRanked = hasSoloRanked || hasFlexRanked
+  const hasMatches = (playerData?.matches?.length || 0) > 0
 
   return (
     <div style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #f3e8ff 100%)', minHeight: '100vh' }}>
-      <Header 
+      <Header
         variant="profile"
         actions={
           <button
@@ -173,84 +205,8 @@ export function StatsPage() {
         </div>
 
         {/* Stats Overview Cards */}
-        <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Trophy size={24} color="#2563eb" />
-            </div>
-            <div>
-              <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e293b' }}>{playerData.summonerLevel}</div>
-              <div style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>Nivel</div>
-            </div>
-          </div>
-          <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Target size={24} color="#059669" />
-            </div>
-            <div>
-              <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e293b' }}>{playerData.matches?.length || 0}</div>
-              <div style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>Partidas</div>
-            </div>
-          </div>
-          {/* Solo Duo Ranked */}
-          {hasSoloRanked && (
-            <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #7c3aed, #5b21b6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Star size={20} color="white" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Clasificatorias</div>
-                <div style={{ fontSize: '18px', fontWeight: 'bold', background: 'linear-gradient(135deg, #7c3aed, #5b21b6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  {soloRanked.tier} {soloRanked.rank}
-                </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>{soloRanked.leaguePoints} LP</div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>{soloRanked.wins}G {soloRanked.losses}P</div>
-              </div>
-            </div>
-          )}
-          
-          {/* Flex Ranked */}
-          {hasFlexRanked && (
-            <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #ea580c, #c2410c)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Star size={20} color="white" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Flexible</div>
-                <div style={{ fontSize: '18px', fontWeight: 'bold', background: 'linear-gradient(135deg, #ea580c, #c2410c)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  {flexRanked.tier} {flexRanked.rank}
-                </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>{flexRanked.leaguePoints} LP</div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>{flexRanked.wins}G {flexRanked.losses}P</div>
-              </div>
-            </div>
-          )}
-          
-          {/* No Ranked */}
-          {!hasAnyRanked && (
-            <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Star size={24} color="#94a3b8" />
-              </div>
-              <div>
-                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#94a3b8' }}>Unranked</div>
-                <div style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>Sin ranked</div>
-              </div>
-            </div>
-          )}
-          <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Zap size={24} color="#ea580c" />
-            </div>
-            <div>
-              <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e293b' }}>{playerData.region}</div>
-              <div style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>Región</div>
-            </div>
-          </div>
+        <div style={{ marginTop: '24px', marginBottom: '24px' }}>
+          <StatsOverview playerData={playerData} />
         </div>
 
         {/* Modern Tab Navigation - Design System */}
@@ -307,16 +263,15 @@ export function StatsPage() {
                 )}
               </div>
               <div className="xl:col-span-4 space-y-6">
-                <PlayerStats rankedStats={playerData.rankedStats} />
                 <PerformanceRadar matches={playerData.matches || []} playerPuuid={playerData.puuid} />
-                {playerData.mastery && playerData.mastery.length > 0 && (
+                {topChampions.length > 0 && (
                   <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-4">
                     <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
                       <Star className="w-5 h-5 text-yellow-500" />
-                      Top Maestría
+                      Más Jugados
                     </h3>
                     <div className="space-y-3">
-                      {playerData.mastery.slice(0, 3).map((m, idx) => (
+                      {topChampions.map((m, idx) => (
                         <ChampionMasteryCard key={idx} mastery={m} />
                       ))}
                     </div>

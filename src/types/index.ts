@@ -145,6 +145,7 @@ export interface ChampionMastery {
   chestGranted: boolean
   tokensEarned: number
   summonerId: string
+  championName?: string
 }
 
 // Detailed match with all participants for match history

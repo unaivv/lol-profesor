@@ -24,26 +24,24 @@ function RankedCard({ stats, title, icon: Icon }: RankedCardProps) {
   }
 
   const winRate = Math.round((stats.wins / (stats.wins + stats.losses)) * 100)
+  const tierColor = getRankColor(stats.tier)
 
   return (
     <div className={rankCardStyles.container}>
       <div className={rankCardStyles.header}>
-        <div className={rankCardStyles.iconWrapper}>
-          <img 
-            src={getRankEmblemUrl(stats.tier)} 
-            alt={stats.tier}
-            className={rankCardStyles.icon}
-            onError={(e) => {
-              const color = getRankColor(stats.tier)
-              ;(e.target as HTMLImageElement).style.display = 'none'
-              ;(e.target as HTMLImageElement).parentElement!.style.background = color
-              ;(e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-white font-bold text-lg flex items-center justify-center h-full">${stats.tier[0]}</span>`
-            }}
-          />
-        </div>
+        <div
+          className={rankCardStyles.iconWrapper}
+          style={{
+            backgroundImage: `url(${getRankEmblemUrl(stats.tier)})`,
+            backgroundSize: '350%',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundColor: '#f1f5f9'
+          }}
+        />
         <div className={rankCardStyles.info}>
           <h3 className={rankCardStyles.title}>{title}</h3>
-          <p className={rankCardStyles.tier}>{stats.tier} {stats.rank}</p>
+          <p className={rankCardStyles.tier} style={{ color: tierColor }}>{stats.tier} {stats.rank}</p>
         </div>
       </div>
 
@@ -116,8 +114,7 @@ export function RankedComparisonCard({ rankedStats }: RankedComparisonCardProps)
         </div>
         <h2 className={styles.headerTitle}>Estadísticas Clasificatorias</h2>
       </div>
-
-      <div className={styles.grid}>
+      <div className={`${styles.grid}`}>
         <RankedCard stats={solo} title="Solo/Duo" icon={Target} />
         <RankedCard stats={flex} title="Flex 5v5" icon={Trophy} />
       </div>
