@@ -16,6 +16,18 @@ export function StatsOverview({ playerData }: StatsOverviewProps) {
   const hasFlexRanked = flexRanked !== null && flexRanked !== undefined
   const hasAnyRanked = hasSoloRanked || hasFlexRanked
 
+  // Calculate total ranked matches (wins + losses) from solo and flex
+  const calculateTotalRankedMatches = () => {
+    let total = 0
+    if (hasSoloRanked && soloRanked) {
+      total += soloRanked.wins + soloRanked.losses
+    }
+    if (hasFlexRanked && flexRanked) {
+      total += flexRanked.wins + flexRanked.losses
+    }
+    return total
+  }
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
       <StatsOverviewCard
@@ -27,7 +39,7 @@ export function StatsOverview({ playerData }: StatsOverviewProps) {
       <StatsOverviewCard
         icon={<Target size={24} color="#059669" />}
         iconBg="#d1fae5"
-        value={playerData.totalMatches || playerData.matches?.length || 0}
+        value={calculateTotalRankedMatches()}
         label="Partidas Ranked"
       />
       {hasSoloRanked && (
