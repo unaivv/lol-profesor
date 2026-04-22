@@ -307,7 +307,7 @@ export function StatsPage() {
                 )}
               </div>
               <div className="xl:col-span-4 space-y-6">
-                <PlayerStats playerData={playerData} rankedStats={playerData.rankedStats} />
+                <PlayerStats rankedStats={playerData.rankedStats} />
                 <PerformanceRadar matches={playerData.matches || []} playerPuuid={playerData.puuid} />
                 {playerData.mastery && playerData.mastery.length > 0 && (
                   <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-4">
@@ -372,7 +372,7 @@ export function StatsPage() {
                 <SpectatorCard puuid={playerData.puuid} />
               </div>
               <div className="xl:col-span-4 space-y-6">
-                <PlayerStats playerData={playerData} rankedStats={playerData.rankedStats} />
+                <PlayerStats rankedStats={playerData.rankedStats} />
               </div>
             </div>
           )}

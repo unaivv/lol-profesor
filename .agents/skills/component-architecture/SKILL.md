@@ -23,6 +23,7 @@ src/
 │   │   ├── index.ts              # Exports públicos
 │   │   ├── ComponentName.tsx     # Componente principal
 │   │   ├── ComponentName.types.ts # Tipos específicos del componente
+│   │   ├── ComponentName.styles.ts # Estilos (constantes de Tailwind)
 │   │   └── ComponentName.utils.ts # Funciones helper (si son complejas)
 │   │
 │   ├── ui/                       # Componentes reutilizables (shadcn style)
@@ -61,6 +62,7 @@ import { useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import type { ComponentProps } from './ComponentName.types'
+import { styles } from './ComponentName.styles'
 
 interface Props {
   title: string
@@ -74,7 +76,7 @@ export function ComponentName({ title, onClick, className }: Props) {
   }, [])
 
   return (
-    <div className={cn('base-classes', className)}>
+    <div className={cn(styles.container, className)}>
       <h1>{title}</h1>
       <Button onClick={onClick}>Click</Button>
     </div>
@@ -82,7 +84,19 @@ export function ComponentName({ title, onClick, className }: Props) {
 }
 ```
 
-### 2. Tipos (`.types.ts` o `types/` dentro del componente)
+### 2. Estilos (`.styles.ts`)
+
+```tsx
+// ✅ CORRECTO: Estilos centralizados en archivo separado
+export const styles = {
+  container: 'bg-white rounded-xl p-4 shadow-lg',
+  header: 'flex items-center justify-between mb-4',
+  title: 'text-xl font-bold text-slate-800',
+  badge: 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
+} as const
+```
+
+### 3. Tipos (`.types.ts` o `types/` dentro del componente)
 
 ```tsx
 // ✅ CORRECTO: Tipos específicos exportados desde el componente
