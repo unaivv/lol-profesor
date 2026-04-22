@@ -246,4 +246,4 @@ export function getItemIcon(itemId: number): string {
   return `https://ddragon.leagueoflegends.com/cdn/14.5.1/img/item/${itemId}.png`
 }
 
-export { calculateKDARatio, getChampionItems, getTrinket, getItemIcon }
+export { calculateKDARatio }

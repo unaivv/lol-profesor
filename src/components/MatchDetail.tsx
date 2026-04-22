@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { DetailedMatch, Participant, MatchTimeline } from '../types/api'
-import { getChampionItems, getTrinket, calculateKDARatio } from './MatchCard'
+import { getChampionItems, calculateKDARatio } from './MatchCard'
 import { Skull, Shield, Target, Zap, X } from 'lucide-react'
 
 interface MatchDetailProps {
