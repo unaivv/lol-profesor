@@ -29,16 +29,10 @@ const getMasteryLevelColor = (level: number): string => {
 }
 
 const getMasteryLevelText = (level: number): string => {
-  switch (level) {
-    case 7: return 'Maestría 7'
-    case 6: return 'Maestría 6'
-    case 5: return 'Maestría 5'
-    case 4: return 'Maestría 4'
-    case 3: return 'Maestría 3'
-    case 2: return 'Maestría 2'
-    case 1: return 'Maestría 1'
-    default: return 'Sin Maestría'
-  }
+  if (level)
+    return `Maestría ${level}`
+
+  return "Sin maestría"
 }
 
 const formatPoints = (points: number): string => {
@@ -69,11 +63,25 @@ export function ChampionMasteryCard({ mastery }: ChampionMasteryCardProps) {
   const level = mastery.championLevel || 0
   const isTopPlayed = 'games' in mastery && mastery.games > 0 && !masteryData.championPoints
 
-  const progress = masteryData.championPointsUntilNextLevel && masteryData.championPointsUntilNextLevel > 0
-    ? Math.round((masteryData.championPointsSinceLastLevel / (masteryData.championPointsSinceLastLevel + masteryData.championPointsUntilNextLevel)) * 100)
-    : isTopPlayed ? 100 : 0
+  const progress = (() => {
+    if (isTopPlayed) return 100
+    if (!masteryData.championPointsUntilNextLevel) return 0
 
-  const nextLevel = level < 7 ? level + 1 : null
+    // Si championPointsUntilNextLevel es negativo (nivel > 7), usar sumatorio
+    if (masteryData.championPointsUntilNextLevel < 0) {
+      const total = masteryData.championPointsSinceLastLevel + Math.abs(masteryData.championPointsUntilNextLevel)
+      return Math.min(100, Math.round((masteryData.championPointsSinceLastLevel / total) * 100))
+    }
+
+    if (masteryData.championPointsUntilNextLevel > 0) {
+      return Math.round((masteryData.championPointsSinceLastLevel / (masteryData.championPointsSinceLastLevel + masteryData.championPointsUntilNextLevel)) * 100)
+    }
+
+    return 0
+  })()
+  console.log({ mastery, progress })
+
+  const nextLevel = level + 1
   const totalGames = 'games' in mastery ? mastery.games : 0
   const wins = 'wins' in mastery ? mastery.wins : 0
 
@@ -141,11 +149,10 @@ export function ChampionMasteryCard({ mastery }: ChampionMasteryCardProps) {
             {[0, 1].map((i) => (
               <div
                 key={i}
-                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                  i < (masteryData.tokensEarned || 0)
-                    ? 'bg-gradient-to-br from-blue-500 to-purple-500 text-white'
-                    : 'bg-slate-200 text-slate-400'
-                }`}
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${i < (masteryData.tokensEarned || 0)
+                  ? 'bg-gradient-to-br from-blue-500 to-purple-500 text-white'
+                  : 'bg-slate-200 text-slate-400'
+                  }`}
               >
                 S
               </div>
