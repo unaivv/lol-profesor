@@ -79,7 +79,6 @@ export function ChampionMasteryCard({ mastery }: ChampionMasteryCardProps) {
 
     return 0
   })()
-  console.log({ mastery, progress })
 
   const nextLevel = level + 1
   const totalGames = 'games' in mastery ? mastery.games : 0

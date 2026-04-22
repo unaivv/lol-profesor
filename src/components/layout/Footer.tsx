@@ -9,13 +9,6 @@ interface FooterProps {
   variant?: 'default' | 'minimal' | 'profile'
 }
 
-// Helper para obtener solo ranked
-function getSoloRanked(stats: RankedStats | RankedStatsExtended | null | undefined): RankedStats | null {
-  if (!stats) return null
-  if ('solo' in stats) return (stats as RankedStatsExtended).solo
-  return stats as RankedStats
-}
-
 export function Footer({
   playerData,
   showPlayerInfo = false,
@@ -25,7 +18,15 @@ export function Footer({
   const renderPlayerInfo = () => {
     if (!playerData || !showPlayerInfo) return null
 
-    const soloRanked = getSoloRanked(playerData.rankedStats)
+    const rankedData = playerData.rankedStats
+    const isExtended = rankedData && 'solo' in rankedData
+    const soloRanked = isExtended ? (rankedData as RankedStatsExtended).solo : rankedData as RankedStats | null
+    const flexRanked = isExtended ? (rankedData as RankedStatsExtended).flex : null
+
+    const totalRankedMatches = (soloRanked ? soloRanked.wins + soloRanked.losses : 0) + (flexRanked ? flexRanked.wins + flexRanked.losses : 0)
+    const soloWinRate = soloRanked && (soloRanked.wins + soloRanked.losses) > 0
+      ? Math.round((soloRanked.wins / (soloRanked.wins + soloRanked.losses)) * 100)
+      : null
 
     return (
       <div>
@@ -33,9 +34,19 @@ export function Footer({
         <ul style={{ color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.8', listStyle: 'none', padding: 0 }}>
           <li style={{ padding: '4px 0' }}>Nivel: {playerData.summonerLevel}</li>
           <li style={{ padding: '4px 0' }}>Región: {playerData.region || 'EUW'}</li>
-          <li style={{ padding: '4px 0' }}>Partidas: {playerData.matches?.length || 0}</li>
-          <li style={{ padding: '4px 0' }}>Ranking: {soloRanked ? `${soloRanked.tier} ${soloRanked.rank}` : 'Sin ranking'}</li>
-          <li style={{ padding: '4px 0' }}>Win Rate: {soloRanked ? `${Math.round((soloRanked.wins / (soloRanked.wins + soloRanked.losses)) * 100)}%` : '0%'}</li>
+          <li style={{ padding: '4px 0' }}>Partidas Ranked: {totalRankedMatches}</li>
+          {soloRanked && (
+            <>
+              <li style={{ padding: '4px 0' }}>Ranked Solo: {soloRanked.tier} {soloRanked.rank} ({soloRanked.leaguePoints} LP)</li>
+              <li style={{ padding: '4px 0' }}>Win Rate: {soloWinRate}% ({soloRanked.wins}W {soloRanked.losses}L)</li>
+            </>
+          )}
+          {flexRanked && (
+            <li style={{ padding: '4px 0' }}>Ranked Flex: {flexRanked.tier} {flexRanked.rank} ({flexRanked.leaguePoints} LP)</li>
+          )}
+          {!soloRanked && !flexRanked && (
+            <li style={{ padding: '4px 0' }}>Sin ranking</li>
+          )}
         </ul>
       </div>
     )
@@ -86,14 +97,14 @@ export function Footer({
   }
 
   return (
-    <footer style={{ 
+    <footer style={{
       marginTop: '60px',
       background: 'linear-gradient(135deg, #3b82f6, #9333ea)',
       color: 'white',
       padding: '60px 20px 40px'
     }}>
       <div className="container">
-        <div style={{ 
+        <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: '40px'
