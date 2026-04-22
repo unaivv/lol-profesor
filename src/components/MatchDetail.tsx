@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { DetailedMatch, Participant, MatchTimeline } from '../types/api'
-import { getChampionItems, calculateKDARatio } from './MatchCard'
+import { getChampionItems, getTrinket, calculateKDARatio } from './MatchCard'
 import { Skull, Shield, Target, Zap, X } from 'lucide-react'
 
 interface MatchDetailProps {
@@ -60,6 +60,7 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP }: PlayerRowProps) => {
   const kdaRatio = calculateKDARatio(player.kills, player.deaths, player.assists)
   const kdaColor = kdaRatio >= 4 ? '#10b981' : kdaRatio >= 2.5 ? '#2563eb' : kdaRatio >= 1 ? '#d97706' : '#dc2626'
   const items = getChampionItems(player)
+  const trinket = getTrinket(player)
   const visionScore = (player.visionScore ?? 0) || 
                       ((player.visionWardsBoughtInGame || 0) + (player.wardsPlaced || 0) + (player.wardsKilled || 0))
 
@@ -148,6 +149,17 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP }: PlayerRowProps) => {
           )
         })}
       </div>
+      {trinket > 0 && (
+        <div style={{ 
+          width: '20px', 
+          height: '20px', 
+          background: '#0f172a', 
+          borderRadius: '3px', 
+          overflow: 'hidden'
+        }}>
+          <img src={getItemIcon(trinket)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+        </div>
+      )}
       <div style={{ 
         display: 'flex', 
         alignItems: 'center', 
@@ -593,7 +605,188 @@ const extractKeyEvents = () => {
           <div>
             <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Zap size={16} color="#8b5cf6" />
-              Timeline - Eventos Clave
+              Timeline - Línea de Tiempo
+            </h3>
+            
+            {/* Timeline Visual con línea horizontal */}
+            <div style={{ 
+              background: '#f8fafc', 
+              borderRadius: '12px', 
+              padding: '20px',
+              border: '1px solid #e2e8f0',
+              minHeight: '160px'
+            }}>
+              {timelineLoading ? (
+                <div style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
+                  Cargando timeline...
+                </div>
+              ) : timelineError ? (
+                <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>
+                  {timelineError}
+                </div>
+              ) : timeline?.frames ? (
+                <div>
+                  {/* Barra de tiempo visual */}
+                  <div style={{ position: 'relative', height: '120px', marginBottom: '16px' }}>
+                    {/* Línea central */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '40px',
+                      right: '40px',
+                      height: '3px',
+                      background: 'linear-gradient(90deg, #3b82f6 0%, #6366f1 50%, #ef4444 100%)',
+                      borderRadius: '2px',
+                      transform: 'translateY(-50%)'
+                    }} />
+                    
+                    {/* Marcas de tiempo */}
+                    {[0, 25, 50, 75, 100].map((percent) => {
+                      const timeMin = Math.floor((match.gameDuration * percent) / 100 / 60)
+                      return (
+                        <div key={percent} style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: `calc(40px + ${percent}%)`,
+                          transform: 'translate(-50%, -50%)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center'
+                        }}>
+                          <div style={{ 
+                            width: '1px', 
+                            height: '12px', 
+                            background: '#cbd5e1' 
+                          }} />
+                          <div style={{ 
+                            fontSize: '10px', 
+                            color: '#64748b',
+                            marginTop: '4px',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {timeMin}:00
+                          </div>
+                        </div>
+                      )
+                    })}
+                    
+                    {/* Puntos del Equipo Azul */}
+                    {keyEvents.blue.map((event, idx) => {
+                      // Convert time to percentage
+                      const timeParts = event.time.split(':')
+                      const eventSeconds = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1])
+                      const percent = match.gameDuration > 0 ? (eventSeconds / match.gameDuration) * 100 : 0
+                      return (
+                        <div
+                          key={`blue-${idx}`}
+                          title={event.typeLabel}
+                          style={{
+                            position: 'absolute',
+                            top: 'calc(50% - 24px)',
+                            left: `calc(40px + ${percent}%)`,
+                            transform: 'translateX(-50%)',
+                            width: '12px',
+                            height: '12px',
+                            background: '#3b82f6',
+                            borderRadius: '50%',
+                            border: '2px solid white',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            cursor: 'pointer',
+                            zIndex: 10
+                          }}
+                        >
+                          <div style={{
+                            position: 'absolute',
+                            bottom: '100%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            marginBottom: '4px',
+                            background: '#1e293b',
+                            color: 'white',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            whiteSpace: 'nowrap',
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                            pointerEvents: 'none'
+                          }} className="event-tooltip">
+                            {event.time} - {event.typeLabel}
+                          </div>
+                        </div>
+                      )
+                    })}
+                    
+                    {/* Puntos del Equipo Rojo */}
+                    {keyEvents.red.map((event, idx) => {
+                      const timeParts = event.time.split(':')
+                      const eventSeconds = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1])
+                      const percent = match.gameDuration > 0 ? (eventSeconds / match.gameDuration) * 100 : 0
+                      return (
+                        <div
+                          key={`red-${idx}`}
+                          title={event.typeLabel}
+                          style={{
+                            position: 'absolute',
+                            top: 'calc(50% - 24px)',
+                            left: `calc(40px + ${percent}%)`,
+                            transform: 'translateX(-50%)',
+                            width: '12px',
+                            height: '12px',
+                            background: '#ef4444',
+                            borderRadius: '50%',
+                            border: '2px solid white',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            cursor: 'pointer',
+                            zIndex: 10
+                          }}
+                        >
+                          <div style={{
+                            position: 'absolute',
+                            bottom: '100%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            marginBottom: '4px',
+                            background: '#1e293b',
+                            color: 'white',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            whiteSpace: 'nowrap',
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                            pointerEvents: 'none'
+                          }} className="event-tooltip">
+                            {event.time} - {event.typeLabel}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  
+                  {/* Leyenda */}
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '10px', height: '10px', background: '#3b82f6', borderRadius: '50%' }} />
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>Equipo Azul ({keyEvents.blue.length})</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '10px', height: '10px', background: '#ef4444', borderRadius: '50%' }} />
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>Equipo Rojo ({keyEvents.red.length})</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>
+                  No hay timeline disponible
+                </div>
+              )}
+            </div>
+            
+            {/* Lista de eventos detallada */}
+            <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '12px', marginTop: '24px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Zap size={16} color="#8b5cf6" />
+              Eventos Detallados
             </h3>
             <div style={{ 
               background: '#f8fafc', 
@@ -634,7 +827,8 @@ const extractKeyEvents = () => {
                             background: 'white',
                             borderRadius: '6px',
                             fontSize: '11px',
-                            border: '1px solid #f1f5f9'
+                            border: '1px solid #f1f5f9',
+                            marginBottom: '4px'
                           }}>
                             <span style={{ fontWeight: 600, color: '#64748b' }}>{event.time}</span>
                             {getEventIcon(event.type)}
@@ -671,7 +865,8 @@ const extractKeyEvents = () => {
                             background: 'white',
                             borderRadius: '6px',
                             fontSize: '11px',
-                            border: '1px solid #f1f5f9'
+                            border: '1px solid #f1f5f9',
+                            marginBottom: '4px'
                           }}>
                             <span style={{ fontWeight: 600, color: '#64748b' }}>{event.time}</span>
                             {getEventIcon(event.type)}
