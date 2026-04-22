@@ -552,7 +552,7 @@ app.get('/api/player/:gameName/:tagLine/comprehensive', async (req: Request, res
 
     // 3. Get all data in parallel
     const [rankedResponse, masteryResponse, matchIdsResponse, spectatorResponse] = await Promise.allSettled([
-      riotApi.get<RiotRankedEntry[]>(`${REGIONAL_URL}/lol/league/v4/entries/by-summoner/${summonerData.id}`),
+      riotApi.get<RiotRankedEntry[]>(`${REGIONAL_URL}/lol/league/v4/entries/by-puuid/${accountData.puuid}`),
       riotApi.get<ChampionMastery[]>(`${REGIONAL_URL}/lol/champion-mastery/v4/champion-masteries/by-puuid/${accountData.puuid}`),
       riotApi.get<string[]>(`${BASE_URL}/lol/match/v5/matches/by-puuid/${accountData.puuid}/ids`, { params: { count: 20 } }),
       riotApi.get<SpectatorGameData>(`${REGIONAL_URL}/lol/spectator/v5/active-games/by-summoner/${accountData.puuid}`)
