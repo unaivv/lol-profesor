@@ -24,7 +24,7 @@ export const rankCardStyles = {
   lpValue: 'text-3xl font-bold text-slate-900',
   lpLabel: 'text-sm font-normal text-slate-500',
   progressBar: 'h-2 bg-slate-100 rounded-full overflow-hidden mt-2',
-  progressFill: 'h-full rounded-full bg-gradient-to-r',
+  progressFill: 'h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400',
 
   statsGrid: 'grid grid-cols-3 gap-4 text-center py-3 bg-slate-50 rounded-xl',
   statValue: 'text-xl font-bold',
