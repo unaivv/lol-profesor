@@ -5,38 +5,11 @@ interface RankedComparisonCardProps {
   rankedStats: RankedStatsExtended | null | undefined
 }
 
-const getRankGradient = (tier: string | undefined): string => {
-  if (!tier) return 'from-slate-600 to-slate-500'
-  const gradients: Record<string, string> = {
-    'IRON': 'from-amber-900 to-amber-700',
-    'BRONZE': 'from-orange-700 to-orange-500',
-    'SILVER': 'from-slate-400 to-slate-300',
-    'GOLD': 'from-yellow-500 to-yellow-400',
-    'PLATINUM': 'from-cyan-500 to-cyan-400',
-    'EMERALD': 'from-emerald-500 to-emerald-400',
-    'DIAMOND': 'from-blue-500 to-blue-400',
-    'MASTER': 'from-purple-600 to-purple-500',
-    'GRANDMASTER': 'from-red-600 to-red-500',
-    'CHALLENGER': 'from-amber-500 to-yellow-400',
-  }
-  return gradients[tier] || 'from-slate-600 to-slate-500'
-}
-
-const getRankColor = (tier: string | undefined): string => {
-  if (!tier) return 'text-slate-500'
-  const colors: Record<string, string> = {
-    'IRON': 'text-amber-700',
-    'BRONZE': 'text-orange-600',
-    'SILVER': 'text-slate-500',
-    'GOLD': 'text-yellow-500',
-    'PLATINUM': 'text-cyan-500',
-    'EMERALD': 'text-emerald-500',
-    'DIAMOND': 'text-blue-500',
-    'MASTER': 'text-purple-500',
-    'GRANDMASTER': 'text-red-500',
-    'CHALLENGER': 'text-amber-500',
-  }
-  return colors[tier] || 'text-slate-500'
+// Get rank icon URL from community dragon
+const getRankIconUrl = (tier: string | undefined): string => {
+  if (!tier) return ''
+  const tierLower = tier.toLowerCase()
+  return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/tiers/${tierLower}.png`
 }
 
 function RankedCard({ stats, title, icon: Icon }: { stats: RankedStats | null; title: string; icon: React.ElementType }) {
@@ -57,12 +30,21 @@ function RankedCard({ stats, title, icon: Icon }: { stats: RankedStats | null; t
   return (
     <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
       <div className="flex items-center gap-2 mb-3">
-        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${getRankGradient(stats.tier)} flex items-center justify-center text-white font-bold text-sm`}>
-          {stats.tier[0]}
+        <div className="w-10 h-10 rounded-lg overflow-hidden shadow-sm">
+          <img 
+            src={getRankIconUrl(stats.tier)} 
+            alt={stats.tier}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+              (e.target as HTMLImageElement).parentElement!.style.background = '#64748b';
+              (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-white font-bold text-sm flex items-center justify-center h-full">${stats.tier[0]}</span>`;
+            }}
+          />
         </div>
         <div>
           <h3 className="font-bold text-sm text-slate-700">{title}</h3>
-          <p className={`text-xs font-bold ${getRankColor(stats.tier)}`}>{stats.tier} {stats.rank}</p>
+          <p className="text-xs font-bold text-slate-600">{stats.tier} {stats.rank}</p>
         </div>
       </div>
 
@@ -70,7 +52,7 @@ function RankedCard({ stats, title, icon: Icon }: { stats: RankedStats | null; t
         <div className="text-2xl font-bold text-slate-900">{stats.leaguePoints} <span className="text-sm font-normal text-slate-500">LP</span></div>
         <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1">
           <div
-            className={`h-full rounded-full bg-gradient-to-r ${getRankGradient(stats.tier)}`}
+            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
             style={{ width: `${Math.min(stats.leaguePoints, 100)}%` }}
           />
         </div>

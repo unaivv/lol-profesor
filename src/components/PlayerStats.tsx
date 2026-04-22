@@ -13,43 +13,14 @@ function getSoloRanked(stats: RankedStats | RankedStatsExtended | null | undefin
   return stats
 }
 
-const getRankGradient = (tier: string): string => {
-  const gradients: Record<string, string> = {
-    'IRON': 'from-amber-900 to-amber-700',
-    'BRONZE': 'from-orange-700 to-orange-500',
-    'SILVER': 'from-slate-400 to-slate-300',
-    'GOLD': 'from-yellow-500 to-yellow-400',
-    'PLATINUM': 'from-cyan-500 to-cyan-400',
-    'EMERALD': 'from-emerald-500 to-emerald-400',
-    'DIAMOND': 'from-blue-500 to-blue-400',
-    'MASTER': 'from-purple-600 to-purple-500',
-    'GRANDMASTER': 'from-red-600 to-red-500',
-    'CHALLENGER': 'from-amber-500 to-yellow-400',
-  }
-  return gradients[tier] || 'from-slate-600 to-slate-500'
-}
-
-const getRankColor = (tier: string): string => {
-  const colors: Record<string, string> = {
-    'IRON': 'text-amber-700',
-    'BRONZE': 'text-orange-600',
-    'SILVER': 'text-slate-500',
-    'GOLD': 'text-yellow-500',
-    'PLATINUM': 'text-cyan-500',
-    'EMERALD': 'text-emerald-500',
-    'DIAMOND': 'text-blue-500',
-    'MASTER': 'text-purple-500',
-    'GRANDMASTER': 'text-red-500',
-    'CHALLENGER': 'text-amber-500',
-  }
-  return colors[tier] || 'text-slate-500'
+// Get rank icon URL from community dragon
+const getRankIconUrl = (tier: string): string => {
+  const tierLower = tier.toLowerCase()
+  return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/tiers/${tierLower}.png`
 }
 
 export function PlayerStats({ rankedStats }: PlayerStatsProps) {
-  console.log('PLAYER STATS - rankedStats:', rankedStats)
-  // Extraer solo ranked si es RankedStatsExtended
   const soloRanked = getSoloRanked(rankedStats)
-  console.log('PLAYER STATS - soloRanked:', soloRanked)
 
   const winRate = soloRanked
     ? Math.round((soloRanked.wins / (soloRanked.wins + soloRanked.losses)) * 100)
@@ -79,11 +50,20 @@ export function PlayerStats({ rankedStats }: PlayerStatsProps) {
           <div className="space-y-4">
             {/* Rank Principal - Compacto */}
             <div className="flex items-center gap-4">
-              <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${getRankGradient(soloRanked.tier)} flex items-center justify-center text-white font-bold text-xl shadow-lg`}>
-                {soloRanked.tier[0]}
+              <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg">
+                <img 
+                  src={getRankIconUrl(soloRanked.tier)} 
+                  alt={soloRanked.tier}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    (e.target as HTMLImageElement).parentElement!.style.background = 'linear-gradient(135deg, #64748b, #475569)';
+                    (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-white font-bold text-xl flex items-center justify-center h-full">${soloRanked.tier[0]}</span>`;
+                  }}
+                />
               </div>
               <div className="flex-1">
-                <div className={`text-2xl font-bold ${getRankColor(soloRanked.tier)}`}>
+                <div className="text-2xl font-bold text-slate-800">
                   {soloRanked.tier} {soloRanked.rank}
                 </div>
                 <div className="text-slate-500 text-sm">{soloRanked.leaguePoints} LP</div>
