@@ -1,5 +1,6 @@
 import { Trophy, TrendingUp, Target, Shield } from 'lucide-react'
 import { RankedStatsExtended, RankedStats } from '../types/api'
+import { getRankEmblemUrl } from '../lib/utils'
 
 interface RankedComparisonCardProps {
   rankedStats: RankedStatsExtended | null | undefined
@@ -37,12 +38,6 @@ const getRankGradient = (tier: string): string => {
   return gradients[tier] || 'from-slate-600 to-slate-500'
 }
 
-const getRankIconUrl = (tier: string | undefined): string => {
-  if (!tier) return ''
-  const tierLower = tier.toLowerCase()
-  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/tier/${tierLower}-plate.png`
-}
-
 function RankedCard({ stats, title, icon: Icon }: { stats: RankedStats | null; title: string; icon: React.ElementType }) {
   if (!stats) {
     return (
@@ -63,7 +58,7 @@ function RankedCard({ stats, title, icon: Icon }: { stats: RankedStats | null; t
       <div className="flex items-center gap-2 mb-3">
         <div className="w-10 h-10 rounded-lg overflow-hidden shadow-sm">
           <img 
-            src={getRankIconUrl(stats.tier)} 
+            src={stats.tier ? getRankEmblemUrl(stats.tier) : ''} 
             alt={stats.tier}
             className="w-full h-full object-cover"
             onError={(e) => {

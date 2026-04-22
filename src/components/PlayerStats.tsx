@@ -1,5 +1,6 @@
 import { Trophy, Flame, Award, Shield } from 'lucide-react'
 import { PlayerStatsProps, RankedStats, RankedStatsExtended } from '../types/api'
+import { getRankMiniCrestUrl } from '../lib/utils'
 
 // Type guard para verificar si es RankedStatsExtended
 function isRankedStatsExtended(stats: RankedStats | RankedStatsExtended | null | undefined): stats is RankedStatsExtended {
@@ -11,12 +12,6 @@ function getSoloRanked(stats: RankedStats | RankedStatsExtended | null | undefin
   if (!stats) return null
   if (isRankedStatsExtended(stats)) return stats.solo
   return stats
-}
-
-// Get rank icon URL from community dragon
-const getRankIconUrl = (tier: string): string => {
-  const tierLower = tier.toLowerCase()
-  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/tier/${tierLower}-plate.png`
 }
 
 export function PlayerStats({ rankedStats }: PlayerStatsProps) {
@@ -52,7 +47,7 @@ export function PlayerStats({ rankedStats }: PlayerStatsProps) {
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg">
                 <img 
-                  src={getRankIconUrl(soloRanked.tier)} 
+                  src={soloRanked ? getRankMiniCrestUrl(soloRanked.tier) : ''} 
                   alt={soloRanked.tier}
                   className="w-full h-full object-cover"
                   onError={(e) => {
