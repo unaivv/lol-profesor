@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Sparkles, Loader2 } from 'lucide-react'
 
 interface Insight {
@@ -13,26 +14,15 @@ interface AIAnalysisResult {
 }
 
 interface InsightsProps {
-  aiAnalysis: AIAnalysisResult | null
-  aiLoading: boolean
-  aiError: string | null
-  setAiAnalysis: (value: any) => void
-  setAiLoading: (value: boolean) => void
-  setAiError: (value: string | null) => void
   matchGameId: string
   playerPuuid?: string
 }
 
-export default function Insights({ 
-  aiAnalysis, 
-  aiLoading, 
-  aiError, 
-  setAiAnalysis, 
-  setAiLoading, 
-  setAiError,
-  matchGameId,
-  playerPuuid
-}: InsightsProps) {
+export default function Insights({ matchGameId, playerPuuid }: InsightsProps) {
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
+
   const handleAnalyze = async () => {
     if (aiAnalysis) {
       setAiAnalysis(null)

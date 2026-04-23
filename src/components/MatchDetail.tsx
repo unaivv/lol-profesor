@@ -197,9 +197,6 @@ export function MatchDetail({ match, playerPuuid, currentRegion, onClose }: Matc
   const [timelineLoading, setTimelineLoading] = useState(false)
   const [timelineError, setTimelineError] = useState<string | null>(null)
   const [activeEventTime, setActiveEventTime] = useState<string | null>(null)
-  const [aiAnalysis, setAiAnalysis] = useState<any>(null)
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiError, setAiError] = useState<string | null>(null)
   const [confirmModal, setConfirmModal] = useState<{ show: boolean; player: Participant | null }>({ show: false, player: null })
   const blueListRef = useRef<HTMLDivElement>(null)
   // @ts-expect-error - refs kept for future use
@@ -958,12 +955,6 @@ export function MatchDetail({ match, playerPuuid, currentRegion, onClose }: Matc
           </div>
 
           <Insights 
-            aiAnalysis={aiAnalysis}
-            aiLoading={aiLoading}
-            aiError={aiError}
-            setAiAnalysis={setAiAnalysis}
-            setAiLoading={setAiLoading}
-            setAiError={setAiError}
             matchGameId={match.gameId}
             playerPuuid={playerPuuid}
           />
