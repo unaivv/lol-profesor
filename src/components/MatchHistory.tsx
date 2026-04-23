@@ -1,11 +1,17 @@
 import { useState } from 'react'
 import { Trophy, Sword } from 'lucide-react'
-import { MatchHistoryProps, DetailedMatch } from '../types/api'
+import { DetailedMatch, PlayerData } from '../types/api'
 import { MatchCard } from './MatchCard'
 import { MatchDetail } from './MatchDetail'
 import { WinRateChart } from './WinRateChart'
 
-export function MatchHistory({ matches, playerPuuid }: MatchHistoryProps) {
+interface MatchHistoryProps {
+  matches: DetailedMatch[]
+  playerPuuid?: string
+  currentPlayerData?: PlayerData | null
+}
+
+export function MatchHistory({ matches, playerPuuid, currentPlayerData }: MatchHistoryProps) {
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null)
   const validMatches = matches.filter((m): m is DetailedMatch =>
     m && typeof m.gameId === 'string' && Array.isArray(m.participants)
@@ -77,6 +83,7 @@ export function MatchHistory({ matches, playerPuuid }: MatchHistoryProps) {
         <MatchDetail
           match={expandedMatch}
           playerPuuid={playerPuuid}
+          currentRegion={currentPlayerData?.region}
           onClose={() => setExpandedMatchId(null)}
         />
       )}

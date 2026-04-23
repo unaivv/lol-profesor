@@ -11,7 +11,7 @@ import { PerformanceRadar } from '../components/PerformanceRadar'
 import { MostPlayedChampions } from '../components/MostPlayedChampions'
 import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
-import { PlayerData, DetailedMatch } from '../types/api'
+import { PlayerData } from '../types/api'
 import { Sparkles, Search, Trophy, Users, Star, Zap, Target } from 'lucide-react'
 
 type TabId = 'summary' | 'champions' | 'mastery' | 'live'
