@@ -67,7 +67,7 @@ export class UnauthorizedError extends AppError {
 /**
  * Forbidden error (403)
  */
-export class ForbiddenError extends AppError extends AppError {
+export class ForbiddenError extends AppError {
   constructor(message: string = 'Forbidden') {
     super(message, 403, 'FORBIDDEN');
   }

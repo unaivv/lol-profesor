@@ -18,10 +18,9 @@ export function Footer({
   const renderPlayerInfo = () => {
     if (!playerData || !showPlayerInfo) return null
 
-    const rankedData = playerData.rankedStats
-    const isExtended = rankedData && 'solo' in rankedData
-    const soloRanked = isExtended ? (rankedData as RankedStatsExtended).solo : rankedData as RankedStats | null
-    const flexRanked = isExtended ? (rankedData as RankedStatsExtended).flex : null
+    const rankedData = playerData.rankedStats as any
+    const soloRanked = rankedData?.solo || null
+    const flexRanked = rankedData?.flex || null
 
     const totalRankedMatches = (soloRanked ? soloRanked.wins + soloRanked.losses : 0) + (flexRanked ? flexRanked.wins + flexRanked.losses : 0)
     const soloWinRate = soloRanked && (soloRanked.wins + soloRanked.losses) > 0

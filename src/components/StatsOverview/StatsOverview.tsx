@@ -8,10 +8,9 @@ interface StatsOverviewProps {
 }
 
 export function StatsOverview({ playerData }: StatsOverviewProps) {
-  const rankedData = playerData.rankedStats
-  const isExtended = rankedData && 'solo' in rankedData
-  const soloRanked = isExtended ? (rankedData as RankedStatsExtended).solo : rankedData
-  const flexRanked = isExtended ? (rankedData as RankedStatsExtended).flex : null
+  const rankedData = playerData.rankedStats as any
+  const soloRanked = rankedData?.solo || null
+  const flexRanked = rankedData?.flex || null
   const hasSoloRanked = soloRanked !== null && soloRanked !== undefined
   const hasFlexRanked = flexRanked !== null && flexRanked !== undefined
   const hasAnyRanked = hasSoloRanked || hasFlexRanked

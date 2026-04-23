@@ -52,7 +52,8 @@ export function SearchBar({ onPlayerFound, onError }: SearchBarProps) {
         throw new Error('Error al cargar datos completos del jugador')
       }
 
-      const fullData = await comprehensiveResponse.json()
+      const compResponse = await comprehensiveResponse.json()
+      const fullData = compResponse.data
       console.log('=== FULL DATA ===')
       console.log('gameName:', fullData.gameName)
       console.log('puuid:', fullData.puuid)
