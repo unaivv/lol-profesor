@@ -1,6 +1,6 @@
 import { Trophy, Target, Zap } from 'lucide-react'
 import { getRankEmblemUrl } from '../../lib/utils'
-import { PlayerData, RankedStatsExtended } from '../../types/api'
+import { PlayerData } from '../../types/api'
 import { StatsOverviewCard } from './StatsOverviewCard'
 
 interface StatsOverviewProps {

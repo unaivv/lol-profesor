@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import { Sparkles } from 'lucide-react'
-import { PlayerData, RankedStats, RankedStatsExtended } from '../../types/api'
+import { PlayerData } from '../../types/api'
 
 interface FooterProps {
   playerData?: PlayerData | null

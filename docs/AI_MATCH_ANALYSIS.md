@@ -68,11 +68,12 @@ Response:
 }
 ```
 
-## Data to Send to AI
+## Data Sent to AI
 
 ### Match Metadata
 - Match ID, queue type (ranked solo/flex), duration, timestamp
 - Player's champion, role, team (blue/red)
+- **Role Detection**: Automatically detected from lane position or champion name
 
 ### Player Stats (active player only)
 - KDA, kills, deaths, assists
@@ -86,57 +87,180 @@ Response:
 ### Team Stats
 - Both teams' total kills, gold, dragons, barons, towers
 - Player's team composition (class: assassin, mage, tank, etc.)
+- **Per-player percentages**: Gold, damage, CS breakdown by team member
 
-### Timeline (simplified)
-- Player's kills and deaths with timestamp
+### Timeline (enhanced)
+- Player's kills and deaths with timestamp and location
 - Objectives taken (dragons, barons, towers)
-- Large gold leads/disadvances
+- Large gold leads/disadvantages
+- **Pattern detection**: 
+  - Early deaths (before 4 minutes)
+  - Deaths in base (suspicious positioning)
+  - Solo kills
+  - Multi-kills
+  - First blood
 
 ## Prompt for Groq
 
+### Role-Specific Benchmarks
+
+The AI uses different benchmarks based on detected role:
+
+| Role    | CS/min (optimal) | Damage (optimal) | Vision (optimal) | Gold (optimal) |
+|--------|-----------------|-----------------|------------------|---------------|
+| TOP    | 7-8             | 12k-18k         | 20-30           | 14k-18k       |
+| JUNGLE | 6-7             | 10k-15k         | 25-35           | 12k-16k       |
+| MID    | 8-9             | 15k-22k         | 20-28           | 15k-20k       |
+| ADC    | 8-10            | 20k-30k         | 15-22           | 18k-24k       |
+| SUPPORT| 4-6             | 5k-10k          | 35-50           | 11k-15k       |
+
+### LoL Terms Dictionary (NEVER translate)
+
+The following terms must remain in English in AI responses:
+- farming / farmear / farmear minions
+- minions / súbditos
+- creeps
+- wards / vision wards / control wards
+- pinks / pink wards / wards permanentes / control wards
+- deep warding
+- roam / rotar / rotation
+- gank
+- dive / divear / diving
+- freeze / freezeear
+- slow push / fast push
+- proxy / proxear
+- backdoor
+- wave management
+- CS, cs, creep score
+- KDA
+- DPS
+- burst
+- poke
+- all-in / allin
+- sustain
+- engage / disengage
+- peel
+- zone / zoning
+- waveclear
+- splitpush
+- flank
+- reset
+- recall
+- base
+- nexus
+- inhibitor
+- turret / tower
+- dragon / drake
+- baron / baron nashor
+- elder
+- rift herald
+- soul
+- buff / debuff
+- CC (crowd control)
+- execute
+- snowball
+- powerspike
+- meta
+- counterpick
+- counterplay
+- outplay
+- inting
+- feeding
+- tilted
+- ff / surrender
+- dodge
+- lp / league points
+- rank / ranking
+- challenger / grandmaster / master
+- OTP (one trick pony)
+- main / secondary
+- counter jungle
+- smite
+- ignite / exhaust / heal / flash / teleport
+- ghost / cleanse / barrier
+- crit / critical
+- crit chance
+- as / attack speed
+- ap / ability power
+- ad / attack damage
+- armor / magic resist
+- hp / health
+- mana / energy
+- cd / cooldown
+- range / melee
+- hypercarry
+- assassin
+- bruiser / fighter
+- tank / support mage
+- enchanter
+- mage / apc
+- hybrid
+- duo / duoq
+- premade
+- team comp / teamcomp
+- pick / ban phase
+- lock in
+- meta pick
+- off-meta / freestyle
+- pocket pick
+- comfort pick
+- blind pick
+- counter pick
+- first pick
+
+### Example Prompt Structure
+
 ```
-You are a League of Legends analyst. Analyze this match data and provide actionable insights for the player.
+You are an expert League of Legends analyst. Analyze this match data and provide personalized insights based on the player's ROLE.
+
+IMPORTANT: NEVER translate these LoL terms - always use them in English in your response:
+[Terms dictionary...]
+
+ROLE-SPECIFIC BENCHMARKS (TOP):
+- CS/min: 6+ es bajo, 7-8 es óptimo
+- Damage: 8000+ es bajo, 12k-18k es óptimo
+- Vision Score: 15+ es bajo, 20-30 es óptimo
+- Gold: 10000+ es bajo, 14k-18k es óptimo
 
 MATCH DATA:
-- Queue: {queue_type}
-- Duration: {duration}
-- Player Champion: {champion} | Role: {role} | Team: {team}
-- Result: {win/loss}
+- Queue: Ranked Solo/Duo
+- Duration: 25:30
+- Player Champion: Darius | Team: Blue | ROLE: TOP
+- Result: VICTORY
 
-PLAYER STATS:
-- KDA: {kills}/{deaths}/{assists}
-- Damage: {damage} | Gold: {gold} | CS: {cs} ({cs_per_min} cs/min)
-- Vision: {vision_score} (wards: {wards_placed}, cleared: {wards_cleared})
-- Kill Participation: {kill_participation}%
-- CC Score: {cc_score}
+PLAYER STATS (your role: top):
+- KDA: 8/3/5
+- Damage: 15000 (32% del daño equipo; promedio equipo: 12000)
+- Gold: 14500 (28% del oro equipo)
+- CS: 185 (7.4 cs/min, 24% del CS equipo)
+- Vision Score: 28
+- Wards Placed: 12
+- Kill Participation: 52%
+- DPM: 600
 
-TEAM STATS:
-- Blue Team: {blue_kills} kills, {blue_gold} gold, {blue_towers} towers, {blue_dragons} dragons
-- Red Team: {red_kills} kills, {red_gold} gold, {red_towers} towers, {red_dragons} dragons
+GOLD BREAKDOWN - TEAM PERCENTAGE:
+  - Darius: 14500 oro (28% del equipo)
+  - Lee Sin: 12000 oro (23% del equipo)
+  - Ahri: 11000 oro (21% del equipo)
+  - Jinx: 8500 oro (16% del equipo)
+  - Lulu: 5500 oro (11% del equipo)
 
-TIMELINE HIGHLIGHTS:
-{list of key events with timestamps}
+TIMELINE ANALYSIS:
+[4:30] Muerte temprana en lane contra Garen
+[8:15] SOLO KILL contra Garen
 
-Respond with a JSON object:
+IMPORTANT: 
+1. Respond in SPANISH
+2. Use role-specific benchmarks
+3. Reference team member percentages
+4. Consider timeline events
+
+Respond with JSON:
 {
-  "insights": [
-    {
-      "type": "positive" | "negative" | "improvement",
-      "title": "Short descriptive title (max 50 chars)",
-      "description": "Detailed explanation with specific numbers and advice (max 200 chars)",
-      "priority": 1-3 (1 = most important)
-    }
-  ],
-  "summary": "2-3 sentence overall performance summary (max 150 chars)",
-  "playerStats": {
-    "kda": "string",
-    "damage": number,
-    "visionScore": number,
-    "cs": number
-  }
+  "insights": [...],
+  "summary": "...",
+  "playerStats": {...}
 }
-
-Provide 3-6 insights. Focus on actionable advice the player can use.
 ```
 
 ## Implementation Plan
@@ -168,3 +292,4 @@ GROQ_API_KEY=your_groq_api_key_here
 - Cache all analyses to avoid redundant API calls
 - Keep prompts consistent for comparable results
 - Consider async processing for multiple matches
+- Role detection improves accuracy of insights

@@ -191,6 +191,7 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
   const blueListRef = useRef<HTMLDivElement>(null)
+  // @ts-expect-error - refs kept for future use
   const redListRef = useRef<HTMLDivElement>(null)
 
   const participants = match.participants || []
@@ -239,6 +240,7 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
     fetchTimeline()
   }, [match.gameId])
 
+  // @ts-ignore - temporarily unused
   const getEventIcon = (type: string) => {
     switch (type) {
       case 'CHAMPION_KILL':
@@ -464,7 +466,8 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
         <div style={{
           flex: 1,
           overflowY: 'auto',
-          padding: '24px'
+          padding: '24px',
+          paddingBottom: '100px'
         }}>
           <div style={{
             background: 'linear-gradient(90deg, #1e293b 0%, #0f172a 100%)',
@@ -905,7 +908,7 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
                         </div>
                       );
                     })}
-                  </div>El tim
+                  </div>
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>
@@ -913,108 +916,21 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
                 </div>
               )}
             </div>
-
-            {/* Lista detallada (old style) */}
-            <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '12px', marginTop: '24px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Zap size={16} color="#8b5cf6" />
-              Equipo Azul
-            </h3>
-            <div style={{
-              background: '#f8fafc',
-              borderRadius: '12px',
-              padding: '16px',
-              border: '1px solid #e2e8f0',
-              minHeight: '80px'
-            }}>
-              {keyEvents && keyEvents.blue.length > 0 ? (
-                <div ref={blueListRef} style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  {keyEvents.blue.map((event, idx) => (
-                    <div
-                      key={event.id || idx}
-                      id={`blue-${event.seconds}`}
-                      onClick={() => {
-                        setActiveEventTime(`${event.seconds}`);
-                        const el = document.getElementById(`timeline-${event.seconds}`)
-                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '8px 12px',
-                        background: activeEventTime === `${event.seconds}` ? '#e0e7ff' : 'white',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        border: activeEventTime === `${event.seconds}` ? '2px solid #3b82f6' : '1px solid #f1f5f9',
-                        marginBottom: '4px',
-                        cursor: 'pointer',
-                        transition: 'background 0.2s, border 0.2s'
-                      }}
-                    >
-                      <span style={{ fontWeight: 600, color: '#64748b' }}>{event.time}</span>
-                      {getEventIcon(event.type)}
-                      <span style={{ color: '#1e293b', flex: 1, minWidth: 0 }}>{event.typeLabel}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>
-                  No hay eventos
-                </div>
-              )}
-            </div>
-
-            <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '12px', marginTop: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Zap size={16} color="#ef4444" />
-              Equipo Rojo
-            </h3>
-            <div style={{
-              background: '#f8fafc',
-              borderRadius: '12px',
-              padding: '16px',
-              border: '1px solid #e2e8f0',
-              minHeight: '80px'
-            }}>
-              {keyEvents && keyEvents.red.length > 0 ? (
-                <div ref={redListRef} style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  {keyEvents.red.map((event, idx) => (
-                    <div
-                      key={event.id || idx}
-                      id={`red-${event.seconds}`}
-                      onClick={() => {
-                        const el = document.getElementById(`timeline-${event.seconds}`)
-                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '8px 12px',
-                        background: 'white',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        border: '1px solid #f1f5f9',
-                        marginBottom: '4px',
-                        cursor: 'pointer',
-                        transition: 'background 0.2s'
-                      }}
-                    >
-                      <span style={{ fontWeight: 600, color: '#64748b' }}>{event.time}</span>
-                      {getEventIcon(event.type)}
-                      <span style={{ color: '#1e293b', flex: 1, minWidth: 0 }}>{event.typeLabel}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>
-                  No hay eventos
-                </div>
-              )}
-            </div>
           </div>
 
-          {/* AI Analysis - At bottom of scrollable content */}
-          <div style={{ padding: '24px', borderTop: '1px solid #e2e8f0', marginTop: '16px' }}>
+          {/* Fixed Analyze Button - Always visible */}
+          <div style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: '16px 24px',
+            background: 'white',
+            borderTop: '1px solid #e2e8f0',
+            display: 'flex',
+            justifyContent: 'center',
+            zIndex: 20
+          }}>
             <button
               onClick={async () => {
                 if (aiAnalysis) {
@@ -1023,6 +939,7 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
                 }
                 setAiLoading(true)
                 setAiError(null)
+
                 try {
                   const response = await fetch('/api/analyze-match', {
                     method: 'POST',
@@ -1032,6 +949,12 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
                   if (response.ok) {
                     const data = await response.json()
                     setAiAnalysis(data.data)
+                    
+                    // Scroll AFTER data is ready
+                    setTimeout(() => {
+                      const el = document.getElementById('ai-analysis-results')
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }, 100)
                   } else {
                     setAiError('Error al analizar la partida')
                   }
@@ -1044,19 +967,19 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
               disabled={aiLoading}
               style={{
                 width: '100%',
-                padding: '12px 20px',
+                maxWidth: '400px',
+                padding: '14px 24px',
                 background: aiAnalysis ? '#f1f5f9' : 'linear-gradient(135deg, #8b5cf6, #6366f1)',
                 color: aiAnalysis ? '#475569' : 'white',
                 border: 'none',
                 borderRadius: '12px',
-                fontSize: '14px',
+                fontSize: '15px',
                 fontWeight: 600,
                 cursor: aiLoading ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
-                transition: 'all 0.2s'
+                gap: '8px'
               }}
             >
               {aiLoading ? (
@@ -1067,6 +990,10 @@ export function MatchDetail({ match, playerPuuid, onClose }: MatchDetailProps) {
                 <><Sparkles size={18} /> Analizar con IA</>
               )}
             </button>
+          </div>
+
+          {/* Analysis Results - At the very bottom */}
+          <div id="ai-analysis-results" style={{ padding: '24px 0', }}>
 
             {aiError && (
               <div style={{ marginTop: '12px', padding: '12px', background: '#fef2f2', borderRadius: '8px', color: '#dc2626', fontSize: '14px' }}>
