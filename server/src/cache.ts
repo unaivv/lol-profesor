@@ -7,7 +7,7 @@ let db: Database.Database
 
 export function initCache(): Database.Database {
   db = new Database(DB_PATH)
-  
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS summoner_names (
       puuid TEXT PRIMARY KEY,
@@ -30,7 +30,14 @@ export function initCache(): Database.Database {
       assists INTEGER,
       gold_earned INTEGER,
       cs INTEGER,
+      neutral_minions_killed INTEGER DEFAULT 0,
+      vision_score INTEGER DEFAULT 0,
+      vision_wards_bought INTEGER DEFAULT 0,
+      wards_placed INTEGER DEFAULT 0,
+      wards_killed INTEGER DEFAULT 0,
+      damage_dealt_to_champions INTEGER DEFAULT 0,
       champion_level INTEGER,
+      time_played INTEGER DEFAULT 0,
       item0 INTEGER, item1 INTEGER, item2 INTEGER, item3 INTEGER, item4 INTEGER, item5 INTEGER, item6 INTEGER,
       PRIMARY KEY (match_id, participant_idx)
     );
@@ -44,9 +51,19 @@ export function initCache(): Database.Database {
       queue_id INTEGER,
       updated_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS match_analyses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      match_id TEXT NOT NULL,
+      player_puuid TEXT NOT NULL,
+      analysis TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(match_id, player_puuid)
+    );
     
     CREATE INDEX IF NOT EXISTS idx_match_info_updated ON match_info(updated_at);
     CREATE INDEX IF NOT EXISTS idx_participants_match ON match_participants(match_id);
+    CREATE INDEX IF NOT EXISTS idx_match_analyses ON match_analyses(match_id, player_puuid);
   `)
 
   console.log('[CACHE] Database initialized at', DB_PATH)
@@ -85,20 +102,23 @@ export function setSummonerName(puuid: string, gameName: string, tagLine?: strin
 
 export function getMatchParticipants(matchId: string): { gameCreation: number; gameDuration: number; gameMode: string; gameType: string; queueId?: number; participants: any[] } | null {
   const cache = getCache()
-  
+
   const infoStmt = cache.prepare('SELECT * FROM match_info WHERE match_id = ?')
   const matchInfo = infoStmt.get(matchId) as any
   if (!matchInfo) return null
 
-  const partsStmt = cache.prepare('SELECT * FROM match_info WHERE match_id = ?')
   const participants = cache.prepare(
     'SELECT * FROM match_participants WHERE match_id = ? ORDER BY participant_idx'
   ).all(matchId) as any[]
-  
+
   if (participants.length === 0) return null
 
   return {
-    ...matchInfo,
+    gameCreation: matchInfo.game_creation,
+    gameDuration: matchInfo.game_duration,
+    gameMode: matchInfo.game_mode,
+    gameType: matchInfo.game_type,
+    queueId: matchInfo.queue_id,
     participants: participants.map((p: any) => ({
       participantId: p.participant_idx + 1,
       puuid: p.puuid,
@@ -111,7 +131,14 @@ export function getMatchParticipants(matchId: string): { gameCreation: number; g
       assists: p.assists,
       goldEarned: p.gold_earned,
       totalMinionsKilled: p.cs,
+      neutralMinionsKilled: p.neutral_minions_killed || 0,
+      totalDamageDealtToChampions: p.damage_dealt_to_champions || 0,
+      visionScore: p.vision_score || 0,
+      visionWardsBoughtInGame: p.vision_wards_bought || 0,
+      wardsPlaced: p.wards_placed || 0,
+      wardsKilled: p.wards_killed || 0,
       championLevel: p.champion_level,
+      timePlayed: p.time_played || matchInfo.game_duration,
       item0: p.item0,
       item1: p.item1,
       item2: p.item2,
@@ -125,7 +152,7 @@ export function getMatchParticipants(matchId: string): { gameCreation: number; g
 
 export function setMatchParticipants(matchId: string, matchData: any, participants: any[]): void {
   const cache = getCache()
-  
+
   const insertMatch = cache.prepare(`
     INSERT OR REPLACE INTO match_info (match_id, game_creation, game_duration, game_mode, game_type, queue_id, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -139,37 +166,40 @@ export function setMatchParticipants(matchId: string, matchData: any, participan
     matchData.queueId,
     Date.now()
   )
-  
+
   const insertParticipant = cache.prepare(`
     INSERT OR REPLACE INTO match_participants 
-    (match_id, participant_idx, puuid, summoner_name, champion_name, team_id, win, kills, deaths, assists, gold_earned, cs, champion_level, item0, item1, item2, item3, item4, item5, item6)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (match_id, participant_idx, puuid, summoner_name, champion_name, team_id, win, kills, deaths, assists, gold_earned, cs, neutral_minions_killed, vision_score, vision_wards_bought, wards_placed, wards_killed, damage_dealt_to_champions, time_played, champion_level, item0, item1, item2, item3, item4, item5, item6)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
-  
+
   const insertMany = cache.transaction((parts: any[]) => {
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i]
       insertParticipant.run(
         matchId, i, p.puuid, p.summonerName || '', p.championName, p.teamId, p.win ? 1 : 0,
-        p.kills, p.deaths, p.assists, p.goldEarned, p.totalMinionsKilled, p.championLevel,
+        p.kills, p.deaths, p.assists, p.goldEarned, p.totalMinionsKilled || 0,
+        p.neutralMinionsKilled || 0, p.visionScore || 0, p.visionWardsBoughtInGame || 0,
+        p.wardsPlaced || 0, p.wardsKilled || 0, p.totalDamageDealtToChampions || 0,
+        p.timePlayed || 0, p.championLevel || 0,
         p.item0, p.item1, p.item2, p.item3, p.item4, p.item5, p.item6
       )
     }
   })
-  
+
   insertMany(participants)
 }
 
 export function getMultipleSummonerNames(puuids: string[]): Map<string, { gameName: string; tagLine: string; icon: number }> {
   const cache = getCache()
   const result = new Map<string, { gameName: string; tagLine: string; icon: number }>()
-  
+
   if (puuids.length === 0) return result
-  
+
   const placeholders = puuids.map(() => '?').join(',')
   const stmt = cache.prepare(`SELECT puuid, game_name, tag_line, profile_icon_id FROM summoner_names WHERE puuid IN (${placeholders})`)
   const rows = stmt.all(...puuids) as any[]
-  
+
   for (const row of rows) {
     result.set(row.puuid, {
       gameName: row.game_name,
@@ -177,16 +207,47 @@ export function getMultipleSummonerNames(puuids: string[]): Map<string, { gameNa
       icon: row.profile_icon_id
     })
   }
-  
+
   return result
 }
 
 export function cleanOldCache(maxAgeMs: number = 24 * 60 * 60 * 1000): void {
   const cache = getCache()
   const cutoff = Date.now() - maxAgeMs
-  
+
   const deletedSummoners = cache.prepare('DELETE FROM summoner_names WHERE updated_at < ?').run(cutoff)
   const deletedMatches = cache.prepare('DELETE FROM match_info WHERE updated_at < ?').run(cutoff)
-  
+
   console.log(`[CACHE] Cleaned: ${deletedSummoners.changes} summoners, ${deletedMatches.changes} matches`)
+}
+
+export interface MatchAnalysis {
+  matchId: string
+  playerPuuid: string
+  analysis: string
+  createdAt: string
+}
+
+export function getMatchAnalysis(matchId: string, playerPuuid: string): MatchAnalysis | null {
+  const cache = getCache()
+  const stmt = cache.prepare('SELECT match_id, player_puuid, analysis, created_at FROM match_analyses WHERE match_id = ? AND player_puuid = ?')
+  const result = stmt.get(matchId, playerPuuid) as any
+  if (result) {
+    return {
+      matchId: result.match_id,
+      playerPuuid: result.player_puuid,
+      analysis: result.analysis,
+      createdAt: result.created_at
+    }
+  }
+  return null
+}
+
+export function setMatchAnalysis(matchId: string, playerPuuid: string, analysis: string): void {
+  const cache = getCache()
+  const stmt = cache.prepare(`
+    INSERT OR REPLACE INTO match_analyses (match_id, player_puuid, analysis, created_at)
+    VALUES (?, ?, ?, datetime('now'))
+  `)
+  stmt.run(matchId, playerPuuid, analysis)
 }
