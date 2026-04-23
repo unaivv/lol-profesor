@@ -7,6 +7,12 @@ interface StatsOverviewProps {
   playerData: PlayerData
 }
 
+// Helper to get rank weight for comparison
+function getRankWeight(tier: string): number {
+  const tiers = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER']
+  return tiers.indexOf(tier.toUpperCase())
+}
+
 export function StatsOverview({ playerData }: StatsOverviewProps) {
   const rankedData = playerData.rankedStats as any
   const soloRanked = rankedData?.solo || null
@@ -14,6 +20,26 @@ export function StatsOverview({ playerData }: StatsOverviewProps) {
   const hasSoloRanked = soloRanked !== null && soloRanked !== undefined
   const hasFlexRanked = flexRanked !== null && flexRanked !== undefined
   const hasAnyRanked = hasSoloRanked || hasFlexRanked
+
+  // Determine which rank to show (the higher one)
+  const getMainRank = () => {
+    if (!hasSoloRanked && !hasFlexRanked) return null
+    if (hasSoloRanked && !hasFlexRanked) return soloRanked
+    if (!hasSoloRanked && hasFlexRanked) return flexRanked
+    
+    // Both exist - compare tiers
+    const soloWeight = getRankWeight(soloRanked.tier)
+    const flexWeight = getRankWeight(flexRanked.tier)
+    
+    if (soloWeight > flexWeight) return soloRanked
+    if (flexWeight > soloWeight) return flexRanked
+    
+    // Same tier - compare LP
+    if (soloRanked.leaguePoints > flexRanked.leaguePoints) return soloRanked
+    return flexRanked
+  }
+
+  const mainRank = getMainRank()
 
   // Calculate total ranked matches (wins + losses) from solo and flex
   const calculateTotalRankedMatches = () => {
@@ -41,23 +67,13 @@ export function StatsOverview({ playerData }: StatsOverviewProps) {
         value={calculateTotalRankedMatches()}
         label="Partidas Ranked"
       />
-      {hasSoloRanked && (
+      {mainRank && (
         <StatsOverviewCard
           iconBg="#dbeafe"
-          rankImage={getRankEmblemUrl(soloRanked.tier)}
-          value={`${soloRanked.tier} ${soloRanked.rank}`}
-          subValue={`${soloRanked.leaguePoints} LP • ${soloRanked.wins}G ${soloRanked.losses}P`}
-          tier={soloRanked.tier}
-          isRanked
-        />
-      )}
-      {hasFlexRanked && (
-        <StatsOverviewCard
-          iconBg="#dbeafe"
-          rankImage={getRankEmblemUrl(flexRanked.tier)}
-          value={`${flexRanked.tier} ${flexRanked.rank}`}
-          subValue={`${flexRanked.leaguePoints} LP • ${flexRanked.wins}G ${flexRanked.losses}P`}
-          tier={flexRanked.tier}
+          rankImage={getRankEmblemUrl(mainRank.tier)}
+          value={`${mainRank.tier} ${mainRank.rank}`}
+          subValue={`${mainRank.leaguePoints} LP • ${mainRank.wins}G ${mainRank.losses}P`}
+          tier={mainRank.tier}
           isRanked
         />
       )}
