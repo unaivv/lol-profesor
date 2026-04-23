@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { SearchBar } from '../components/SearchBar'
 import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
@@ -13,6 +14,7 @@ function getSoloRanked(stats: RankedStats | RankedStatsExtended | null | undefin
 }
 
 export function LandingPage() {
+  const navigate = useNavigate()
   const [playerData, setPlayerData] = useState<PlayerData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -32,9 +34,10 @@ export function LandingPage() {
     const storedData = localStorage.getItem('lolProfessorPlayer')
     console.log('Verification - stored data:', storedData)
 
-    // Redirect to stats page
-    console.log('Redirecting to /stats')
-    window.location.href = '/stats'
+    // Redirect to stats page with player info (same route as clicking user in matchDetails)
+    const region = data.region || 'na1'
+    const tagLine = data.tagLine || 'NA1'
+    navigate(`/stats/${region}/${encodeURIComponent(data.gameName)}/${encodeURIComponent(tagLine)}`)
   }
 
   const handleError = (errorMessage: string) => {
@@ -265,7 +268,11 @@ export function LandingPage() {
 
                   {/* Action button */}
                   <button
-                    onClick={() => window.location.href = '/stats'}
+                    onClick={() => {
+                      const region = playerData?.region || 'na1'
+                      const tagLine = playerData?.tagLine || 'NA1'
+                      navigate(`/stats/${region}/${encodeURIComponent(playerData?.gameName || '')}/${encodeURIComponent(tagLine)}`)
+                    }}
                     className="button-primary"
                     style={{
                       padding: '16px 32px',

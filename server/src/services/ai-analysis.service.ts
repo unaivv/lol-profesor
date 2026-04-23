@@ -259,6 +259,10 @@ function buildPrompt(matchData: any, playerPuuid: string): string {
   const playerGoldPercent = teamStats.teamGold > 0 ? ((player.goldEarned / teamStats.teamGold) * 100).toFixed(1) : '0'
   const playerDamagePercent = teamStats.teamDamage > 0 ? (((player.totalDamageDealtToChampions || 0) / teamStats.teamDamage) * 100).toFixed(1) : '0'
   const playerCSPercent = teamStats.teamCS > 0 ? (((player.totalMinionsKilled + player.neutralMinionsKilled) / teamStats.teamCS) * 100).toFixed(1) : '0'
+  
+  // Kill participation percentage
+  const teamKills = teamStats.kills || 0
+  const kpPercent = teamKills > 0 ? (((player.kills || 0) + (player.assists || 0)) / teamKills * 100).toFixed(1) : '0'
 
   // Build team breakdown strings
   const goldBreakdownStr = teamStats.goldBreakdown.map((p: any) => 
