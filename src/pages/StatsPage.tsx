@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 import { PlayerStats } from '../components/PlayerStats'
 import { StatsOverview } from '../components/StatsOverview'
 import { MatchHistory } from '../components/MatchHistory'
@@ -10,7 +11,7 @@ import { PerformanceRadar } from '../components/PerformanceRadar'
 import { MostPlayedChampions } from '../components/MostPlayedChampions'
 import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
-import { PlayerData } from '../types/api'
+import { PlayerData, DetailedMatch } from '../types/api'
 import { Sparkles, Search, Trophy, Users, Star, Zap, Target } from 'lucide-react'
 
 type TabId = 'summary' | 'champions' | 'mastery' | 'live'
@@ -34,39 +35,71 @@ const tabs: { id: TabId; label: string; icon: React.ElementType; description: st
 ]
 
 export function StatsPage() {
+  const params = useParams<{ region?: string; gameName?: string; tagLine?: string }>()
   const [playerData, setPlayerData] = useState<PlayerData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabId>('summary')
 
-  useEffect(() => {
-    // Load player data from localStorage
-    const storedData = localStorage.getItem('lolProfessorPlayer')
-    if (storedData) {
-      try {
-        const data = JSON.parse(storedData)
-        console.log('Loaded player data:', data)
+  // URL-based loading: /stats/:region/:gameName/:tagLine
+  const urlRegion = params.region
+  const urlGameName = params.gameName
+  const urlTagLine = params.tagLine
 
-        // Check if data has required fields (more lenient validation)
-        if (data && data.puuid && data.gameName && data.tagLine) {
-          setPlayerData(data)
-        } else {
-          console.error('Invalid player data structure - missing required fields')
-          console.log('Data structure:', Object.keys(data || {}))
+  useEffect(() => {
+    const loadPlayerData = async () => {
+      // If URL params exist, fetch from API
+      if (urlRegion && urlGameName && urlTagLine) {
+        try {
+          setIsLoading(true)
+          console.log(`Fetching player: ${urlGameName}#${urlTagLine} in ${urlRegion}`)
+          const response = await fetch(`/api/player/${encodeURIComponent(urlGameName)}/${encodeURIComponent(urlTagLine)}/comprehensive`)
+          if (!response.ok) throw new Error('Player not found')
+          const data = await response.json()
+          if (data.data) {
+            const player: PlayerData = {
+              ...data.data,
+              region: urlRegion
+            }
+            setPlayerData(player)
+            // Save to localStorage
+            localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
+            setIsLoading(false)
+            return
+          }
+        } catch (error) {
+          console.error('Error fetching player from URL:', error)
+          // Fall through to localStorage
+        }
+      }
+
+      // Load from localStorage (fallback)
+      const storedData = localStorage.getItem('lolProfessorPlayer')
+      if (storedData) {
+        try {
+          const data = JSON.parse(storedData)
+          console.log('Loaded player data:', data)
+
+          // Check if data has required fields
+          if (data && data.puuid && data.gameName && data.tagLine) {
+            setPlayerData(data)
+          } else {
+            console.error('Invalid player data structure - missing required fields')
+            window.location.href = '/'
+          }
+        } catch (error) {
+          console.error('Error loading player data:', error)
+          localStorage.removeItem('lolProfessorPlayer')
           window.location.href = '/'
         }
-      } catch (error) {
-        console.error('Error loading player data:', error)
-        // Clear corrupted data and redirect
-        localStorage.removeItem('lolProfessorPlayer')
+      } else {
+        console.log('No player data found in localStorage')
         window.location.href = '/'
       }
-    } else {
-      // Redirect to landing page if no data found
-      console.log('No player data found in localStorage')
-      window.location.href = '/'
+      setIsLoading(false)
     }
-    setIsLoading(false)
-  }, [])
+
+    loadPlayerData()
+  }, [urlRegion, urlGameName, urlTagLine])
 
 
   const handleSearchNew = () => {
@@ -213,7 +246,7 @@ export function StatsPage() {
               <div className="xl:col-span-8 space-y-6">
                 <RankedComparisonCard rankedStats={playerData.rankedStats as any} />
                 {hasMatches ? (
-                  <MatchHistory matches={playerData.matches || []} playerPuuid={playerData.puuid} />
+                  <MatchHistory matches={playerData.matches || []} playerPuuid={playerData.puuid} currentPlayerData={playerData} />
                 ) : (
                   <EmptyState
                     icon={Target}

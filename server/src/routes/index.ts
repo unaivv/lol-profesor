@@ -3,7 +3,7 @@ import { RiotApiClient } from '../services/riot-api.client';
 import { asyncHandler, handleApiError } from '../utils/errors';
 import { sendSuccess, sendError } from '../utils/response';
 import { getChampionName } from '../utils/champions';
-import { getMatchAnalysis, setMatchAnalysis, setMatchParticipants, getMultipleSummonerNames, setSummonerName } from '../cache';
+import { getMatchAnalysis, setMatchAnalysis, setMatchParticipants, getMultipleSummonerNames, setSummonerName, getSummonerName } from '../cache';
 
 /**
  * Mount all routes on the router
@@ -562,6 +562,38 @@ export const createRoutes = (riotApi: RiotApiClient): Router => {
       setMatchAnalysis(matchId, puuid, JSON.stringify(result))
 
       sendSuccess(res, result)
+    })
+  );
+
+  /**
+   * GET /api/player-by-puuid/:puuid
+   * Get player data by PUUID (for switching players in match detail)
+   */
+  router.get(
+    '/api/player-by-puuid/:puuid',
+    asyncHandler(async (req: Request, res: Response) => {
+      const { puuid } = req.params
+
+      const cached = getSummonerName(puuid)
+      if (cached && cached.gameName) {
+        sendSuccess(res, cached)
+        return
+      }
+
+      // Fetch from Riot API
+      const baseUrl = riotApi.getBaseUrl()
+
+      try {
+        const account = await riotApi.get<any>(`${baseUrl}/riot/account/v1/accounts/by-puuid/${puuid}`)
+        setSummonerName(puuid, account.gameName, account.tagLine, account.profileIconId || 1)
+        sendSuccess(res, {
+          gameName: account.gameName,
+          tagLine: account.tagLine,
+          icon: account.profileIconId
+        })
+      } catch (error) {
+        sendError(res, 'Player not found', 404)
+      }
     })
   );
 

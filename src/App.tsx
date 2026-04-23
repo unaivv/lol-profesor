@@ -8,6 +8,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/stats" element={<StatsPage />} />
+        <Route path="/stats/:region/:gameName/:tagLine" element={<StatsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

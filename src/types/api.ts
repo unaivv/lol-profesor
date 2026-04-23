@@ -331,6 +331,7 @@ export interface PlayerStatsProps {
 export interface MatchHistoryProps {
   matches: DetailedMatch[]
   playerPuuid?: string
+  currentPlayerData?: PlayerData | null
 }
 
 export interface LiveGameTrackerProps {
