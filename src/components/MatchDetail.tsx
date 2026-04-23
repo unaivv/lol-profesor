@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { DetailedMatch, Participant } from '../types/api'
 import { PlayerRow } from './MatchDetailComponents/PlayerRow'
 import { ConfirmationModal } from './MatchDetailComponents/ConfirmationModal'
+import { Timeline } from './MatchDetailComponents/Timeline'
+import { AIAnalysis } from './MatchDetailComponents/AIAnalysis'
 import { Shield, Target, X } from 'lucide-react'
 
 interface MatchDetailProps {
@@ -283,6 +285,14 @@ export function MatchDetail({ match, playerPuuid, currentRegion, onClose }: Matc
               </div>
             </div>
           </div>
+
+          {/* Timeline */}
+          <div style={{ marginBottom: '24px' }}>
+            <Timeline gameId={match.gameId} />
+          </div>
+
+          {/* AI Analysis */}
+          <AIAnalysis gameId={match.gameId} playerPuuid={playerPuuid} />
         </div>
 
         {/* Confirmation Modal */}
