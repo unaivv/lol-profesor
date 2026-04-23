@@ -21,22 +21,22 @@ export function StatsOverview({ playerData }: StatsOverviewProps) {
   const hasFlexRanked = flexRanked !== null && flexRanked !== undefined
   const hasAnyRanked = hasSoloRanked || hasFlexRanked
 
-  // Determine which rank to show (the higher one)
-  const getMainRank = () => {
+  // Determine which rank to show (the higher one) and its type
+  const getMainRank = (): { rank: typeof soloRanked; type: 'solo' | 'flex' } | null => {
     if (!hasSoloRanked && !hasFlexRanked) return null
-    if (hasSoloRanked && !hasFlexRanked) return soloRanked
-    if (!hasSoloRanked && hasFlexRanked) return flexRanked
+    if (hasSoloRanked && !hasFlexRanked) return { rank: soloRanked, type: 'solo' }
+    if (!hasSoloRanked && hasFlexRanked) return { rank: flexRanked, type: 'flex' }
     
     // Both exist - compare tiers
     const soloWeight = getRankWeight(soloRanked.tier)
     const flexWeight = getRankWeight(flexRanked.tier)
     
-    if (soloWeight > flexWeight) return soloRanked
-    if (flexWeight > soloWeight) return flexRanked
+    if (soloWeight > flexWeight) return { rank: soloRanked, type: 'solo' }
+    if (flexWeight > soloWeight) return { rank: flexRanked, type: 'flex' }
     
     // Same tier - compare LP
-    if (soloRanked.leaguePoints > flexRanked.leaguePoints) return soloRanked
-    return flexRanked
+    if (soloRanked.leaguePoints > flexRanked.leaguePoints) return { rank: soloRanked, type: 'solo' }
+    return { rank: flexRanked, type: 'flex' }
   }
 
   const mainRank = getMainRank()
@@ -70,10 +70,10 @@ export function StatsOverview({ playerData }: StatsOverviewProps) {
       {mainRank && (
         <StatsOverviewCard
           iconBg="#dbeafe"
-          rankImage={getRankEmblemUrl(mainRank.tier)}
-          value={`${mainRank.tier} ${mainRank.rank}`}
-          subValue={`${mainRank.leaguePoints} LP • ${mainRank.wins}G ${mainRank.losses}P`}
-          tier={mainRank.tier}
+          rankImage={getRankEmblemUrl(mainRank.rank.tier)}
+          value={`${mainRank.rank.tier} ${mainRank.rank.rank}`}
+          subValue={`${mainRank.type === 'solo' ? 'Solo/Duo' : 'Flex'} • ${mainRank.rank.leaguePoints} LP • ${mainRank.rank.wins}G ${mainRank.rank.losses}P`}
+          tier={mainRank.rank.tier}
           isRanked
         />
       )}
