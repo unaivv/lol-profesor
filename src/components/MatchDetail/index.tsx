@@ -1,19 +1,15 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { DetailedMatch, Participant } from '../types/api'
-import { getChampionItems, getTrinket, calculateKDARatio } from './MatchCard'
-import { ConfirmationModal } from './MatchDetailComponents/ConfirmationModal'
+import { Participant } from '../../types/api'
+import { getChampionItems, getTrinket, calculateKDARatio } from '../MatchCard'
+import { ConfirmationModal } from '../MatchDetailComponents/ConfirmationModal'
 import { Shield, Target, X } from 'lucide-react'
-import Insights from './Insights'
-import { Timeline } from './MatchDetailComponents/Timeline'
+import Insights from '../Insights'
+import { Timeline } from '../MatchDetailComponents/Timeline'
+import { MatchDetailProps, PlayerRowProps } from './types'
+import * as S from './styles'
 
-interface MatchDetailProps {
-  match: DetailedMatch
-  playerPuuid?: string
-  currentRegion?: string
-  onClose: () => void
-}
-
+// Helper functions
 const formatDuration = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
@@ -48,13 +44,7 @@ const getQueueName = (queueId?: number): string => {
   return queues[queueId || 0] || 'Otro Modo'
 }
 
-interface PlayerRowProps {
-  player: Participant
-  isCurrentPlayer: boolean
-  isMVP: boolean
-  onPlayerClick?: (player: Participant) => void
-}
-
+// PlayerRow component
 const PlayerRow = ({ player, isCurrentPlayer, isMVP, onPlayerClick }: PlayerRowProps) => {
   const kdaRatio = calculateKDARatio(player.kills, player.deaths, player.assists)
   const kdaColor = kdaRatio >= 4 ? '#10b981' : kdaRatio >= 2.5 ? '#2563eb' : kdaRatio >= 1 ? '#d97706' : '#dc2626'
@@ -66,130 +56,64 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP, onPlayerClick }: PlayerRowP
   return (
     <div
       onClick={() => !isCurrentPlayer && onPlayerClick?.(player)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '8px 10px',
-        borderRadius: '8px',
-        background: isCurrentPlayer ? 'rgba(234, 179, 8, 0.15)' : 'transparent',
-        border: isCurrentPlayer ? '2px solid #eab308' : isMVP ? '2px solid #8b5cf6' : '1px solid transparent',
-        position: 'relative',
-        cursor: !isCurrentPlayer && onPlayerClick ? 'pointer' : 'default',
-      }}
+      style={S.playerRow(isCurrentPlayer, isMVP)}
     >
       {isCurrentPlayer && (
-        <div style={{
-          position: 'absolute',
-          top: '-4px',
-          left: '-4px',
-          background: '#eab308',
-          color: 'white',
-          fontSize: '8px',
-          fontWeight: 'bold',
-          padding: '2px 4px',
-          borderRadius: '4px',
-          zIndex: 10
-        }}>
+        <div style={S.playerBadge(true)}>
           {isMVP ? 'TÚ MVP' : 'TÚ'}
         </div>
       )}
       {!isCurrentPlayer && isMVP && (
-        <div style={{
-          position: 'absolute',
-          top: '-4px',
-          left: '-4px',
-          background: '#8b5cf6',
-          color: 'white',
-          fontSize: '8px',
-          fontWeight: 'bold',
-          padding: '2px 4px',
-          borderRadius: '4px',
-          zIndex: 10
-        }}>
+        <div style={S.playerBadge(false)}>
           MVP
         </div>
       )}
       <img
         src={getChampionIcon(player.championId, player.championName)}
         alt={player.championName}
-        style={{ width: '32px', height: '32px', borderRadius: '6px' }}
+        style={S.championIcon}
       />
       <div style={{ flex: 1, minWidth: '0' }}>
-        <div style={{
-          fontSize: '12px',
-          fontWeight: isCurrentPlayer ? 700 : 500,
-          color: isCurrentPlayer ? '#b45309' : '#1e293b',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis'
-        }}>
+        <div style={S.championName(isCurrentPlayer)}>
           {player.summonerName || player.championName || 'Unknown'}
         </div>
-        <div style={{ fontSize: '10px', color: '#64748b' }}>{player.championName}</div>
+        <div style={S.championDetail}>{player.championName}</div>
       </div>
-      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', minWidth: '60px' }}>
-        <span style={{ fontSize: '12px', fontWeight: 600, color: kdaColor }}>{player.kills}</span>
-        <span style={{ color: '#94a3b8', fontSize: '10px' }}>/</span>
-        <span style={{ fontSize: '12px', fontWeight: 600, color: '#ef4444' }}>{player.deaths}</span>
-        <span style={{ color: '#94a3b8', fontSize: '10px' }}>/</span>
-        <span style={{ fontSize: '12px', fontWeight: 600, color: kdaColor }}>{player.assists}</span>
+      <div style={S.kdaDisplay(kdaColor)}>
+        <span style={S.kdaNumber(kdaColor)}>{player.kills}</span>
+        <span style={S.kdaSeparator}>/</span>
+        <span style={S.kdaNumber('#ef4444')}>{player.deaths}</span>
+        <span style={S.kdaSeparator}>/</span>
+        <span style={S.kdaNumber(kdaColor)}>{player.assists}</span>
       </div>
-      <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
+      <div style={S.itemsGrid}>
         {[0, 1, 2, 3, 4, 5].map(idx => {
           const item = items[idx]
           return (
-            <div key={idx} style={{
-              width: '20px',
-              height: '20px',
-              background: item > 0 ? '#0f172a' : 'rgba(15, 23, 42, 0.3)',
-              borderRadius: '3px',
-              overflow: 'hidden',
-              border: item === 0 ? '1px dashed #475569' : 'none'
-            }}>
+            <div key={idx} style={S.itemSlotSmall(item)}>
               {item > 0 && <img src={getItemIcon(item)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />}
             </div>
           )
         })}
       </div>
       {trinket > 0 && (
-        <div style={{
-          width: '20px',
-          height: '20px',
-          background: '#0f172a',
-          borderRadius: '3px',
-          overflow: 'hidden'
-        }}>
+        <div style={S.itemSlotSmall(trinket)}>
           <img src={getItemIcon(trinket)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
         </div>
       )}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '2px',
-        minWidth: '40px',
-        padding: '2px 6px',
-        background: visionScore >= 25 ? 'rgba(59, 130, 246, 0.15)' : 'rgba(100, 116, 139, 0.1)',
-        borderRadius: '4px'
-      }}>
+      <div style={S.visionBadge(visionScore)}>
         <span style={{ fontSize: '10px' }}>👁️</span>
-        <span style={{
-          fontSize: '11px',
-          fontWeight: 600,
-          color: visionScore >= 25 ? '#3b82f6' : '#64748b'
-        }}>
-          {visionScore}
-        </span>
+        <span style={S.visionScore(visionScore)}>{visionScore}</span>
       </div>
     </div>
   )
 }
 
+// Main component
 export function MatchDetail({ match, playerPuuid, currentRegion, onClose }: MatchDetailProps) {
   const navigate = useNavigate()
   const [confirmModal, setConfirmModal] = useState<{ show: boolean; player: Participant | null }>({ show: false, player: null })
 
-  // Player switch handlers
   const handlePlayerClick = (player: Participant) => {
     if (player.puuid === playerPuuid) return
     setConfirmModal({ show: true, player })
@@ -236,7 +160,7 @@ export function MatchDetail({ match, playerPuuid, currentRegion, onClose }: Matc
     return mvpId
   }
 
-const blueMVP = findMVP(blueTeam)
+  const blueMVP = findMVP(blueTeam)
   const redMVP = findMVP(redTeam)
 
   const gameDurationMin = Math.floor(match.gameDuration / 60)
@@ -247,72 +171,17 @@ const blueMVP = findMVP(blueTeam)
   const items = currentPlayer ? getChampionItems(currentPlayer) : []
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0, 0, 0, 0.6)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      overflow: 'hidden'
-    }}>
-      <div style={{
-        background: 'white',
-        borderRadius: '16px',
-        width: '100%',
-        maxWidth: '900px',
-        maxHeight: '90vh',
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        <button
-          onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: '-12px',
-            right: '-12px',
-            width: '36px',
-            height: '36px',
-            borderRadius: '50%',
-            border: '1px solid #e2e8f0',
-            background: 'white',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10
-          }}
-        >
+    <div style={S.overlay}>
+      <div style={S.modal}>
+        <button onClick={onClose} style={S.closeButton}>
           <X size={20} color="#64748b" />
         </button>
 
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '24px',
-          paddingBottom: '100px'
-        }}>
-          <div style={{
-            background: 'linear-gradient(90deg, #1e293b 0%, #0f172a 100%)',
-            margin: '-24px -24px 24px -24px',
-            padding: '20px 24px',
-            borderRadius: '16px 16px 0 0'
-          }}>
+        <div style={S.content}>
+          <div style={S.header}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  background: teamWon ? '#10b981' : '#ef4444',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: '14px'
-                }}>
+              <div style={S.headerLeft}>
+                <div style={S.resultBadge(teamWon)}>
                   {teamWon ? 'VICTORIA' : 'DERROTA'}
                 </div>
                 <div style={{ color: 'white' }}>
@@ -320,7 +189,7 @@ const blueMVP = findMVP(blueTeam)
                   <div style={{ fontSize: '13px', color: '#94a3b8' }}>{formatDuration(match.gameDuration)}</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={S.headerRight}>
                 <img
                   src={getChampionIcon(currentPlayer?.championId || 0, currentPlayer?.championName)}
                   alt={currentPlayer?.championName}
@@ -334,18 +203,13 @@ const blueMVP = findMVP(blueTeam)
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+          <div style={S.statsGrid}>
             <div>
               <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Shield size={16} color="#3b82f6" />
                 Tu Performance
               </h3>
-              <div style={{
-                background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
-                borderRadius: '12px',
-                padding: '16px',
-                border: '1px solid #93c5fd'
-              }}>
+              <div style={S.performanceCard}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '20px', fontWeight: 700, color: '#1e293b' }}>
@@ -388,24 +252,12 @@ const blueMVP = findMVP(blueTeam)
                 <Target size={16} color="#f59e0b" />
                 Tu Build
               </h3>
-              <div style={{
-                background: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)',
-                borderRadius: '12px',
-                padding: '16px',
-                border: '1px solid #fde047'
-              }}>
+              <div style={S.buildCard}>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
                   {[0, 1, 2, 3, 4, 5].map(idx => {
                     const item = items[idx]
                     return (
-                      <div key={idx} style={{
-                        width: '40px',
-                        height: '40px',
-                        background: item > 0 ? '#0f172a' : 'rgba(15, 23, 42, 0.1)',
-                        borderRadius: '6px',
-                        overflow: 'hidden',
-                        border: item === 0 ? '1px dashed #94a3b8' : 'none'
-                      }}>
+                      <div key={idx} style={S.itemSlot(item)}>
                         {item > 0 && <img src={getItemIcon(item)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />}
                       </div>
                     )
@@ -428,12 +280,12 @@ const blueMVP = findMVP(blueTeam)
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+          <div style={S.statsGrid}>
             <div>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <h3 style={S.teamTitle('#3b82f6')}>
                 <span style={{ color: '#3b82f6' }}>🔵</span> Equipo Azul
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={S.teamSection}>
                 {blueTeam.map(player => (
                   <PlayerRow
                     key={player.participantId}
@@ -446,10 +298,10 @@ const blueMVP = findMVP(blueTeam)
               </div>
             </div>
             <div>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <h3 style={S.teamTitle('#ef4444')}>
                 <span style={{ color: '#ef4444' }}>🔴</span> Equipo Rojo
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={S.teamSection}>
                 {redTeam.map(player => (
                   <PlayerRow
                     key={player.participantId}
@@ -463,7 +315,7 @@ const blueMVP = findMVP(blueTeam)
             </div>
           </div>
 
-          <Timeline 
+          <Timeline
             gameId={match.gameId}
             match={match}
           />
@@ -483,3 +335,5 @@ const blueMVP = findMVP(blueTeam)
     </div>
   )
 }
+
+export default MatchDetail
