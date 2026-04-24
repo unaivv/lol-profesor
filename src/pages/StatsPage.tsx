@@ -45,6 +45,30 @@ export function StatsPage() {
   const [cachedAt, setCachedAt] = useState<number | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
+  const handleRefresh = async () => {
+    if (!urlGameName || !urlTagLine || !urlRegion) return
+    setIsRefreshing(true)
+    try {
+      const response = await invoke<any>('get_comprehensive_player', {
+        gameName: urlGameName,
+        tagLine: urlTagLine,
+        forceRefresh: true,
+        region: urlRegion,
+      })
+      const player: PlayerData = { ...response.data, region: urlRegion }
+      setPlayerData(player)
+      setCachedAt(response.cachedAt ?? null)
+      localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
+      if (response.cachedAt) {
+        localStorage.setItem('lolProfessorCachedAt', response.cachedAt.toString())
+      }
+    } catch (e) {
+      console.error('Error refreshing player:', e)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
   // URL-based loading: /stats/:region/:gameName/:tagLine
   const urlRegion = params.region
   const urlGameName = params.gameName
@@ -118,30 +142,6 @@ export function StatsPage() {
 
   const handleSearchNew = () => {
     window.location.href = '/'
-  }
-
-  const handleRefresh = async () => {
-    if (!urlGameName || !urlTagLine || !urlRegion) return
-    setIsRefreshing(true)
-    try {
-      const response = await invoke<any>('get_comprehensive_player', {
-        gameName: urlGameName,
-        tagLine: urlTagLine,
-        forceRefresh: true,
-        region: urlRegion,
-      })
-      const player: PlayerData = { ...response.data, region: urlRegion }
-      setPlayerData(player)
-      setCachedAt(response.cachedAt ?? null)
-        localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
-      if (response.cachedAt) {
-        localStorage.setItem('lolProfessorCachedAt', response.cachedAt.toString())
-      }
-    } catch (e) {
-      console.error('Error refreshing player:', e)
-    } finally {
-      setIsRefreshing(false)
-    }
   }
 
   if (isLoading) {

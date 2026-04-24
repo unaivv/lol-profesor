@@ -1,4 +1,4 @@
-import { Sparkles, Trophy, Shield, Zap, TrendingUp, Calendar, Clock } from 'lucide-react'
+import { Trophy, Shield, Zap, TrendingUp, Calendar, Clock, RefreshCw } from 'lucide-react'
 import { PlayerData, RankedStats, RankedStatsExtended } from '../types/api'
 
 interface ProfileHeaderProps {
@@ -64,7 +64,7 @@ const getRankGradient = (tier: string): string => {
   return gradients[tier] || 'from-slate-600 to-slate-500'
 }
 
-export function ProfileHeader({ playerData, rankedStats, cachedAt }: ProfileHeaderProps) {
+export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing, onRefresh }: ProfileHeaderProps) {
   const soloRanked = getSoloRanked(rankedStats)
   const winRate = soloRanked
     ? Math.round((soloRanked.wins / (soloRanked.wins + soloRanked.losses)) * 100)
@@ -205,6 +205,16 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt }: ProfileHead
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <Clock size={12} />
             <span>{formatTimeAgo(cachedAt)}</span>
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
+                {isRefreshing ? 'Actualizando...' : 'Actualizar'}
+              </button>
+            )}
           </div>
         </div>
       </div>
