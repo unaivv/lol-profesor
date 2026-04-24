@@ -26,7 +26,7 @@ interface ChampionMastery {
 type SortKey = 'masteryLevel' | 'masteryPoints' | 'winRate' | 'gamesPlayed'
 
 const getChampionIcon = (championId: number): string => {
-  return `https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/${championId}.png`
+  return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championId}.png`
 }
 
 const getMasteryLevelColor = (level: number): string => {
@@ -204,7 +204,7 @@ export function MasteryStats({ matches }: MasteryStatsProps) {
                     className="w-14 h-14 rounded-xl border-2 border-slate-200 shadow-sm"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement
-                      target.src = 'https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/Aatrox.png'
+                      target.src = 'https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/Aatrox.png'
                     }}
                   />
                   <div className={`absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-gradient-to-br ${getMasteryLevelColor(mastery.masteryLevel)} flex items-center justify-center text-white text-xs font-bold border-2 border-white shadow-md`}>

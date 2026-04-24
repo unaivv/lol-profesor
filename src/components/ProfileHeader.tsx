@@ -100,12 +100,12 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
           <div className="relative shrink-0">
             <div className="w-28 h-28 rounded-3xl overflow-hidden ring-4 ring-white/20 shadow-2xl">
               <img
-                src={`https://ddragon.leagueoflegends.com/cdn/14.5.1/img/profileicon/${playerData.profileIconId || '1'}.png`}
+                src={`https://ddragon.leagueoflegends.com/cdn/16.7.1/img/profileicon/${playerData.profileIconId || '1'}.png`}
                 alt="Profile"
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement
-                  target.src = 'https://ddragon.leagueoflegends.com/cdn/14.5.1/img/profileicon/1.png'
+                  target.src = 'https://ddragon.leagueoflegends.com/cdn/16.7.1/img/profileicon/1.png'
                 }}
               />
             </div>

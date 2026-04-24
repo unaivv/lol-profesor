@@ -31,7 +31,7 @@ interface ChampionStat {
 type SortKey = 'winRate' | 'games' | 'kda' | 'avgDamage' | 'avgCsPerMinute'
 
 const getChampionIcon = (championId: number): string => {
-  return `https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/${championId}.png`
+  return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championId}.png`
 }
 
 const getWinRateColor = (winRate: number): string => {
@@ -203,7 +203,7 @@ export function ChampionStats({ matches }: ChampionStatsProps) {
                       className="w-10 h-10 rounded-lg border-2 border-slate-200 shadow-sm"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement
-                        target.src = 'https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/Aatrox.png'
+                        target.src = 'https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/Aatrox.png'
                       }}
                     />
                     <div>

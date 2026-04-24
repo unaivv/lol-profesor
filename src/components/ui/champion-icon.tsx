@@ -18,7 +18,7 @@ export function ChampionIcon({ championId, championName, size = "md", className 
   }
 
   const getChampionImage = (id: number) => {
-    return `https://ddragon.leagueoflegends.com/cdn/14.1.1/img/champion/${id}.png`
+    return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${id}.png`
   }
 
   return (

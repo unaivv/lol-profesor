@@ -90,12 +90,12 @@ export function ChampionMasteryCard({ mastery }: ChampionMasteryCardProps) {
         <div className="relative">
           <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${getMasteryLevelColor(level)} p-0.5`}>
             <img
-              src={`https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/${championName}.png`}
+              src={`https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championName}.png`}
               alt={championName}
               className="w-full h-full rounded-lg bg-slate-900 object-cover"
               onError={(e) => {
                 const target = e.target as HTMLImageElement
-                target.src = 'https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/Aatrox.png'
+                target.src = 'https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/Aatrox.png'
               }}
             />
           </div>

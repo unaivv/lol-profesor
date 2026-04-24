@@ -40,9 +40,9 @@ const calculateKDARatio = (kills: number, deaths: number, assists: number): numb
 
 const getChampionIcon = (championId: number, championName?: string): string => {
   if (championName) {
-    return `https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/${championName}.png`
+    return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championName}.png`
   }
-  return `https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/${championId}.png`
+  return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championId}.png`
 }
 
 const getQueueName = (queueId?: number): string => {
@@ -243,7 +243,7 @@ export function hasItem(player: Participant, itemId: number): boolean {
 
 export function getItemIcon(itemId: number): string {
   if (itemId === 0) return ''
-  return `https://ddragon.leagueoflegends.com/cdn/14.5.1/img/item/${itemId}.png`
+  return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/item/${itemId}.png`
 }
 
 export { calculateKDARatio }

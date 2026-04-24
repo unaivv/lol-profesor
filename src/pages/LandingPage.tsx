@@ -118,7 +118,7 @@ export function LandingPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
                     <div style={{ position: 'relative' }}>
                       <img
-                        src={`https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/${playerData.profileIconId || '1'}.png`}
+                        src={`https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${playerData.profileIconId || '1'}.png`}
                         alt="Champion"
                         className="w-24 h-24 rounded-2xl border-4 border-white shadow-lg"
                         style={{
@@ -127,7 +127,7 @@ export function LandingPage() {
                         }}
                         onError={(e) => {
                           const target = e.target as HTMLImageElement
-                          target.src = 'https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/Aatrox.png'
+                          target.src = 'https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/Aatrox.png'
                         }}
                       />
                       <div style={{

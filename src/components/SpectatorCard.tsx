@@ -23,7 +23,7 @@ const MAP_NAMES: Record<number, string> = {
 }
 
 const getChampionIcon = (championId: number): string => {
-  return `https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/${championId}.png`
+  return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championId}.png`
 }
 
 const getSpellIcon = (spellId: number): string => {
@@ -40,7 +40,7 @@ const getSpellIcon = (spellId: number): string => {
     32: 'SummonerSnowball'   // Mark (ARAM)
   }
   const spellName = spellMap[spellId] || 'SummonerFlash'
-  return `https://ddragon.leagueoflegends.com/cdn/14.5.1/img/spell/${spellName}.png`
+  return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/spell/${spellName}.png`
 }
 
 const formatGameLength = (seconds: number): string => {
@@ -59,7 +59,7 @@ function ParticipantRow({ participant, isAlly }: { participant: SpectatorPartici
           className="w-8 h-8 rounded-lg"
           onError={(e) => {
             const target = e.target as HTMLImageElement
-            target.src = 'https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/Aatrox.png'
+            target.src = 'https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/Aatrox.png'
           }}
         />
       </div>

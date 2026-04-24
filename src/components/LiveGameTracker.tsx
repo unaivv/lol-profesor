@@ -36,11 +36,11 @@ const KDABadge = ({ kills, deaths, assists }: { kills: number; deaths: number; a
 
 const ChampionIconSmall = ({ championId, championName }: { championId: number; championName: string }) => (
   <img
-    src={`https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/${championId}.png`}
+    src={`https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championId}.png`}
     alt={championName}
     className="w-10 h-10 rounded-lg border-2 border-slate-200"
     onError={(e) => {
-      (e.target as HTMLImageElement).src = 'https://ddragon.leagueoflegends.com/cdn/14.5.1/img/champion/Aatrox.png'
+      (e.target as HTMLImageElement).src = 'https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/Aatrox.png'
     }}
   />
 )
