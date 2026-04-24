@@ -1,11 +1,14 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
-import { Minus, Square, X } from 'lucide-react'
+import { Minus, Settings, Square, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { TitleBarButton } from './TitleBarButton'
 
 const appWindow = getCurrentWindow()
 
-export function TitleBar() {
+export function TitleBar(): JSX.Element {
   const [isMaximized, setIsMaximized] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     appWindow.isMaximized().then(setIsMaximized)
@@ -15,7 +18,7 @@ export function TitleBar() {
     return () => { unlisten.then(f => f()) }
   }, [])
 
-  const handleMaximize = async () => {
+  const handleMaximize = async (): Promise<void> => {
     await appWindow.toggleMaximize()
     setIsMaximized(await appWindow.isMaximized())
   }
@@ -23,26 +26,19 @@ export function TitleBar() {
   return (
     <div
       data-tauri-drag-region
-      style={{
-        height: '36px',
-        background: '#ffffff',
-        borderBottom: '1px solid rgba(99, 102, 241, 0.1)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingLeft: '12px',
-        userSelect: 'none',
-        flexShrink: 0,
-      }}
+      className="flex h-9 shrink-0 select-none items-center justify-between border-b border-indigo-500/10 bg-white pl-3"
     >
       <img
         data-tauri-drag-region
         src="/logo.png"
         alt="LoL Profesor"
-        style={{ height: '24px', width: 'auto', pointerEvents: 'none' }}
+        className="h-6 w-auto pointer-events-none"
       />
 
-      <div style={{ display: 'flex' }}>
+      <div className="flex">
+        <TitleBarButton onClick={() => navigate('/settings')} title="Configuración">
+          <Settings size={14} />
+        </TitleBarButton>
         <TitleBarButton onClick={() => appWindow.minimize()} title="Minimizar">
           <Minus size={14} />
         </TitleBarButton>
@@ -54,48 +50,5 @@ export function TitleBar() {
         </TitleBarButton>
       </div>
     </div>
-  )
-}
-
-function TitleBarButton({
-  onClick,
-  title,
-  isClose,
-  children,
-}: {
-  onClick: () => void
-  title: string
-  isClose?: boolean
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      style={{
-        width: '46px',
-        height: '36px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'transparent',
-        border: 'none',
-        color: '#6b7280',
-        cursor: 'pointer',
-        transition: 'background 0.15s',
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLButtonElement).style.background = isClose
-          ? 'rgba(239,68,68,0.15)'
-          : 'rgba(99,102,241,0.08)'
-        if (isClose) (e.currentTarget as HTMLButtonElement).style.color = '#ef4444'
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLButtonElement).style.background = 'transparent'
-        ;(e.currentTarget as HTMLButtonElement).style.color = '#6b7280'
-      }}
-    >
-      {children}
-    </button>
   )
 }
