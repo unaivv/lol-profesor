@@ -17,10 +17,12 @@ export function usePlayerData() {
         ? searchQuery.split('#')
         : [searchQuery, '']
 
-      const data = await invoke<any>('get_comprehensive_player', {
+      const response = await invoke<any>('get_comprehensive_player', {
         gameName,
         tagLine,
+        region: 'EUW',
       })
+      const data = response.data
 
       setPlayerData({
         puuid: data.puuid,

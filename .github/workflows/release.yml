@@ -57,10 +57,10 @@ jobs:
           "
 
       - name: Install frontend dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci
 
       - name: Install Tauri CLI
-        run: cd src-tauri && npm install --no-audit --no-fund
+        run: cd src-tauri && npm ci
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -74,6 +74,36 @@ jobs:
           tagName: v__VERSION__
           releaseName: 'LoL Professor v__VERSION__'
           releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Generate latest.json for updater
+        if: matrix.platform == 'macos-latest'
+        run: |
+          TAG=${GITHUB_REF_NAME#v}
+          # Get the dmg asset URL
+          ASSET_URL=$(curl -sH "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/v$TAG" | \
+            jq -r '.assets[] | select(.name | endswith(".dmg")) | .browser_download_url' | head -1)
+          
+          # Create latest.json in required format
+          cat > latest.json << EOF
+          {
+            "version": "$TAG",
+            "notes": "See the assets to download this version and install.",
+            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "platforms": {
+              "darwin-aarch64": {
+                "signature": "",
+                "url": "$ASSET_URL"
+              }
+            }
+          }
+          EOF
+          
+          # Upload latest.json to release
+          curl -sH "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data-binary @latest.json \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/tags/v$TAG/assets?name=latest.json"

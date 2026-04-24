@@ -1,6 +1,20 @@
 import { useState } from 'react'
-import { Search, User, Zap, Target, AlertCircle } from 'lucide-react'
+import { Search, User, Zap, Target, AlertCircle, Globe } from 'lucide-react'
 import { invoke } from '@tauri-apps/api/core'
+
+const REGIONS = [
+  { value: 'EUW', label: 'EUW' },
+  { value: 'EUN', label: 'EUN' },
+  { value: 'NA', label: 'NA' },
+  { value: 'KR', label: 'KR' },
+  { value: 'JP', label: 'JP' },
+  { value: 'BR', label: 'BR' },
+  { value: 'LAN', label: 'LAN' },
+  { value: 'LAS', label: 'LAS' },
+  { value: 'OCE', label: 'OCE' },
+  { value: 'TR', label: 'TR' },
+  { value: 'RU', label: 'RU' },
+]
 
 interface SearchBarProps {
   onPlayerFound: (playerData: any) => void
@@ -9,6 +23,7 @@ interface SearchBarProps {
 
 export function SearchBar({ onPlayerFound, onError }: SearchBarProps) {
   const [searchQuery, setSearchQuery] = useState('MeowthTeamRocket#TRCKT')
+  const [selectedRegion, setSelectedRegion] = useState('EUW')
   const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [searchSuccess, setSearchSuccess] = useState<string | null>(null)
@@ -34,10 +49,12 @@ export function SearchBar({ onPlayerFound, onError }: SearchBarProps) {
 
       console.log('Searching for:', { summonerName, tagLine })
 
-      const fullData = await invoke<any>('get_comprehensive_player', {
+      const response = await invoke<any>('get_comprehensive_player', {
         gameName: summonerName,
         tagLine,
+        region: selectedRegion,
       })
+      const fullData = response.data
       console.log('=== FULL DATA ===')
       console.log('gameName:', fullData.gameName)
       console.log('puuid:', fullData.puuid)
@@ -105,6 +122,32 @@ export function SearchBar({ onPlayerFound, onError }: SearchBarProps) {
               </div>
 
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                {/* Region Selector */}
+                <div style={{ position: 'relative' }}>
+                  <Globe size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', zIndex: 2 }} />
+                  <select
+                    value={selectedRegion}
+                    onChange={(e) => setSelectedRegion(e.target.value)}
+                    style={{
+                      appearance: 'none',
+                      padding: '16px 36px 16px 40px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '12px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      background: '#f9fafb',
+                      cursor: 'pointer',
+                      minWidth: '100px',
+                      color: '#374151',
+                    }}
+                  >
+                    {REGIONS.map((r) => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </select>
+                  <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#9ca3af' }}>▼</div>
+                </div>
+
                 <div style={{ position: 'relative', flex: 1 }}>
                   <Search
                     size={20}

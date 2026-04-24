@@ -9,10 +9,11 @@ import { SpectatorCard } from '../components/SpectatorCard'
 import { ChampionMasteryCard } from '../components/ChampionMasteryCard'
 import { PerformanceRadar } from '../components/PerformanceRadar'
 import { MostPlayedChampions } from '../components/MostPlayedChampions'
+import { ProfileHeader } from '../components/ProfileHeader'
 import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
 import { PlayerData } from '../types/api'
-import { Sparkles, Search, Trophy, Users, Star, Zap, Target, X } from 'lucide-react'
+import { Search, Trophy, Users, Star, Zap, Target, X } from 'lucide-react'
 import { invoke } from '@tauri-apps/api/core'
 
 type TabId = 'summary' | 'champions' | 'mastery' | 'live'
@@ -41,6 +42,8 @@ export function StatsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabId>('summary')
+  const [cachedAt, setCachedAt] = useState<number | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // URL-based loading: /stats/:region/:gameName/:tagLine
   const urlRegion = params.region
@@ -54,15 +57,18 @@ export function StatsPage() {
         try {
           setIsLoading(true)
           console.log(`Fetching player: ${urlGameName}#${urlTagLine} in ${urlRegion}`)
-          const data = await invoke<any>('get_comprehensive_player', {
+          const response = await invoke<any>('get_comprehensive_player', {
             gameName: urlGameName,
             tagLine: urlTagLine,
+            forceRefresh: false,
+            region: urlRegion,
           })
           const player: PlayerData = {
-            ...data,
+            ...response.data,
             region: urlRegion,
           }
           setPlayerData(player)
+          setCachedAt(response.cachedAt ?? null)
           localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
           setIsLoading(false)
           return
@@ -109,15 +115,38 @@ export function StatsPage() {
     window.location.href = '/'
   }
 
+  const handleRefresh = async () => {
+    if (!urlGameName || !urlTagLine || !urlRegion) return
+    setIsRefreshing(true)
+    try {
+      const response = await invoke<any>('get_comprehensive_player', {
+        gameName: urlGameName,
+        tagLine: urlTagLine,
+        forceRefresh: true,
+        region: urlRegion,
+      })
+      const player: PlayerData = { ...response.data, region: urlRegion }
+      setPlayerData(player)
+      setCachedAt(response.cachedAt ?? null)
+      localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
+    } catch (e) {
+      console.error('Error refreshing player:', e)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="relative mb-6">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl animate-pulse">
-              <Sparkles size={40} className="text-white" />
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white animate-bounce" />
+            <img
+              src="/logo_sin_texto_sin_fondo.png"
+              alt="LoL Profesor"
+              className="w-24 h-24 animate-pulse mx-auto block"
+              style={{ objectFit: 'contain' }}
+            />
           </div>
           <h2 className="text-2xl font-bold text-slate-800 mb-2">
             Cargando estadísticas...
@@ -216,16 +245,14 @@ export function StatsPage() {
 
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
         {/* Profile Header */}
-        <div style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)', borderRadius: '16px', padding: '24px', marginBottom: '24px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
-          <div>
-            <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: 'white', marginBottom: '8px' }}>
-              {playerData.gameName}
-              <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 400 }}>#{playerData.tagLine}</span>
-            </h1>
-            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '16px' }}>
-              Nivel {playerData.summonerLevel} • {playerData.region}
-            </p>
-          </div>
+        <div style={{ marginBottom: '24px' }}>
+          <ProfileHeader
+            playerData={playerData}
+            rankedStats={playerData.rankedStats as any}
+            cachedAt={cachedAt}
+            isRefreshing={isRefreshing}
+            onRefresh={handleRefresh}
+          />
         </div>
 
         {/* Stats Overview Cards */}

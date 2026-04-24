@@ -1,14 +1,14 @@
 use tauri::State;
 use crate::error::ApiError;
 use crate::models::summoner::{
-    ComprehensivePlayerData, RankedEntry, RankedStatsExtended, RiotAccount, RiotSummoner, Summoner,
-    SummonerBasic,
+    CachedPlayerResponse, ComprehensivePlayerData, RankedEntry, RankedStatsExtended, RiotAccount,
+    RiotSummoner, Summoner, SummonerBasic,
 };
 use crate::models::match_::Match;
 use crate::models::mastery::ChampionMastery;
 use crate::AppState;
 use crate::api::champions::get_champion_name;
-use crate::db::{summoner_cache, match_cache};
+use crate::db::{summoner_cache, match_cache, player_cache};
 use super::{extract_perks, participant_from_json};
 
 async fn fetch_account_and_summoner(
@@ -18,6 +18,8 @@ async fn fetch_account_and_summoner(
 ) -> Result<(RiotAccount, RiotSummoner), ApiError> {
     let encoded_name = urlencoding::encode(game_name);
     let encoded_tag = urlencoding::encode(tag_line);
+
+    log::info!("Fetching account: gameName={}, tagLine={}", game_name, tag_line);
 
     let account: RiotAccount = state
         .riot_client
@@ -29,14 +31,23 @@ async fn fetch_account_and_summoner(
         ))
         .await?;
 
+    log::info!("Account found: puuid={}, gameName={}, tagLine={}", account.puuid, account.game_name, account.tag_line);
+
+    let summoner_url = format!(
+        "{}/lol/summoner/v4/summoners/by-puuid/{}",
+        state.riot_client.regional_url(),
+        account.puuid
+    );
+    log::info!("Fetching summoner from: {}", summoner_url);
+
     let summoner: RiotSummoner = state
         .riot_client
-        .get(&format!(
-            "{}/lol/summoner/v4/summoners/by-puuid/{}",
-            state.riot_client.regional_url(),
-            account.puuid
-        ))
-        .await?;
+        .get(&summoner_url)
+        .await
+        .map_err(|e| {
+            log::error!("Failed to fetch summoner for puuid {}: {}", account.puuid, e);
+            e
+        })?;
 
     Ok((account, summoner))
 }
@@ -72,15 +83,83 @@ pub async fn get_summoner(
 pub async fn get_comprehensive_player(
     game_name: String,
     tag_line: String,
+    force_refresh: Option<bool>,
+    region: Option<String>,
     state: State<'_, AppState>,
-) -> Result<ComprehensivePlayerData, ApiError> {
-    let (account, summoner) = fetch_account_and_summoner(&state, &game_name, &tag_line).await?;
+) -> Result<CachedPlayerResponse, ApiError> {
+    let force_refresh = force_refresh.unwrap_or(false);
+
+    // Use provided region or default from config
+    let region_str = region.unwrap_or_else(|| "EUW".to_string());
+    let region = crate::config::Region::from_str(&region_str);
+
+    // Create a temporary client with the correct regional URLs for this request
+    let riot_client = crate::api::riot_client::RiotApiClient::new(
+        region.regional_url().to_string(),
+        region.global_url().to_string(),
+        state.config.riot_api_key.clone(),
+    );
+
+    // Fetch account using global API
+    let encoded_name = urlencoding::encode(&game_name);
+    let encoded_tag = urlencoding::encode(&tag_line);
+
+    log::info!("Fetching account: gameName={}, tagLine={}, region={}", game_name, tag_line, region_str);
+
+    let account: RiotAccount = riot_client
+        .get(&format!(
+            "{}/riot/account/v1/accounts/by-riot-id/{}/{}",
+            region.global_url(),
+            encoded_name,
+            encoded_tag
+        ))
+        .await?;
+
+    log::info!("Account found: puuid={}, gameName={}, tagLine={}", account.puuid, account.game_name, account.tag_line);
+
+    // Fetch summoner using selected region
+    let summoner_url = format!(
+        "{}/lol/summoner/v4/summoners/by-puuid/{}",
+        region.regional_url(),
+        account.puuid
+    );
+    log::info!("Fetching summoner from: {}", summoner_url);
+
+    let summoner: RiotSummoner = riot_client
+        .get(&summoner_url)
+        .await
+        .map_err(|e| {
+            log::error!("Failed to fetch summoner for puuid {}: {}", account.puuid, e);
+            if matches!(e, ApiError::NotFound { .. }) {
+                ApiError::NotFound {
+                    message: format!("Jugador '{}#{}' no encontrado en la región {}. Verifica que el nombre y región sean correctos.", game_name, tag_line, region_str)
+                }
+            } else {
+                e
+            }
+        })?;
+
+    let used_region = region_str.clone();
 
     let puuid = account.puuid.clone();
+
+    if !force_refresh {
+        if let Ok(Some((cached_data, cached_at))) = player_cache::get(&state.db, &puuid) {
+            return Ok(CachedPlayerResponse {
+                data: cached_data,
+                cached_at: Some(cached_at),
+                is_cached: true,
+            });
+        }
+    }
+
+    // Use the region where we found the summoner
+    let used_region_obj = crate::config::Region::from_str(&used_region);
+
     // Riot API v5 /by-puuid ya no devuelve `id`; usamos el puuid como summonerId para spectator
     let summoner_id = summoner.id.clone().unwrap_or_else(|| puuid.clone());
-    let regional_url = state.riot_client.regional_url().to_string();
-    let global_url = state.riot_client.global_url().to_string();
+    let regional_url = used_region_obj.regional_url().to_string();
+    let global_url = used_region_obj.global_url().to_string();
 
     let _ = summoner_cache::set(
         &state.db,
@@ -109,10 +188,10 @@ pub async fn get_comprehensive_player(
     );
 
     let (ranked_result, mastery_result, match_ids_result, spectator_result) = tokio::join!(
-        state.riot_client.get::<serde_json::Value>(&ranked_url),
-        state.riot_client.get::<serde_json::Value>(&mastery_url),
-        state.riot_client.get::<Vec<String>>(&match_ids_url),
-        state.riot_client.get::<serde_json::Value>(&spectator_url),
+        riot_client.get::<serde_json::Value>(&ranked_url),
+        riot_client.get::<serde_json::Value>(&mastery_url),
+        riot_client.get::<Vec<String>>(&match_ids_url),
+        riot_client.get::<serde_json::Value>(&spectator_url),
     );
 
     // Process ranked
@@ -210,38 +289,54 @@ pub async fn get_comprehensive_player(
         }
     };
 
-    // Process matches sequentially, collecting all puuids as we go
+    // Fetch matches: check cache first, then fetch missing ones in parallel batches of 5
     let mut matches: Vec<Match> = vec![];
     let mut all_puuids: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut raw_matches: Vec<(String, serde_json::Value)> = vec![];
 
     if let Ok(match_ids) = match_ids_result {
-        for match_id in match_ids.iter().take(20) {
-            let match_url = format!(
-                "{}/lol/match/v5/matches/{}",
-                global_url, match_id
-            );
-            match state.riot_client.get::<serde_json::Value>(&match_url).await {
-                Ok(match_data) => {
-                    let _ = match_cache::set_raw(&state.db, match_id, &match_data["info"]);
+        let riot_client = state.riot_client.clone();
+        let db_pool = state.db.clone();
+        let match_id_list: Vec<String> = match_ids.iter().take(20).cloned().collect();
 
-                    if let Some(parts) = match_data["info"]["participants"].as_array() {
-                        for p in parts {
-                            if let Some(puid) = p["puuid"].as_str() {
-                                all_puuids.insert(puid.to_string());
-                            }
+        for chunk in match_id_list.chunks(5) {
+            let futs: Vec<_> = chunk.iter().map(|match_id| {
+                let rc = riot_client.clone();
+                let db = db_pool.clone();
+                let gurl = global_url.clone();
+                let mid = match_id.clone();
+                async move {
+                    if let Ok(Some(info)) = match_cache::get_raw(&db, &mid) {
+                        return Some((mid, info));
+                    }
+                    let url = format!("{}/lol/match/v5/matches/{}", gurl, mid);
+                    match rc.get::<serde_json::Value>(&url).await {
+                        Ok(d) => {
+                            let info = d["info"].clone();
+                            let _ = match_cache::set_raw(&db, &mid, &info);
+                            Some((mid, info))
+                        }
+                        Err(e) => { log::warn!("Failed to fetch match {}: {}", mid, e); None }
+                    }
+                }
+            }).collect();
+
+            for item in futures::future::join_all(futs).await.into_iter().flatten() {
+                if let Some(parts) = item.1["participants"].as_array() {
+                    for p in parts {
+                        if let Some(puid) = p["puuid"].as_str() {
+                            all_puuids.insert(puid.to_string());
                         }
                     }
-                    raw_matches.push((match_id.clone(), match_data));
                 }
-                Err(e) => log::warn!("Failed to fetch match {}: {}", match_id, e),
+                raw_matches.push(item);
             }
         }
     } else {
         log::warn!("Failed to fetch match IDs");
     }
 
-    // Resolve summoner names
+    // Resolve summoner names: cache first, then parallel fetch for missing
     let mut name_map: std::collections::HashMap<String, String> =
         std::collections::HashMap::new();
     let mut missing_puuids: Vec<String> = vec![];
@@ -255,23 +350,33 @@ pub async fn get_comprehensive_player(
         }
     }
 
-    for puid in missing_puuids.iter().take(10) {
-        let acc_url = format!(
-            "{}/riot/account/v1/accounts/by-puuid/{}",
-            global_url, puid
-        );
-        match state.riot_client.get::<RiotAccount>(&acc_url).await {
-            Ok(acc) => {
-                let _ = summoner_cache::set(&state.db, puid, &acc.game_name, &acc.tag_line, 1);
-                name_map.insert(puid.clone(), format!("{}#{}", acc.game_name, acc.tag_line));
+    {
+        let riot_client = state.riot_client.clone();
+        let db_pool = state.db.clone();
+        let futs: Vec<_> = missing_puuids.iter().take(10).map(|puid| {
+            let rc = riot_client.clone();
+            let db = db_pool.clone();
+            let gurl = global_url.clone();
+            let p = puid.clone();
+            async move {
+                let url = format!("{}/riot/account/v1/accounts/by-puuid/{}", gurl, p);
+                match rc.get::<RiotAccount>(&url).await {
+                    Ok(acc) => {
+                        let _ = summoner_cache::set(&db, &p, &acc.game_name, &acc.tag_line, 1);
+                        Some((p, format!("{}#{}", acc.game_name, acc.tag_line)))
+                    }
+                    Err(e) => { log::warn!("Failed to fetch account for {}: {}", p, e); None }
+                }
             }
-            Err(e) => log::warn!("Failed to fetch account for {}: {}", puid, e),
+        }).collect();
+
+        for (puid, name) in futures::future::join_all(futs).await.into_iter().flatten() {
+            name_map.insert(puid, name);
         }
     }
 
-    // Build match structs
-    for (match_id, match_data) in raw_matches {
-        let info = &match_data["info"];
+    // Build match structs (raw_matches now stores info directly, not full match response)
+    for (match_id, info) in raw_matches {
         let participants_json = info["participants"].as_array();
 
         let player_participant = participants_json
@@ -343,18 +448,27 @@ pub async fn get_comprehensive_player(
         }
     }
 
-    Ok(ComprehensivePlayerData {
+    let player_data = ComprehensivePlayerData {
         puuid,
-        summoner_id: summoner_id,
+        summoner_id,
         game_name: account.game_name,
         tag_line: account.tag_line,
         summoner_level: summoner.summoner_level,
         profile_icon_id: summoner.profile_icon_id,
-        region: "EUW".to_string(),
+        region: used_region.clone(),
         ranked_stats,
         mastery,
         matches,
         current_game,
+    };
+
+    let _ = player_cache::set(&state.db, &player_data.puuid, &player_data);
+    let now = chrono::Utc::now().timestamp();
+
+    Ok(CachedPlayerResponse {
+        data: player_data,
+        cached_at: Some(now),
+        is_cached: false,
     })
 }
 

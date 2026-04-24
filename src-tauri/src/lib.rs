@@ -23,7 +23,7 @@ pub fn run() {
     env_logger::init();
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
                 let _ = window.set_focus();
@@ -37,8 +37,18 @@ pub fn run() {
         .setup(|app| {
             tray::setup_tray(app)?;
 
-            // Dev: load .env from project root
-            dotenvy::dotenv().ok();
+            // Dev: load .env from project root (handle both root and src-tauri cwd)
+            let cwd = std::env::current_dir().ok();
+            let env_loaded = dotenvy::dotenv().is_ok();
+            if !env_loaded {
+                // Try parent directory (when running from src-tauri/)
+                if let Some(ref dir) = cwd {
+                    let parent_env = dir.join("..").join(".env").canonicalize().ok();
+                    if let Some(path) = parent_env {
+                        dotenvy::from_path(&path).ok();
+                    }
+                }
+            }
             // Prod: load .env bundled as Tauri resource (Contents/Resources/.env)
             if let Ok(env_path) = app.path().resolve(".env", tauri::path::BaseDirectory::Resource) {
                 dotenvy::from_path(&env_path).ok();
@@ -93,6 +103,17 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_decorations(true);
+            }
+
+            // Hide to tray on close
+            if let Some(window) = app.get_webview_window("main") {
+                let window_clone = window.clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = window_clone.hide();
+                    }
+                });
             }
 
             Ok(())

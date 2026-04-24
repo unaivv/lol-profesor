@@ -38,7 +38,7 @@ export const closeButton = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  zIndex: 10
+  zIndex: 100
 }
 
 export const content = {
