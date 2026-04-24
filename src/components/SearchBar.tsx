@@ -47,27 +47,12 @@ export function SearchBar({ onPlayerFound, onError }: SearchBarProps) {
         tagLine = parts[1] || 'EUW'
       }
 
-      console.log('Searching for:', { summonerName, tagLine })
-
       const response = await invoke<any>('get_comprehensive_player', {
         gameName: summonerName,
         tagLine,
         region: selectedRegion,
       })
       const fullData = response.data
-      console.log('=== FULL DATA ===')
-      console.log('gameName:', fullData.gameName)
-      console.log('puuid:', fullData.puuid)
-      console.log('Matches count:', fullData.matches?.length || 0)
-      if (fullData.matches?.[0]?.participants?.length) {
-        console.log('First match participants:', fullData.matches[0].participants.map((p: any) => ({
-          summonerName: p.summonerName,
-          championName: p.championName,
-          puuid: p.puuid
-        })))
-      }
-      console.log('Mastery:', fullData.mastery?.length || 0)
-      console.log('Current game:', fullData.currentGame ? 'Yes' : 'No')
 
       // Show success message
       setSearchSuccess(`Estadísticas cargadas: ${fullData.gameName}#${fullData.tagLine} • ${fullData.matches?.length || 0} partidas • ${fullData.mastery?.length || 0} campeones`)

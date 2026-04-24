@@ -20,19 +20,13 @@ export function LandingPage() {
   const [error, setError] = useState<string | null>(null)
 
   const handlePlayerFound = (data: PlayerData) => {
-    console.log('Player found:', data)
     setPlayerData(data)
     setError(null)
     setIsLoading(false)
 
     // Store in localStorage
     const dataToStore = JSON.stringify(data)
-    console.log('Storing data:', dataToStore)
     localStorage.setItem('lolProfessorPlayer', dataToStore)
-
-    // Verify data was stored
-    const storedData = localStorage.getItem('lolProfessorPlayer')
-    console.log('Verification - stored data:', storedData)
 
     // Redirect to stats page with player info (same route as clicking user in matchDetails)
     const region = data.region || 'na1'
