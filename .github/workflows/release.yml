@@ -57,10 +57,10 @@ jobs:
           "
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Install Tauri CLI
-        run: cd src-tauri && npm ci
+        run: cd src-tauri && npm install --no-audit --no-fund
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
