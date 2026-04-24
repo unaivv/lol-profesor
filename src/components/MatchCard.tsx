@@ -1,6 +1,6 @@
 import { DetailedMatch, Participant } from '../types/api'
 import { Clock, ChevronDown, ChevronUp } from 'lucide-react'
-import { getChampionImageUrl } from '../utils/ddragon'
+import { getChampionImageUrl } from '../utils/champions'
 
 interface MatchCardProps {
   match: DetailedMatch
@@ -39,8 +39,8 @@ const calculateKDARatio = (kills: number, deaths: number, assists: number): numb
   return (kills + assists) / deaths
 }
 
-const getChampionIcon = (championId: number, championName?: string | number): string => {
-  return getChampionImageUrl(championId, championName)
+const getChampionIcon = (championId: number): string => {
+  return getChampionImageUrl(championId)
 }
 
 const getQueueName = (queueId?: number): string => {
@@ -130,7 +130,7 @@ export function MatchCard({ match, playerPuuid, onExpand, isExpanded }: MatchCar
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <img
-                src={getChampionIcon(currentPlayer.championId, currentPlayer.championName)}
+                src={getChampionIcon(currentPlayer.championId)}
                 alt={currentPlayer.championName}
                 style={{ width: '48px', height: '48px', borderRadius: '8px', border: '2px solid #eab308' }}
               />

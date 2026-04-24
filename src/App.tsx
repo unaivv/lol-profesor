@@ -6,12 +6,17 @@ import { StatsPage } from './pages/StatsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TitleBar } from './components/TitleBar'
 import { SplashScreen } from './components/SplashScreen'
+import { initChampionMap } from './utils/champions'
 
 const isMac = navigator.userAgent.includes('Mac OS')
 
 function AppInner() {
   const [splash, setSplash] = useState(true)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    initChampionMap()
+  }, [])
 
   useEffect(() => {
     const unlisten = listen<string>('navigate', e => navigate(e.payload))
