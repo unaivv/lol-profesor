@@ -107,3 +107,12 @@ Thumbs.db
 
 # Vite
 .vite/
+
+# SQLite cache
+cache.db
+
+# Local specs and agent dirs
+.windsurf/
+.claude/
+SPEC.md
+TODOs.md
