@@ -54,6 +54,10 @@
             "certificateThumbprint": null,
             "digestAlgorithm": "sha256",
             "timestampUrl": ""
+        },
+        "macOS": {
+            "minimumSystemVersion": "10.13",
+            "entitlements": "entitlements.plist"
         }
     }
 }
