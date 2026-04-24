@@ -1,4 +1,6 @@
 {
+    "name": "lol-professor",
+    "version": "1.0.2",
     "scripts": {
         "dev": "vite",
         "build": "vite build",
@@ -7,9 +9,8 @@
         "tauri:build": "tauri build"
     },
     "dependencies": {
-        "@tauri-apps/api": "^2.10.1",
-        "@tauri-apps/cli": "^2.10.1",
         "@tailwindcss/vite": "^4.2.4",
+        "@tauri-apps/api": "^2.10.1",
         "@types/react": "^19.2.14",
         "@types/react-dom": "^19.2.3",
         "@vitejs/plugin-react": "^6.0.1",
@@ -23,5 +24,8 @@
         "tailwindcss": "^4.2.4",
         "typescript": "^6.0.3",
         "vite": "^8.0.10"
+    },
+    "devDependencies": {
+        "@tauri-apps/cli": "^2.10.1"
     }
 }
