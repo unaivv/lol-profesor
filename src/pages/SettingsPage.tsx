@@ -1,5 +1,5 @@
 import { check } from '@tauri-apps/plugin-updater'
-import { restart } from '@tauri-apps/plugin-process'
+import { relaunch } from '@tauri-apps/plugin-process'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, RefreshCw, CheckCircle, Download, AlertCircle } from 'lucide-react'
@@ -117,7 +117,7 @@ export function SettingsPage() {
 
           {update.status === 'ready' && (
             <button
-              onClick={() => restart()}
+              onClick={() => relaunch()}
               style={{
                 marginTop: '16px',
                 display: 'flex', alignItems: 'center', gap: '8px',
