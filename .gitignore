@@ -108,6 +108,9 @@ Thumbs.db
 # Vite
 .vite/
 
+# Rust build artifacts
+src-tauri/target/
+
 # SQLite cache
 cache.db
 
