@@ -8,7 +8,7 @@ interface TitleBarButtonProps {
   children: ReactNode
 }
 
-export function TitleBarButton({ onClick, title, isClose, children }: TitleBarButtonProps): JSX.Element {
+export function TitleBarButton({ onClick, title, isClose, children }: TitleBarButtonProps) {
   return (
     <button
       onClick={onClick}

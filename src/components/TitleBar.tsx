@@ -6,7 +6,7 @@ import { TitleBarButton } from './TitleBarButton'
 
 const appWindow = getCurrentWindow()
 
-export function TitleBar(): JSX.Element {
+export function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false)
   const navigate = useNavigate()
 

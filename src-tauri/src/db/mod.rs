@@ -1,6 +1,7 @@
 pub mod migrations;
 pub mod summoner_cache;
 pub mod match_cache;
+pub mod player_cache;
 pub mod analysis_cache;
 
 use std::path::Path;

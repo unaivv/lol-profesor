@@ -10,7 +10,7 @@ interface HeaderProps {
 }
 
 export function Header({ 
-  title = 'LoL Professor', 
+  title: _title = 'LoL Professor', 
   subtitle = '',
   showFeatures = true,
   actions,

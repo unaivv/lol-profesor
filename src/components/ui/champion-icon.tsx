@@ -26,7 +26,7 @@ export function ChampionIcon({ championId, championName, size = "md", className 
       <AvatarImage 
         src={getChampionImage(championId)} 
         alt={championName}
-        onError={(e) => {
+        onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
           e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iOCIgZmlsbD0iI0Y0RjRGNiIvPgo8cGF0aCBkPSJNMjQgMTJDMjguNDE4MyAxMiAzMiAxNS41ODE3IDMyIDIwQzMyIDI0LjQxODMgMjguNDE4MyAyOCAyNCAyOEMxOS41ODE3IDI4IDE2IDI0LjQxODMgMTYgMjBDMTYgMTUuNTgxNyAxOS41ODE3IDEyIDI0IDEyWiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K'
         }}
       />

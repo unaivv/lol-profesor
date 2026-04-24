@@ -4,6 +4,9 @@ import { PlayerData, RankedStats, RankedStatsExtended } from '../types/api'
 interface ProfileHeaderProps {
   playerData: PlayerData
   rankedStats: RankedStats | RankedStatsExtended | null | undefined
+  cachedAt?: number | null
+  isRefreshing?: boolean
+  onRefresh?: () => Promise<void>
 }
 
 // Helper para obtener solo ranked

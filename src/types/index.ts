@@ -6,6 +6,9 @@ export interface PlayerData {
   summonerLevel: number
   profileIconId: number
   region: string
+  rankedStats?: RankedStats
+  mastery?: ChampionMastery[]
+  currentGame?: LiveGameData | null
 }
 
 export interface RankedStats {

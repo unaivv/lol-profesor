@@ -76,3 +76,11 @@ pub struct RiotSummoner {
     #[serde(rename = "profileIconId")]
     pub profile_icon_id: i64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CachedPlayerResponse {
+    pub data: ComprehensivePlayerData,
+    pub cached_at: Option<i64>,
+    pub is_cached: bool,
+}
