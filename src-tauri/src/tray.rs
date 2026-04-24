@@ -1,7 +1,7 @@
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager, Runtime,
+    Emitter, Manager, Runtime,
 };
 
 pub fn setup_tray<R: Runtime>(app: &tauri::App<R>) -> tauri::Result<()> {
@@ -9,10 +9,11 @@ pub fn setup_tray<R: Runtime>(app: &tauri::App<R>) -> tauri::Result<()> {
 
     let show_item = MenuItem::with_id(app, "show", "Abrir LoL Professor", true, None::<&str>)?;
     let hide_item = MenuItem::with_id(app, "hide", "Ocultar", true, None::<&str>)?;
+    let settings_item = MenuItem::with_id(app, "settings", "Configuración", true, None::<&str>)?;
     let separator = MenuItem::with_id(app, "sep", "────────────", false, None::<&str>)?;
     let quit_item = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
 
-    let menu = Menu::with_items(app, &[&show_item, &hide_item, &separator, &quit_item])?;
+    let menu = Menu::with_items(app, &[&show_item, &hide_item, &settings_item, &separator, &quit_item])?;
 
     #[cfg(target_os = "macos")]
     let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-icon-mac.png"))
@@ -41,6 +42,13 @@ pub fn setup_tray<R: Runtime>(app: &tauri::App<R>) -> tauri::Result<()> {
                     let _ = window.hide();
                     log::info!("Window hidden from tray menu");
                 }
+            }
+            "settings" => {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+                let _ = app.emit("navigate", "/settings");
             }
             "quit" => {
                 log::info!("Quit requested from tray");
