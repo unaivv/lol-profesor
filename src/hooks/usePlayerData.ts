@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { PlayerData, RankedStats, DetailedMatch } from '../types'
+import { invoke } from '@tauri-apps/api/core'
+import { PlayerData, DetailedMatch } from '../types'
 
 export function usePlayerData() {
   const [playerData, setPlayerData] = useState<PlayerData | null>(null)
   const [matches, setMatches] = useState<DetailedMatch[]>([])
-  const [rankedStats, setRankedStats] = useState<RankedStats | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -17,33 +17,29 @@ export function usePlayerData() {
         ? searchQuery.split('#')
         : [searchQuery, '']
 
-      const playerResponse = await fetch(`/api/player/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`)
+      const data = await invoke<any>('get_comprehensive_player', {
+        gameName,
+        tagLine,
+      })
 
-      if (!playerResponse.ok) {
-        throw new Error('Jugador no encontrado')
-      }
+      setPlayerData({
+        puuid: data.puuid,
+        summonerId: data.summonerId,
+        gameName: data.gameName,
+        tagLine: data.tagLine,
+        summonerLevel: data.summonerLevel,
+        profileIconId: data.profileIconId,
+        region: data.region,
+        rankedStats: data.rankedStats ?? null,
+        mastery: data.mastery ?? [],
+        currentGame: data.currentGame ?? null,
+      })
 
-      const player = await playerResponse.json()
-      setPlayerData(player)
-
-      // Use the new details endpoint to get all participants
-      const matchesResponse = await fetch(`/api/matches/${player.puuid}/details`)
-      if (matchesResponse.ok) {
-        const matchesData = await matchesResponse.json()
-        setMatches(matchesData)
-      }
-
-      const rankedResponse = await fetch(`/api/ranked/${player.summonerId}`)
-      if (rankedResponse.ok) {
-        const rankedData = await rankedResponse.json()
-        setRankedStats(rankedData)
-      }
-
+      setMatches(data.matches ?? [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al buscar jugador')
+      setError(err instanceof Error ? err.message : String(err))
       setPlayerData(null)
       setMatches([])
-      setRankedStats(null)
     } finally {
       setIsLoading(false)
     }
@@ -52,9 +48,9 @@ export function usePlayerData() {
   return {
     playerData,
     matches,
-    rankedStats,
+    rankedStats: playerData?.rankedStats ?? null,
     isLoading,
     error,
-    searchPlayer
+    searchPlayer,
   }
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Sparkles, Loader2 } from 'lucide-react'
+import { invoke } from '@tauri-apps/api/core'
 
 interface Insight {
   type: 'positive' | 'negative' | 'improvement'
@@ -33,26 +34,19 @@ export default function Insights({ matchGameId, playerPuuid }: InsightsProps) {
     setAiError(null)
 
     try {
-      const response = await fetch('/api/analyze-match', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId: matchGameId, puuid: playerPuuid })
+      const data = await invoke<AIAnalysisResult>('analyze_match', {
+        matchId: matchGameId,
+        puuid: playerPuuid,
       })
-      
-      if (response.ok) {
-        const data = await response.json()
-        setAiAnalysis(data.data)
-        
-        // Scroll AFTER data is ready
-        setTimeout(() => {
-          const el = document.getElementById('ai-analysis-results')
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }, 100)
-      } else {
-        setAiError('Error al analizar la partida')
-      }
+      setAiAnalysis(data)
+
+      // Scroll AFTER data is ready
+      setTimeout(() => {
+        const el = document.getElementById('ai-analysis-results')
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
     } catch {
-      setAiError('Error de conexión')
+      setAiError('Error al analizar la partida')
     } finally {
       setAiLoading(false)
     }

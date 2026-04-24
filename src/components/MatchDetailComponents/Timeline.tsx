@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { DetailedMatch, MatchTimeline } from '../../types/api'
 import { Zap } from 'lucide-react'
+import { invoke } from '@tauri-apps/api/core'
 
 interface TimelineProps {
   gameId: string
@@ -36,13 +37,8 @@ export function Timeline({ gameId, match }: TimelineProps) {
       setTimelineLoading(true)
       setTimelineError(null)
       try {
-        const response = await fetch(`/api/match/${gameId}/timeline`)
-        if (response.ok) {
-          const res = await response.json()
-          setTimeline(res.data)
-        } else {
-          setTimelineError('Timeline no disponible')
-        }
+        const data = await invoke<MatchTimeline>('get_match_timeline', { matchId: gameId })
+        setTimeline(data)
       } catch {
         setTimelineError('Error al cargar timeline')
       } finally {

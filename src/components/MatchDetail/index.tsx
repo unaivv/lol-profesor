@@ -7,6 +7,7 @@ import { Shield, Target, X } from 'lucide-react'
 import Insights from '../Insights'
 import { Timeline } from '../MatchDetailComponents/Timeline'
 import { MatchDetailProps, PlayerRowProps } from './types'
+import { invoke } from '@tauri-apps/api/core'
 import * as S from './styles'
 
 // Helper functions
@@ -124,13 +125,8 @@ export function MatchDetail({ match, playerPuuid, currentRegion, onClose }: Matc
     const player = confirmModal.player
 
     try {
-      const response = await fetch(`/api/player-by-puuid/${player.puuid}`)
-      if (!response.ok) throw new Error('Player not found')
-
-      const playerData = await response.json()
-      if (!playerData.data) throw new Error('Player not found')
-
-      const { gameName, tagLine } = playerData.data
+      const playerData = await invoke<{ gameName: string; tagLine: string; icon: number }>('get_player_by_puuid', { puuid: player.puuid })
+      const { gameName, tagLine } = playerData
       navigate(`/stats/${currentRegion}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine || 'NA1')}`)
     } catch (error) {
       console.error('Error switching player:', error)

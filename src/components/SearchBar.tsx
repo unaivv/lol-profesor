@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Search, User, Zap, Target, AlertCircle } from 'lucide-react'
+import { invoke } from '@tauri-apps/api/core'
 
 interface SearchBarProps {
   onPlayerFound: (playerData: any) => void
@@ -33,27 +34,10 @@ export function SearchBar({ onPlayerFound, onError }: SearchBarProps) {
 
       console.log('Searching for:', { summonerName, tagLine })
 
-      // Call backend API
-      const response = await fetch(`/api/player/${encodeURIComponent(summonerName)}/${encodeURIComponent(tagLine)}`)
-
-      console.log('Response status:', response.status)
-      console.log('Response ok:', response.ok)
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.log('Error response:', errorText)
-        throw new Error(`Error ${response.status}: ${errorText}`)
-      }
-
-      console.log('Fetching comprehensive player data...')
-      const comprehensiveResponse = await fetch(`/api/player/${encodeURIComponent(summonerName)}/${encodeURIComponent(tagLine)}/comprehensive`)
-
-      if (!comprehensiveResponse.ok) {
-        throw new Error('Error al cargar datos completos del jugador')
-      }
-
-      const compResponse = await comprehensiveResponse.json()
-      const fullData = compResponse.data
+      const fullData = await invoke<any>('get_comprehensive_player', {
+        gameName: summonerName,
+        tagLine,
+      })
       console.log('=== FULL DATA ===')
       console.log('gameName:', fullData.gameName)
       console.log('puuid:', fullData.puuid)

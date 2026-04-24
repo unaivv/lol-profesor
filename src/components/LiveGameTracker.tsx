@@ -52,32 +52,11 @@ export function LiveGameTracker() {
 
   useEffect(() => {
     const fetchLiveGameData = async () => {
-      try {
-        const response = await fetch('/api/live-game')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.error) {
-            setLiveGame(null)
-            setIsConnected(false)
-            setError(data.error)
-          } else {
-            setLiveGame(data)
-            setIsConnected(true)
-            setError(null)
-          }
-        } else if (response.status === 404) {
-          const data = await response.json().catch(() => ({}))
-          setLiveGame(null)
-          setIsConnected(false)
-          setError(data.error || 'No hay partida activa')
-        } else {
-          throw new Error('Error al obtener datos de la partida en vivo')
-        }
-      } catch (err) {
-        setLiveGame(null)
-        setIsConnected(false)
-        setError('No se puede conectar al cliente de League of Legends')
-      }
+      // LiveGameTracker requires a puuid prop (not implemented here).
+      // The SpectatorCard component handles live game fetching with invoke().
+      setLiveGame(null)
+      setIsConnected(false)
+      setError('Selecciona un jugador para ver su partida en vivo')
     }
 
     fetchLiveGameData()
