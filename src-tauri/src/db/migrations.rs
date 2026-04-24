@@ -31,8 +31,19 @@ pub fn run(pool: &Pool<SqliteConnectionManager>) -> Result<(), ApiError> {
             PRIMARY KEY (match_id, puuid)
         );
 
+        -- Drop corrupted player_cache table (created implicitly without proper schema)
+        -- This fixes the epoch date bug where cached_at defaulted to 0
+        DROP TABLE IF EXISTS player_cache;
+
+        CREATE TABLE IF NOT EXISTS player_cache (
+            puuid TEXT PRIMARY KEY,
+            json TEXT NOT NULL,
+            cached_at INTEGER NOT NULL
+        );
+
         CREATE INDEX IF NOT EXISTS idx_summoner_names_puuid ON summoner_names(puuid);
         CREATE INDEX IF NOT EXISTS idx_match_info_match_id ON match_info(match_id);
+        CREATE INDEX IF NOT EXISTS idx_player_cache_puuid ON player_cache(puuid);
         ",
     )
     .map_err(|e| ApiError::DatabaseError {
