@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Sparkles, Loader2 } from 'lucide-react'
+import { invoke } from '@tauri-apps/api/core'
 
 interface AIAnalysisProps {
   gameId: string
@@ -33,20 +34,13 @@ export function AIAnalysis({ gameId, playerPuuid }: AIAnalysisProps) {
     setError(null)
 
     try {
-      const response = await fetch('/api/analyze-match', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId: gameId, puuid: playerPuuid })
+      const data = await invoke<AIAnalysisResult>('analyze_match', {
+        matchId: gameId,
+        puuid: playerPuuid,
       })
-      
-      if (response.ok) {
-        const data = await response.json()
-        setAnalysis(data.data)
-      } else {
-        setError('Error al analizar la partida')
-      }
+      setAnalysis(data)
     } catch {
-      setError('Error de conexión')
+      setError('Error al analizar la partida')
     } finally {
       setLoading(false)
     }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { invoke } from '@tauri-apps/api/core'
 import { ChampionMastery } from '../types'
 
 export function useChampionMastery(puuid: string | undefined) {
@@ -17,16 +18,10 @@ export function useChampionMastery(puuid: string | undefined) {
       setError(null)
 
       try {
-        const response = await fetch(`/api/mastery/${puuid}`)
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch mastery data')
-        }
-
-        const data = await response.json()
+        const data = await invoke<ChampionMastery[]>('get_mastery', { puuid })
         setMastery(data)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error loading mastery data')
+        setError(err instanceof Error ? err.message : String(err))
         setMastery([])
       } finally {
         setIsLoading(false)

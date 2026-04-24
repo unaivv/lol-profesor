@@ -12,7 +12,8 @@ import { MostPlayedChampions } from '../components/MostPlayedChampions'
 import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
 import { PlayerData } from '../types/api'
-import { Sparkles, Search, Trophy, Users, Star, Zap, Target } from 'lucide-react'
+import { Sparkles, Search, Trophy, Users, Star, Zap, Target, X } from 'lucide-react'
+import { invoke } from '@tauri-apps/api/core'
 
 type TabId = 'summary' | 'champions' | 'mastery' | 'live'
 
@@ -38,6 +39,7 @@ export function StatsPage() {
   const params = useParams<{ region?: string; gameName?: string; tagLine?: string }>()
   const [playerData, setPlayerData] = useState<PlayerData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabId>('summary')
 
   // URL-based loading: /stats/:region/:gameName/:tagLine
@@ -47,37 +49,38 @@ export function StatsPage() {
 
   useEffect(() => {
     const loadPlayerData = async () => {
-      // If URL params exist, fetch from API
+      // If URL params exist, fetch from API (do NOT fall back to localStorage automatically)
       if (urlRegion && urlGameName && urlTagLine) {
         try {
           setIsLoading(true)
           console.log(`Fetching player: ${urlGameName}#${urlTagLine} in ${urlRegion}`)
-          const response = await fetch(`/api/player/${encodeURIComponent(urlGameName)}/${encodeURIComponent(urlTagLine)}/comprehensive`)
-          if (!response.ok) throw new Error('Player not found')
-          const data = await response.json()
-          if (data.data) {
-            const player: PlayerData = {
-              ...data.data,
-              region: urlRegion
-            }
-            setPlayerData(player)
-            // Save to localStorage
-            localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
-            setIsLoading(false)
-            return
+          const data = await invoke<any>('get_comprehensive_player', {
+            gameName: urlGameName,
+            tagLine: urlTagLine,
+          })
+          const player: PlayerData = {
+            ...data,
+            region: urlRegion,
           }
+          setPlayerData(player)
+          localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
+          setIsLoading(false)
+          return
         } catch (error) {
           console.error('Error fetching player from URL:', error)
-          // Fall through to localStorage
+          // DO NOT fall back to localStorage - show error instead
+          setError('Jugador no encontrado o error de conexión. Por favor, verifica el nombre y región.')
+          setIsLoading(false)
+          return
         }
       }
 
-      // Load from localStorage (fallback)
+      // Only load from localStorage when there are NO URL params (fresh app load)
       const storedData = localStorage.getItem('lolProfessorPlayer')
       if (storedData) {
         try {
           const data = JSON.parse(storedData)
-          console.log('Loaded player data:', data)
+          console.log('Loaded player data from localStorage:', data)
 
           // Check if data has required fields
           if (data && data.puuid && data.gameName && data.tagLine) {
@@ -125,6 +128,33 @@ export function StatsPage() {
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <X size={32} className="text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-3">
+            Error al cargar jugador
+          </h2>
+          <p className="text-slate-500 mb-6">
+            {error}
+          </p>
+          <button
+            onClick={() => {
+              window.location.href = '/'
+            }}
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+          >
+            <Search size={18} />
+            <span>Buscar Otro Jugador</span>
+          </button>
         </div>
       </div>
     )

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Radio, Users, Clock, Swords } from 'lucide-react'
+import { invoke } from '@tauri-apps/api/core'
 import { SpectatorGameData, SpectatorParticipant } from '../types/api'
 
 interface SpectatorCardProps {
@@ -83,13 +84,8 @@ export function SpectatorCard({ puuid }: SpectatorCardProps) {
     const checkGame = async () => {
       setLoading(true)
       try {
-        const response = await fetch(`/api/spectator/${puuid}`)
-        if (response.ok) {
-          const data = await response.json()
-          setGame(data)
-        } else {
-          setGame(null)
-        }
+        const data = await invoke<SpectatorGameData | null>('get_live_game', { puuid })
+        setGame(data)
       } catch (err) {
         setGame(null)
       } finally {
