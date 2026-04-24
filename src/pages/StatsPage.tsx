@@ -56,7 +56,6 @@ export function StatsPage() {
       if (urlRegion && urlGameName && urlTagLine) {
         try {
           setIsLoading(true)
-          console.log(`Fetching player: ${urlGameName}#${urlTagLine} in ${urlRegion}`)
           const response = await invoke<any>('get_comprehensive_player', {
             gameName: urlGameName,
             tagLine: urlTagLine,
@@ -70,6 +69,9 @@ export function StatsPage() {
           setPlayerData(player)
           setCachedAt(response.cachedAt ?? null)
           localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
+          if (response.cachedAt) {
+            localStorage.setItem('lolProfessorCachedAt', response.cachedAt.toString())
+          }
           setIsLoading(false)
           return
         } catch (error) {
@@ -86,11 +88,15 @@ export function StatsPage() {
       if (storedData) {
         try {
           const data = JSON.parse(storedData)
-          console.log('Loaded player data from localStorage:', data)
 
           // Check if data has required fields
           if (data && data.puuid && data.gameName && data.tagLine) {
             setPlayerData(data)
+            // Try to load cachedAt from localStorage
+            const cachedAtStr = localStorage.getItem('lolProfessorCachedAt')
+            if (cachedAtStr) {
+              setCachedAt(parseInt(cachedAtStr))
+            }
           } else {
             console.error('Invalid player data structure - missing required fields')
             window.location.href = '/'
@@ -101,7 +107,6 @@ export function StatsPage() {
           window.location.href = '/'
         }
       } else {
-        console.log('No player data found in localStorage')
         window.location.href = '/'
       }
       setIsLoading(false)
@@ -128,7 +133,10 @@ export function StatsPage() {
       const player: PlayerData = { ...response.data, region: urlRegion }
       setPlayerData(player)
       setCachedAt(response.cachedAt ?? null)
-      localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
+        localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
+      if (response.cachedAt) {
+        localStorage.setItem('lolProfessorCachedAt', response.cachedAt.toString())
+      }
     } catch (e) {
       console.error('Error refreshing player:', e)
     } finally {

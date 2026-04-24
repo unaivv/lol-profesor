@@ -1,4 +1,4 @@
-import { Sparkles, Trophy, Shield, Zap, TrendingUp, Calendar } from 'lucide-react'
+import { Sparkles, Trophy, Shield, Zap, TrendingUp, Calendar, Clock } from 'lucide-react'
 import { PlayerData, RankedStats, RankedStatsExtended } from '../types/api'
 
 interface ProfileHeaderProps {
@@ -7,6 +7,22 @@ interface ProfileHeaderProps {
   cachedAt?: number | null
   isRefreshing?: boolean
   onRefresh?: () => Promise<void>
+}
+
+const formatTimeAgo = (timestamp: number | null | undefined): string => {
+  if (!timestamp) return 'Nunca actualizada'
+
+  const nowMs = Date.now()
+  const timestampMs = timestamp * 1000 // Convert seconds to milliseconds
+  const seconds = Math.floor((nowMs - timestampMs) / 1000)
+
+  if (seconds < 0) return 'Nunca actualizada'
+  if (seconds < 60) return 'Actualizado ahora'
+  if (seconds < 3600) return `Actualizado hace ${Math.floor(seconds / 60)} min`
+  if (seconds < 86400) return `Actualizado hace ${Math.floor(seconds / 3600)} h`
+  if (seconds < 2592000) return `Actualizado hace ${Math.floor(seconds / 86400)} días`
+
+  return `Actualizado el ${new Date(timestampMs).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`
 }
 
 // Helper para obtener solo ranked
@@ -48,7 +64,7 @@ const getRankGradient = (tier: string): string => {
   return gradients[tier] || 'from-slate-600 to-slate-500'
 }
 
-export function ProfileHeader({ playerData, rankedStats }: ProfileHeaderProps) {
+export function ProfileHeader({ playerData, rankedStats, cachedAt }: ProfileHeaderProps) {
   const soloRanked = getSoloRanked(rankedStats)
   const winRate = soloRanked
     ? Math.round((soloRanked.wins / (soloRanked.wins + soloRanked.losses)) * 100)
@@ -187,8 +203,8 @@ export function ProfileHeader({ playerData, rankedStats }: ProfileHeaderProps) {
             )}
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-500">
-            <Sparkles size={12} />
-            <span>Actualizado: {new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+            <Clock size={12} />
+            <span>{formatTimeAgo(cachedAt)}</span>
           </div>
         </div>
       </div>
