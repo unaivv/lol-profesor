@@ -1,5 +1,6 @@
 import { DetailedMatch, Participant } from '../types/api'
 import { Clock, ChevronDown, ChevronUp } from 'lucide-react'
+import { getChampionImageUrl } from '../utils/ddragon'
 
 interface MatchCardProps {
   match: DetailedMatch
@@ -38,11 +39,8 @@ const calculateKDARatio = (kills: number, deaths: number, assists: number): numb
   return (kills + assists) / deaths
 }
 
-const getChampionIcon = (championId: number, championName?: string): string => {
-  if (championName) {
-    return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championName}.png`
-  }
-  return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championId}.png`
+const getChampionIcon = (championId: number, championName?: string | number): string => {
+  return getChampionImageUrl(championId, championName)
 }
 
 const getQueueName = (queueId?: number): string => {
