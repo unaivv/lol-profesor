@@ -25,11 +25,32 @@ const formatTimeAgo = (timestamp: number | null | undefined): string => {
   return `Actualizado el ${new Date(timestampMs).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`
 }
 
-// Helper para obtener solo ranked
-function getSoloRanked(stats: RankedStats | RankedStatsExtended | null | undefined): RankedStats | null {
+// Helper to get rank tier value for comparison (higher number = higher rank)
+const getRankValue = (tier: string): number => {
+  const values: Record<string, number> = {
+    'IRON': 0, 'BRONZE': 1, 'SILVER': 2, 'GOLD': 3,
+    'PLATINUM': 4, 'EMERALD': 5, 'DIAMOND': 6,
+    'MASTER': 7, 'GRANDMASTER': 8, 'CHALLENGER': 9
+  }
+  return values[tier] ?? -1
+}
+
+// Helper para obtener el mejor ranked (solo o flex)
+function getBestRanked(stats: RankedStats | RankedStatsExtended | null | undefined): RankedStats | null {
   if (!stats) return null
-  if ('solo' in stats) return (stats as RankedStatsExtended).solo
-  return stats as RankedStats
+  let solo: RankedStats | null = null
+  let flex: RankedStats | null = null
+  if ('solo' in stats) {
+    solo = (stats as RankedStatsExtended).solo
+    flex = (stats as RankedStatsExtended).flex
+  } else {
+    solo = stats as RankedStats
+  }
+  // Return the higher rank
+  const soloValue = solo ? getRankValue(solo.tier) : -1
+  const flexValue = flex ? getRankValue(flex.tier) : -1
+  if (soloValue >= flexValue) return solo
+  return flex
 }
 
 const getRankColor = (tier: string): string => {
@@ -65,9 +86,9 @@ const getRankGradient = (tier: string): string => {
 }
 
 export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing, onRefresh }: ProfileHeaderProps) {
-  const soloRanked = getSoloRanked(rankedStats)
-  const winRate = soloRanked
-    ? Math.round((soloRanked.wins / (soloRanked.wins + soloRanked.losses)) * 100)
+  const bestRanked = getBestRanked(rankedStats)
+  const winRate = bestRanked
+    ? Math.round((bestRanked.wins / (bestRanked.wins + bestRanked.losses)) * 100)
     : 0
 
   return (
@@ -91,11 +112,11 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
             <div className="absolute -bottom-2 -right-2 bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-2xl px-3 py-1 font-bold text-sm border-2 border-slate-800 shadow-lg">
               {playerData.summonerLevel}
             </div>
-            {soloRanked && (
+            {bestRanked && (
               <div
-                className={`absolute -top-2 -left-2 w-8 h-8 rounded-full bg-gradient-to-br ${getRankGradient(soloRanked.tier)} flex items-center justify-center text-xs font-bold border-2 border-slate-800 shadow-lg`}
+                className={`absolute -top-2 -left-2 w-8 h-8 rounded-full bg-gradient-to-br ${getRankGradient(bestRanked.tier)} flex items-center justify-center text-xs font-bold border-2 border-slate-800 shadow-lg`}
               >
-                {soloRanked.tier[0]}
+                {bestRanked.tier[0]}
               </div>
             )}
           </div>
@@ -107,12 +128,12 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
                 {playerData.gameName}
                 <span className="text-slate-400 font-normal">#{playerData.tagLine}</span>
               </h1>
-              {soloRanked && (
+              {bestRanked && (
                 <span
                   className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
-                  style={{ backgroundColor: getRankColor(soloRanked.tier), color: '#fff' }}
+                  style={{ backgroundColor: getRankColor(bestRanked.tier), color: '#fff' }}
                 >
-                  {soloRanked.tier} {soloRanked.rank}
+                  {bestRanked.tier} {bestRanked.rank}
                 </span>
               )}
             </div>
@@ -134,17 +155,17 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
           </div>
 
           {/* Ranked Stats Cards */}
-          {soloRanked ? (
+          {bestRanked ? (
             <div className="flex flex-col gap-3 w-full lg:w-auto">
               {/* LP Card */}
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
                 <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getRankGradient(soloRanked.tier)} flex items-center justify-center text-xl font-bold shadow-lg`}>
-                    {soloRanked.tier[0]}
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getRankGradient(bestRanked.tier)} flex items-center justify-center text-xl font-bold shadow-lg`}>
+                    {bestRanked.tier[0]}
                   </div>
                   <div>
-                    <div className="text-2xl font-bold">{soloRanked.leaguePoints} LP</div>
-                    <div className="text-slate-400 text-sm">{soloRanked.tier} {soloRanked.rank}</div>
+                    <div className="text-2xl font-bold">{bestRanked.leaguePoints} LP</div>
+                    <div className="text-slate-400 text-sm">{bestRanked.tier} {bestRanked.rank}</div>
                   </div>
                 </div>
               </div>
@@ -153,11 +174,11 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
                 <div className="flex items-center justify-between gap-6">
                   <div className="text-center">
-                    <div className="text-lg font-bold text-green-400">{soloRanked.wins}</div>
+                    <div className="text-lg font-bold text-green-400">{bestRanked.wins}</div>
                     <div className="text-xs text-slate-400">Victorias</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-bold text-red-400">{soloRanked.losses}</div>
+                    <div className="text-lg font-bold text-red-400">{bestRanked.losses}</div>
                     <div className="text-xs text-slate-400">Derrotas</div>
                   </div>
                   <div className="text-center">
@@ -189,13 +210,13 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
       <div className="bg-slate-50 border-t border-slate-200 px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
-            {soloRanked?.hotStreak && (
+            {bestRanked?.hotStreak && (
               <span className="flex items-center gap-1.5 text-sm font-medium text-orange-600">
                 <TrendingUp size={14} />
                 Racha de victorias
               </span>
             )}
-            {soloRanked?.veteran && (
+            {bestRanked?.veteran && (
               <span className="flex items-center gap-1.5 text-sm font-medium text-purple-600">
                 <Zap size={14} />
                 Veterano
