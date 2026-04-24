@@ -14,13 +14,17 @@ pub fn setup_tray<R: Runtime>(app: &tauri::App<R>) -> tauri::Result<()> {
 
     let menu = Menu::with_items(app, &[&show_item, &hide_item, &separator, &quit_item])?;
 
-    let icon = app
-        .default_window_icon()
-        .cloned()
-        .expect("Failed to get default window icon");
+    #[cfg(target_os = "macos")]
+    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-icon-mac.png"))
+        .expect("Failed to load mac tray icon");
 
-    let _tray = TrayIconBuilder::new()
+    #[cfg(not(target_os = "macos"))]
+    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-icon.png"))
+        .expect("Failed to load tray icon");
+
+    let _tray = TrayIconBuilder::with_id("main-tray")
         .icon(icon)
+        .icon_as_template(cfg!(target_os = "macos"))
         .menu(&menu)
         .tooltip("LoL Professor")
         .show_menu_on_left_click(false)

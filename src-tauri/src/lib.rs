@@ -81,6 +81,12 @@ pub fn run() {
             };
             app.manage(state);
 
+            // On macOS use native decorations (traffic lights)
+            #[cfg(target_os = "macos")]
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_decorations(true);
+            }
+
             // Hide to tray on close
             if let Some(window) = app.get_webview_window("main") {
                 let window_clone = window.clone();

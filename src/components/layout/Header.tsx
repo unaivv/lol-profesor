@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { Sparkles, Trophy, Target, Shield } from 'lucide-react'
+import { Trophy, Target, Shield } from 'lucide-react'
 
 interface HeaderProps {
   title?: string
@@ -18,34 +18,16 @@ export function Header({
 }: HeaderProps) {
   const renderLogo = () => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-      <div style={{ 
-        width: '48px', 
-        height: '48px', 
-        background: 'linear-gradient(135deg, #3b82f6, #9333ea)', 
-        borderRadius: '16px', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        color: 'white',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-      }}>
-        <Sparkles size={24} />
-      </div>
-      <div>
-        <h1 style={{ 
-          fontSize: '28px', 
-          fontWeight: 'bold',
-          background: 'linear-gradient(135deg, #3b82f6, #9333ea)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text'
-        }}>{title}</h1>
-        {subtitle && (
-          <p style={{ fontSize: '14px', color: '#6b7280', fontWeight: '500' }}>
-            {subtitle}
-          </p>
-        )}
-      </div>
+      <img
+        src="/logo.png"
+        alt="LoL Profesor"
+        style={{ height: '52px', width: 'auto' }}
+      />
+      {subtitle && (
+        <p style={{ fontSize: '14px', color: '#6b7280', fontWeight: '500' }}>
+          {subtitle}
+        </p>
+      )}
     </div>
   )
 

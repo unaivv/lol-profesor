@@ -19,17 +19,13 @@
                 "minHeight": 700,
                 "resizable": true,
                 "center": true,
-                "decorations": true,
-                "label": "main"
+                "label": "main",
+                "decorations": false,
+                "maximized": true
             }
         ],
         "security": {
-            "csp": "default-src 'self'; connect-src 'self' http://localhost:* https://*.leagueoflegends.com https://*.riotgames.com https://api.groq.com; img-src 'self' https://ddragon.leagueoflegends.com data:; style-src 'self' 'unsafe-inline'"
-        },
-        "trayIcon": {
-            "iconPath": "icons/icon.png",
-            "iconAsTemplate": true,
-            "id": "main-tray"
+            "csp": "default-src 'self'; connect-src 'self' http://localhost:* https://*.leagueoflegends.com https://*.riotgames.com https://api.groq.com; img-src 'self' https://ddragon.leagueoflegends.com https://raw.communitydragon.org data:; style-src 'self' 'unsafe-inline'"
         }
     },
     "bundle": {
