@@ -67,6 +67,7 @@ pub struct RiotAccount {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct RiotSummoner {
     // Riot API v5 ya no devuelve `id` en /by-puuid — se usa el puuid como summonerId
     pub id: Option<String>,
