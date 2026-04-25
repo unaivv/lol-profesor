@@ -57,17 +57,18 @@ export const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string)
       ? match.participants?.find(p => p.puuid === playerPuuid)
       : match.participants?.[0]
 
-    if (!player || !player.deaths) return
+    if (!player) return
 
     validMatchCount++
 
+    const deaths = player.deaths ?? 0
     const minutes = Math.max((player.timePlayed || match.gameDuration || 0) / 60, 15)
 
     // Farm: CS/min (jungle minions included)
     const csPerMin = player.totalMinionsKilled / minutes
 
     // Survival: deaths per 30 minutes (normalized by game length)
-    const deathsPer30 = (player.deaths / minutes) * 30
+    const deathsPer30 = (deaths / minutes) * 30
 
     // Vision
     const visionScore = player.visionScore ||
@@ -140,9 +141,10 @@ export const calculateRawMetrics = (matches: DetailedMatch[], playerPuuid?: stri
       ? match.participants?.find(p => p.puuid === playerPuuid)
       : match.participants?.[0]
 
-    if (!player || !player.deaths) return
+    if (!player) return
     n++
 
+    const deaths = player.deaths ?? 0
     const minutes = Math.max((player.timePlayed || match.gameDuration || 0) / 60, 15)
     const teamKills = match.participants
       ?.filter(p => p.teamId === player.teamId)
