@@ -2,6 +2,7 @@ export interface MyProfile {
   region: string
   gameName: string
   tagLine: string
+  profileIconId?: number
 }
 
 const KEY = 'lolProfessorMyProfile'
@@ -20,9 +21,16 @@ export function useMyProfile() {
     localStorage.setItem(KEY, JSON.stringify(profile))
   }
 
+  const updateProfileIcon = (iconId: number) => {
+    const current = getMyProfile()
+    if (current) {
+      setMyProfile({ ...current, profileIconId: iconId })
+    }
+  }
+
   const clearMyProfile = () => {
     localStorage.removeItem(KEY)
   }
 
-  return { getMyProfile, setMyProfile, clearMyProfile }
+  return { getMyProfile, setMyProfile, updateProfileIcon, clearMyProfile }
 }

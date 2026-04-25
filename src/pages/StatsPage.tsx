@@ -46,6 +46,7 @@ export function StatsPage() {
   const region = urlRegion || myProfile?.region
   const gameName = urlGameName || myProfile?.gameName
   const tagLine = urlTagLine || myProfile?.tagLine
+  const isMyProfile = !urlGameName  // true if on /me page
 
   const handleRefresh = useCallback(async () => {
     if (!gameName || !tagLine || !region) return
@@ -60,14 +61,21 @@ export function StatsPage() {
       const player: PlayerData = { ...response.data, region }
       setPlayerData(player)
       setCachedAt(response.cachedAt ?? null)
-      localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
+      
+      // Only save to general player cache if viewing OTHER player
+      if (!isMyProfile) {
+        localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
+      } else {
+        // Save my profile data separately for the sidebar to read
+        localStorage.setItem('lolProfessorMyProfileData', JSON.stringify(player))
+      }
       if (response.cachedAt) localStorage.setItem('lolProfessorCachedAt', response.cachedAt.toString())
     } catch (e) {
       console.error('Error refreshing player:', e)
     } finally {
       setIsRefreshing(false)
     }
-  }, [gameName, tagLine, region])
+  }, [gameName, tagLine, region, isMyProfile])
 
   useEffect(() => {
     const loadPlayerData = async () => {
@@ -90,7 +98,13 @@ export function StatsPage() {
         const player: PlayerData = { ...response.data, region }
         setPlayerData(player)
         setCachedAt(response.cachedAt ?? null)
-        localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
+        
+        // Save separately for own profile vs other players
+        if (isMyProfile) {
+          localStorage.setItem('lolProfessorMyProfileData', JSON.stringify(player))
+        } else {
+          localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
+        }
         if (response.cachedAt) localStorage.setItem('lolProfessorCachedAt', response.cachedAt.toString())
       } catch {
         setError('Jugador no encontrado o error de conexión.')
@@ -100,7 +114,7 @@ export function StatsPage() {
     }
 
     loadPlayerData()
-  }, [region, gameName, tagLine])
+  }, [region, gameName, tagLine, isMyProfile])
 
   useEffect(() => {
     if (activeTab !== 'champions' || !playerData?.puuid || extendedMatches !== null) return
