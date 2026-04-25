@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Trophy, Sword } from 'lucide-react'
 import { DetailedMatch, PlayerData } from '../types/api'
 import { MatchCard } from './MatchCard'
 import { MatchDetail } from './MatchDetail'
 import { WinRateChart } from './WinRateChart'
+import { calculateRawMetrics } from './PerformanceRadar'
 
 interface MatchHistoryProps {
   matches: DetailedMatch[]
@@ -15,6 +16,10 @@ export function MatchHistory({ matches, playerPuuid, currentPlayerData }: MatchH
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null)
   const validMatches = matches.filter((m): m is DetailedMatch =>
     m && typeof m.gameId === 'string' && Array.isArray(m.participants)
+  )
+  const recentMetrics = useMemo(
+    () => calculateRawMetrics(validMatches, playerPuuid),
+    [validMatches, playerPuuid]
   )
 
   const containerStyle: React.CSSProperties = {
@@ -85,6 +90,7 @@ export function MatchHistory({ matches, playerPuuid, currentPlayerData }: MatchH
           playerPuuid={playerPuuid}
           currentRegion={currentPlayerData?.region}
           onClose={() => setExpandedMatchId(null)}
+          recentMetrics={recentMetrics}
         />
       )}
     </div>

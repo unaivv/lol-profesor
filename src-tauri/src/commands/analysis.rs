@@ -241,7 +241,7 @@ fn build_timeline_analysis(match_data: &serde_json::Value, player: &serde_json::
     }
 }
 
-fn build_prompt(match_info: &serde_json::Value, player_puuid: &str) -> Result<String, ApiError> {
+fn build_prompt(match_info: &serde_json::Value, player_puuid: &str, recent_metrics: Option<&serde_json::Value>) -> Result<String, ApiError> {
     let participants = match_info["participants"].as_array().ok_or_else(|| {
         ApiError::Unknown {
             message: "No participants in match data".to_string(),
@@ -340,6 +340,34 @@ fn build_prompt(match_info: &serde_json::Value, player_puuid: &str) -> Result<St
 
     let timeline_analysis = build_timeline_analysis(match_info, player);
 
+    let recent_context = if let Some(m) = recent_metrics {
+        format!(
+            "\nRENDIMIENTO RECIENTE DEL JUGADOR (últimas 20 partidas, score 0-100):\n\
+            - Farm:          {}/100 ({} CS/min promedio)\n\
+            - Supervivencia: {}/100 ({} muertes/30min promedio)\n\
+            - Visión:        {}/100 ({} vision score promedio)\n\
+            - Daño:          {}/100 ({} DPM promedio)\n\
+            - KDA:           {}/100 ({} KDA promedio)\n\
+            - Impacto:       {}/100 ({}% winrate, {}% kill participation)\n\
+            Usa estos datos para comparar esta partida con las tendencias recientes del jugador.\n",
+            m["farm"].as_i64().unwrap_or(0),
+            m["avgCsPerMin"].as_f64().map(|v| format!("{:.1}", v)).unwrap_or_default(),
+            m["survival"].as_i64().unwrap_or(0),
+            m["avgDeathsPer30"].as_f64().map(|v| format!("{:.1}", v)).unwrap_or_default(),
+            m["vision"].as_i64().unwrap_or(0),
+            m["avgVisionScore"].as_f64().map(|v| format!("{:.1}", v)).unwrap_or_default(),
+            m["damage"].as_i64().unwrap_or(0),
+            m["avgDpm"].as_i64().unwrap_or(0),
+            m["kda"].as_i64().unwrap_or(0),
+            m["avgKda"].as_f64().map(|v| format!("{:.2}", v)).unwrap_or_default(),
+            m["impact"].as_i64().unwrap_or(0),
+            m["winRate"].as_i64().unwrap_or(0),
+            m["avgKillParticipation"].as_f64().map(|v| format!("{:.1}", v)).unwrap_or_default(),
+        )
+    } else {
+        String::new()
+    };
+
     let prompt = format!(
         r#"Analiza el rendimiento de {} (rol: {}) y genera 4-6 insights SOLO sobre ESTE jugador.
 
@@ -373,7 +401,7 @@ DATOS ESTADÍSTICOS DE {}:
 - Kill participation: {}%
 
 {}
-
+{}
 RESPUESTA (JSON) - IMPORTANTE: Los 4-6 insights deben ser sobre TEMAS DIFERENTES (no todos de CS, no todos de visión, etc.):
 {{
   "insights": [
@@ -398,6 +426,7 @@ RESPUESTA (JSON) - IMPORTANTE: Los 4-6 insights deben ser sobre TEMAS DIFERENTES
         wards_placed,
         kp_percent,
         timeline_analysis,
+        recent_context,
     );
 
     Ok(prompt)
@@ -407,6 +436,7 @@ RESPUESTA (JSON) - IMPORTANTE: Los 4-6 insights deben ser sobre TEMAS DIFERENTES
 pub async fn analyze_match(
     match_id: String,
     puuid: String,
+    recent_metrics: Option<serde_json::Value>,
     state: State<'_, AppState>,
 ) -> Result<MatchAnalysis, ApiError> {
     // Check analysis cache
@@ -432,7 +462,7 @@ pub async fn analyze_match(
     })?;
 
     // Build prompt and call Groq
-    let prompt = build_prompt(&match_info, &puuid)?;
+    let prompt = build_prompt(&match_info, &puuid, recent_metrics.as_ref())?;
 
     let groq = GroqApiClient::new(groq_api_key);
     let response_text = tokio::time::timeout(

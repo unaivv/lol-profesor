@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Sparkles, Loader2 } from 'lucide-react'
 import { invoke } from '@tauri-apps/api/core'
+import { PerformanceMetrics } from '../PerformanceRadar'
 
 interface AIAnalysisProps {
   gameId: string
   playerPuuid?: string
+  recentMetrics?: PerformanceMetrics | null
 }
 
 interface Insight {
@@ -19,7 +21,7 @@ interface AIAnalysisResult {
   insights: Insight[]
 }
 
-export function AIAnalysis({ gameId, playerPuuid }: AIAnalysisProps) {
+export function AIAnalysis({ gameId, playerPuuid, recentMetrics }: AIAnalysisProps) {
   const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -37,6 +39,7 @@ export function AIAnalysis({ gameId, playerPuuid }: AIAnalysisProps) {
       const data = await invoke<AIAnalysisResult>('analyze_match', {
         matchId: gameId,
         puuid: playerPuuid,
+        recentMetrics: recentMetrics ?? null,
       })
       setAnalysis(data)
     } catch {

@@ -106,7 +106,7 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP, onPlayerClick }: PlayerRowP
 }
 
 // Main component
-export function MatchDetail({ match, playerPuuid, currentRegion, onClose }: MatchDetailProps) {
+export function MatchDetail({ match, playerPuuid, currentRegion, onClose, recentMetrics }: MatchDetailProps) {
   const navigate = useNavigate()
   const [confirmModal, setConfirmModal] = useState<{ show: boolean; player: Participant | null }>({ show: false, player: null })
 
@@ -314,6 +314,7 @@ export function MatchDetail({ match, playerPuuid, currentRegion, onClose }: Matc
           <Insights
             matchGameId={match.gameId}
             playerPuuid={playerPuuid}
+            recentMetrics={recentMetrics}
           />
         </div>
       </div>

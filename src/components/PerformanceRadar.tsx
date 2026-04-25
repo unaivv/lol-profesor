@@ -13,7 +13,24 @@ interface RadarMetric {
   value: number
 }
 
-const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string): RadarMetric[] => {
+export interface PerformanceMetrics {
+  farm: number
+  survival: number
+  vision: number
+  damage: number
+  kda: number
+  impact: number
+  // raw averages for AI context
+  avgCsPerMin: number
+  avgDeathsPer30: number
+  avgVisionScore: number
+  avgDpm: number
+  avgKda: number
+  winRate: number
+  avgKillParticipation: number
+}
+
+export const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string): RadarMetric[] => {
   if (!matches || matches.length === 0) {
     return [
       { key: 'farm', label: 'Farm', icon: '🌾', value: 0 },
@@ -27,56 +44,73 @@ const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string): Radar
 
   const recentMatches = matches.slice(0, 20)
   let totalCsPerMin = 0
-  let totalDeaths = 0
+  let totalDeathsPer30 = 0
   let totalVisionScore = 0
   let totalDpm = 0
   let totalKda = 0
   let totalWins = 0
+  let totalKillParticipation = 0
   let validMatchCount = 0
 
   recentMatches.forEach((match) => {
     const player = playerPuuid
       ? match.participants?.find(p => p.puuid === playerPuuid)
       : match.participants?.[0]
-    
+
     if (!player) return
 
     validMatchCount++
 
-    const minutes = player.timePlayed / 60
+    const minutes = Math.max(player.timePlayed / 60, 1)
+
+    // Farm: CS/min (jungle minions included)
     const csPerMin = player.totalMinionsKilled / minutes
+
+    // Survival: deaths per 30 minutes (normalized by game length)
+    const deathsPer30 = (player.deaths / minutes) * 30
+
+    // Vision
+    const visionScore = player.visionScore ||
+      ((player.visionWardsBoughtInGame || 0) * 2 + (player.wardsPlaced || 0) + (player.wardsKilled || 0) * 1.5)
+
+    // Damage per minute
     const dpm = (player.damageDealtToChampions || 0) / minutes
-    const visionScore = player.visionScore || 
-                        ((player.visionWardsBoughtInGame || 0) * 2 + (player.wardsPlaced || 0) + (player.wardsKilled || 0) * 1.5)
-    
-    const killsAndAssists = player.kills + player.assists
-    const kdaValue = player.deaths > 0 
-      ? (killsAndAssists / player.deaths) * 10 
-      : killsAndAssists * 2
+
+    // KDA: standard ratio capped at 1 death minimum
+    const rawKda = (player.kills + player.assists) / Math.max(player.deaths, 1)
+
+    // Kill participation: (k+a) / team kills
+    const teamKills = match.participants
+      ?.filter(p => p.teamId === player.teamId)
+      .reduce((sum, p) => sum + p.kills, 0) ?? 0
+    const killParticipation = teamKills > 0
+      ? (player.kills + player.assists) / teamKills
+      : 0
 
     totalCsPerMin += csPerMin
-    totalDeaths += player.deaths
+    totalDeathsPer30 += deathsPer30
     totalVisionScore += visionScore
     totalDpm += dpm
-    totalKda += kdaValue
+    totalKda += rawKda
+    totalKillParticipation += killParticipation
     if (player.win) totalWins++
   })
 
-  const count = validMatchCount
-  const avgCsPerMin = totalCsPerMin / count
-  const avgDeaths = totalDeaths / count
-  const avgVisionScore = totalVisionScore / count
-  const avgDpm = totalDpm / count
-  const avgKda = totalKda / count
-  const winRate = (totalWins / count) * 100
+  const n = validMatchCount
+  const avgCsPerMin = totalCsPerMin / n
+  const avgDeathsPer30 = totalDeathsPer30 / n
+  const avgVisionScore = totalVisionScore / n
+  const avgDpm = totalDpm / n
+  const avgKda = totalKda / n
+  const avgKillParticipation = totalKillParticipation / n
+  const winRate = (totalWins / n) * 100
 
-  const farmScore = Math.min(100, (avgCsPerMin / 10) * 100)
-  const survivalScore = Math.min(100, Math.max(0, (10 - avgDeaths) * 10))
-  const visionScoreCalc = Math.min(100, (avgVisionScore / 30) * 100)
-  const damageScore = Math.min(100, (avgDpm / 1500) * 100)
-  const kdaScore = Math.min(100, (avgKda / 50) * 100)
-  
-  const impactScore = winRate
+  const farmScore = Math.min(100, (avgCsPerMin / 8) * 100)
+  const survivalScore = Math.max(0, 100 - avgDeathsPer30 * 13)
+  const visionScoreCalc = Math.min(100, (avgVisionScore / 40) * 100)
+  const damageScore = Math.min(100, (avgDpm / 1000) * 100)
+  const kdaScore = Math.min(100, (avgKda / 5) * 100)
+  const impactScore = (winRate * 0.5) + (avgKillParticipation * 100 * 0.5)
 
   return [
     { key: 'farm', label: 'Farm', icon: '🌾', value: Math.round(farmScore) },
@@ -86,6 +120,69 @@ const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string): Radar
     { key: 'kda', label: 'KDA', icon: '🎯', value: Math.round(kdaScore) },
     { key: 'impact', label: 'Impacto', icon: '🏆', value: Math.round(impactScore) }
   ]
+}
+
+export const calculateRawMetrics = (matches: DetailedMatch[], playerPuuid?: string): PerformanceMetrics | null => {
+  if (!matches || matches.length === 0) return null
+
+  const recentMatches = matches.slice(0, 20)
+  let totalCsPerMin = 0
+  let totalDeathsPer30 = 0
+  let totalVisionScore = 0
+  let totalDpm = 0
+  let totalKda = 0
+  let totalWins = 0
+  let totalKillParticipation = 0
+  let n = 0
+
+  recentMatches.forEach((match) => {
+    const player = playerPuuid
+      ? match.participants?.find(p => p.puuid === playerPuuid)
+      : match.participants?.[0]
+
+    if (!player) return
+    n++
+
+    const minutes = Math.max(player.timePlayed / 60, 1)
+    const teamKills = match.participants
+      ?.filter(p => p.teamId === player.teamId)
+      .reduce((sum, p) => sum + p.kills, 0) ?? 0
+
+    totalCsPerMin += player.totalMinionsKilled / minutes
+    totalDeathsPer30 += (player.deaths / minutes) * 30
+    totalVisionScore += player.visionScore ||
+      ((player.visionWardsBoughtInGame || 0) * 2 + (player.wardsPlaced || 0) + (player.wardsKilled || 0) * 1.5)
+    totalDpm += (player.damageDealtToChampions || 0) / minutes
+    totalKda += (player.kills + player.assists) / Math.max(player.deaths, 1)
+    totalKillParticipation += teamKills > 0 ? (player.kills + player.assists) / teamKills : 0
+    if (player.win) totalWins++
+  })
+
+  if (n === 0) return null
+
+  const avgCsPerMin = totalCsPerMin / n
+  const avgDeathsPer30 = totalDeathsPer30 / n
+  const avgVisionScore = totalVisionScore / n
+  const avgDpm = totalDpm / n
+  const avgKda = totalKda / n
+  const avgKillParticipation = totalKillParticipation / n
+  const winRate = (totalWins / n) * 100
+
+  return {
+    farm: Math.round(Math.min(100, (avgCsPerMin / 8) * 100)),
+    survival: Math.round(Math.max(0, 100 - avgDeathsPer30 * 13)),
+    vision: Math.round(Math.min(100, (avgVisionScore / 40) * 100)),
+    damage: Math.round(Math.min(100, (avgDpm / 1000) * 100)),
+    kda: Math.round(Math.min(100, (avgKda / 5) * 100)),
+    impact: Math.round((winRate * 0.5) + (avgKillParticipation * 100 * 0.5)),
+    avgCsPerMin: Math.round(avgCsPerMin * 10) / 10,
+    avgDeathsPer30: Math.round(avgDeathsPer30 * 10) / 10,
+    avgVisionScore: Math.round(avgVisionScore * 10) / 10,
+    avgDpm: Math.round(avgDpm),
+    avgKda: Math.round(avgKda * 100) / 100,
+    winRate: Math.round(winRate),
+    avgKillParticipation: Math.round(avgKillParticipation * 1000) / 10,
+  }
 }
 
 const RadarChart = ({ metrics }: { metrics: RadarMetric[] }) => {

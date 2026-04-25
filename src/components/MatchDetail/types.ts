@@ -1,10 +1,12 @@
 import { DetailedMatch, Participant } from '../../types/api'
+import { PerformanceMetrics } from '../PerformanceRadar'
 
 export interface MatchDetailProps {
   match: DetailedMatch
   playerPuuid?: string
   currentRegion?: string
   onClose: () => void
+  recentMetrics?: PerformanceMetrics | null
 }
 
 export interface PlayerRowProps {
