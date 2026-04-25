@@ -78,6 +78,53 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
 
+      - name: Upload updater signatures to release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG=${GITHUB_REF_NAME}
+
+          echo "Looking for .sig files..."
+          find src-tauri/target -path "*/bundle/*" -name "*.sig" 2>/dev/null | tee /tmp/sig_files.txt || true
+
+          if [ ! -s /tmp/sig_files.txt ]; then
+            echo "No .sig files found — signing may not be configured"
+            exit 0
+          fi
+
+          # Wait for the release to exist (tauri-action creates it asynchronously)
+          RELEASE_ID=""
+          for i in $(seq 1 10); do
+            RELEASE_ID=$(curl -sf \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG" \
+              | jq -r '.id // empty')
+            [ -n "$RELEASE_ID" ] && break
+            echo "Waiting for release to be created... ($i/10)"
+            sleep 15
+          done
+
+          if [ -z "$RELEASE_ID" ]; then
+            echo "Could not find release for tag $TAG"
+            exit 1
+          fi
+          echo "Release ID: $RELEASE_ID"
+
+          # Upload each .sig file
+          while read -r sig_file; do
+            name=$(basename "$sig_file")
+            encoded=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$name")
+            echo "Uploading: $name"
+            HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Content-Type: text/plain" \
+              --data-binary @"$sig_file" \
+              "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$encoded")
+            echo "  → HTTP $HTTP"
+          done < /tmp/sig_files.txt
+
   update-manifest:
     needs: release
     runs-on: ubuntu-latest
@@ -92,7 +139,7 @@ jobs:
         run: |
           VERSION=${TAG#v}
 
-          # Fetch release JSON (retry a few times in case assets are still uploading)
+          # Fetch release JSON
           for i in $(seq 1 10); do
             RELEASE_JSON=$(curl -sf \
               -H "Authorization: token $GITHUB_TOKEN" \
@@ -107,40 +154,50 @@ jobs:
           NOTES=$(echo "$RELEASE_JSON" | jq -r '.body // "See release assets."')
 
           echo "Release ID: $RELEASE_ID"
-          echo "Assets:"
+          echo "All assets:"
           echo "$RELEASE_JSON" | jq -r '.assets[].name'
 
-          # Helper: get browser_download_url for an asset matching a pattern
+          # Helper: get browser_download_url matching a pattern
           get_url() {
             echo "$RELEASE_JSON" | jq -r ".assets[] | select(.name | test(\"$1\")) | .browser_download_url" | head -1
           }
 
-          # Helper: download a .sig asset and return its content
+          # Helper: download a .sig asset
           get_sig() {
-            local sig_url
-            sig_url=$(echo "$RELEASE_JSON" | jq -r ".assets[] | select(.name | test(\"$1\")) | .browser_download_url" | head -1)
-            if [ -z "$sig_url" ]; then echo ""; return; fi
-            curl -sL -H "Authorization: token $GITHUB_TOKEN" "$sig_url"
+            local url
+            url=$(echo "$RELEASE_JSON" | jq -r ".assets[] | select(.name | test(\"$1\")) | .browser_download_url" | head -1)
+            if [ -z "$url" ]; then
+              echo ""
+              return
+            fi
+            curl -sL -H "Authorization: token $GITHUB_TOKEN" "$url"
           }
 
-          # macOS aarch64
-          MAC_URL=$(get_url 'aarch64\\.app\\.tar\\.gz$')
-          MAC_SIG=$(get_sig 'aarch64\\.app\\.tar\\.gz\\.sig$')
+          # macOS aarch64 — bundle has no version in name
+          MAC_URL=$(get_url 'aarch64\.app\.tar\.gz$')
+          MAC_SIG=$(get_sig 'aarch64\.app\.tar\.gz\.sig$')
 
           # Linux x86_64
-          LINUX_URL=$(get_url 'amd64\\.AppImage$')
-          LINUX_SIG=$(get_sig 'amd64\\.AppImage\\.sig$')
+          LINUX_URL=$(get_url 'amd64\.AppImage$')
+          LINUX_SIG=$(get_sig 'amd64\.AppImage\.sig$')
 
-          # Windows x86_64 (NSIS installer)
-          WIN_URL=$(get_url 'x64-setup\\.exe$')
-          WIN_SIG=$(get_sig 'x64-setup\\.exe\\.sig$')
+          # Windows x86_64 (NSIS)
+          WIN_URL=$(get_url 'x64-setup\.exe$')
+          WIN_SIG=$(get_sig 'x64-setup\.exe\.sig$')
 
-          echo "MAC_URL: $MAC_URL"
+          echo "MAC_URL:        $MAC_URL"
           echo "MAC_SIG length: ${#MAC_SIG}"
-          echo "LINUX_URL: $LINUX_URL"
-          echo "WIN_URL: $WIN_URL"
+          echo "LINUX_URL:      $LINUX_URL"
+          echo "LINUX_SIG len:  ${#LINUX_SIG}"
+          echo "WIN_URL:        $WIN_URL"
+          echo "WIN_SIG length: ${#WIN_SIG}"
 
-          # Build latest.json using jq for proper JSON escaping
+          if [ -z "$MAC_SIG" ] && [ -z "$LINUX_SIG" ] && [ -z "$WIN_SIG" ]; then
+            echo "ERROR: No signatures found. Check that TAURI_SIGNING_PRIVATE_KEY is set and .sig files were uploaded."
+            exit 1
+          fi
+
+          # Build latest.json using jq for correct JSON escaping
           jq -n \
             --arg version "$VERSION" \
             --arg notes "$NOTES" \
@@ -165,17 +222,22 @@ jobs:
           echo "Generated latest.json:"
           cat latest.json
 
-          # Upload to release using numeric release ID (correct GitHub API URL)
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST \
+          # Delete previous latest.json if it exists (re-upload after fixing sigs)
+          OLD_ID=$(echo "$RELEASE_JSON" | jq -r '.assets[] | select(.name == "latest.json") | .id' | head -1)
+          if [ -n "$OLD_ID" ]; then
+            echo "Deleting old latest.json (asset $OLD_ID)..."
+            curl -sf -X DELETE \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$REPO/releases/assets/$OLD_ID"
+          fi
+
+          # Upload latest.json
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Content-Type: application/json" \
             --data-binary @latest.json \
             "https://uploads.github.com/repos/$REPO/releases/$RELEASE_ID/assets?name=latest.json")
 
-          echo "Upload HTTP status: $HTTP_STATUS"
-          if [ "$HTTP_STATUS" != "201" ]; then
-            echo "Upload failed with status $HTTP_STATUS"
-            exit 1
-          fi
+          echo "Upload HTTP status: $HTTP"
+          [ "$HTTP" = "201" ] || { echo "Upload failed"; exit 1; }
           echo "latest.json uploaded successfully"
