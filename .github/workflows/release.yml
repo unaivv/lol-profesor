@@ -115,7 +115,7 @@ jobs:
           echo "$RELEASE_JSON" | jq -r '.assets[].name'
 
           get_url() {
-            echo "$RELEASE_JSON" | jq -r ".assets[] | select(.name | test(\"$1\")) | .browser_download_url" | head -1
+            echo "$RELEASE_JSON" | jq -r --arg pat "$1" '.assets[] | select(.name | test($pat)) | .browser_download_url' | head -1
           }
 
           MAC_URL=$(get_url 'aarch64\.app\.tar\.gz$')
