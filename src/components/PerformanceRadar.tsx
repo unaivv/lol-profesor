@@ -103,6 +103,7 @@ export const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string)
   })
 
   const n = validMatchCount
+  console.log('[survival] validMatchCount:', n, 'totalDeathsPer30:', totalDeathsPer30)
   const avgCsPerMin = totalCsPerMin / n
   const avgDeathsPer30 = totalDeathsPer30 / n
   const avgVisionScore = totalVisionScore / n
@@ -113,6 +114,7 @@ export const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string)
 
   const farmScore = Math.min(100, (avgCsPerMin / 8) * 100)
   const survivalScore = Math.max(0, 100 - avgDeathsPer30 * 13)
+  console.log('[survival] avgDeathsPer30:', avgDeathsPer30, 'survivalScore:', survivalScore)
   const visionScoreCalc = Math.min(100, (avgVisionScore / 40) * 100)
   const damageScore = Math.min(100, (avgDpm / 1000) * 100)
   const kdaScore = Math.min(100, (avgKda / 5) * 100)
