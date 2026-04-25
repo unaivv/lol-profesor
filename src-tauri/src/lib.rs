@@ -125,6 +125,7 @@ pub fn run() {
             commands::matches::get_match_history,
             commands::matches::get_match_details,
             commands::matches::get_match_timeline,
+            commands::matches::get_extended_match_details,
             commands::stats::get_ranked_stats,
             commands::stats::get_mastery,
             commands::live::get_live_game,

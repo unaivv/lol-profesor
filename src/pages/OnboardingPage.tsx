@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Search, Globe } from 'lucide-react'
 import { useMyProfile } from '../hooks/useMyProfile'
 
 const REGIONS = ['EUW', 'EUN', 'NA', 'KR', 'JP', 'BR', 'LAN', 'LAS', 'OCE', 'TR', 'RU']
@@ -41,94 +42,123 @@ export function OnboardingPage() {
 
   return (
     <div style={{
-      minHeight: '100vh',
-      background: '#0f172a',
+      height: '100%',
+      background: 'linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
       display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '24px',
+      padding: '40px 24px',
     }}>
-      <div style={{ width: '100%', maxWidth: '400px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <img
-            src="/logo_sin_texto_sin_fondo.png"
-            alt="LoL Professor"
-            style={{ width: '64px', height: '64px', objectFit: 'contain', marginBottom: '16px' }}
-          />
-          <h1 style={{ color: '#f1f5f9', fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>
-            LoL Professor
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '14px' }}>
-            ¿Cuál es tu invocador?
-          </p>
-        </div>
+      {/* Logo centrado */}
+      <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+        <img
+          src="/logo_sin_fondo.png"
+          alt="LoL Professor"
+          style={{ height: '90px', objectFit: 'contain', display: 'block', margin: '0 auto 20px' }}
+        />
+        <p style={{ color: '#64748b', fontSize: '15px', margin: 0 }}>
+          ¿Cuál es tu nombre de invocador?
+        </p>
+      </div>
 
+      {/* Card de búsqueda */}
+      <div style={{
+        width: '100%',
+        maxWidth: '680px',
+        background: 'rgba(30, 41, 59, 0.6)',
+        border: '1px solid #334155',
+        borderRadius: '16px',
+        padding: '32px',
+        backdropFilter: 'blur(12px)',
+      }}>
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Región
-            </label>
-            <select
-              value={region}
-              onChange={e => setRegion(e.target.value)}
+          {/* Fila horizontal: región + input + botón */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+            {/* Región */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <Globe size={14} style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', pointerEvents: 'none' }} />
+              <select
+                value={region}
+                onChange={e => setRegion(e.target.value)}
+                style={{
+                  height: '100%',
+                  padding: '0 32px 0 32px',
+                  background: '#0f172a',
+                  border: '1px solid #334155',
+                  borderRadius: '10px',
+                  color: '#f1f5f9',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  outline: 'none',
+                  cursor: 'pointer',
+                  appearance: 'none',
+                  minWidth: '90px',
+                }}
+              >
+                {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontSize: '10px', pointerEvents: 'none' }}>▼</span>
+            </div>
+
+            {/* Input */}
+            <div style={{ flex: 1, position: 'relative' }}>
+              <input
+                type="text"
+                value={input}
+                onChange={e => { setInput(e.target.value); setError(null) }}
+                placeholder="Faker#KR1"
+                autoFocus
+                style={{
+                  width: '100%',
+                  height: '50px',
+                  padding: '0 16px',
+                  background: '#0f172a',
+                  border: `1px solid ${error ? '#ef4444' : '#334155'}`,
+                  borderRadius: '10px',
+                  color: '#f1f5f9',
+                  fontSize: '15px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  fontFamily: 'inherit',
+                }}
+                onFocus={e => { e.target.style.borderColor = '#3b82f6' }}
+                onBlur={e => { e.target.style.borderColor = error ? '#ef4444' : '#334155' }}
+              />
+            </div>
+
+            {/* Botón */}
+            <button
+              type="submit"
               style={{
-                width: '100%',
-                padding: '10px 12px',
-                background: '#1e293b',
-                border: '1px solid #334155',
-                borderRadius: '8px',
-                color: '#f1f5f9',
+                height: '50px',
+                padding: '0 24px',
+                background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
+                border: 'none',
+                borderRadius: '10px',
+                color: 'white',
                 fontSize: '14px',
-                outline: 'none',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
               }}
             >
-              {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+              <Search size={16} />
+              Continuar
+            </button>
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', color: '#94a3b8', fontSize: '12px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Riot ID
-            </label>
-            <input
-              type="text"
-              value={input}
-              onChange={e => { setInput(e.target.value); setError(null) }}
-              placeholder="TuNombre#EUW"
-              autoFocus
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                background: '#1e293b',
-                border: `1px solid ${error ? '#ef4444' : '#334155'}`,
-                borderRadius: '8px',
-                color: '#f1f5f9',
-                fontSize: '14px',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-            {error && (
-              <p style={{ color: '#f87171', fontSize: '12px', marginTop: '6px' }}>{error}</p>
-            )}
-          </div>
+          {error && (
+            <p style={{ color: '#f87171', fontSize: '13px', marginTop: '10px', marginBottom: 0 }}>{error}</p>
+          )}
 
-          <button
-            type="submit"
-            style={{
-              width: '100%',
-              padding: '12px',
-              background: '#2563eb',
-              border: 'none',
-              borderRadius: '8px',
-              color: 'white',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Continuar
-          </button>
+          <p style={{ color: '#475569', fontSize: '12px', marginTop: '14px', marginBottom: 0 }}>
+            Formato: <span style={{ color: '#64748b' }}>NombreDeInvocador#Tag</span> — el tag suele ser tu región (ej: EUW, NA1, KR1)
+          </p>
         </form>
       </div>
     </div>

@@ -5,6 +5,7 @@ use crate::models::timeline::MatchTimeline;
 use crate::AppState;
 use crate::db::match_cache;
 use super::{extract_perks, participant_from_json};
+use futures::future::join_all;
 
 #[tauri::command]
 pub async fn get_match_history(
@@ -125,7 +126,6 @@ pub async fn get_match_details(
     let match_ids: Vec<String> = state.riot_client.get(&url).await?;
     let mut detailed_matches: Vec<MatchDetail> = vec![];
     let global_url = state.riot_client.global_url().to_string();
-    let regional_url = state.riot_client.regional_url().to_string();
 
     for match_id in match_ids.iter().take(count) {
         let match_url = format!(
@@ -164,6 +164,73 @@ pub async fn get_match_details(
     }
 
     Ok(detailed_matches)
+}
+
+#[tauri::command]
+pub async fn get_extended_match_details(
+    puuid: String,
+    count: Option<i64>,
+    state: State<'_, AppState>,
+) -> Result<Vec<MatchDetail>, ApiError> {
+    let count = count.unwrap_or(100).min(100) as usize;
+    let global_url = state.riot_client.global_url().to_string();
+
+    let ids_url = format!(
+        "{}/lol/match/v5/matches/by-puuid/{}/ids?count={}",
+        global_url, puuid, count
+    );
+    let match_ids: Vec<String> = state.riot_client.get(&ids_url).await?;
+
+    let riot_client = state.riot_client.clone();
+    let db = state.db.clone();
+    let mut results: Vec<MatchDetail> = vec![];
+
+    for chunk in match_ids.chunks(10) {
+        let futs: Vec<_> = chunk.iter().map(|mid| {
+            let rc = riot_client.clone();
+            let db = db.clone();
+            let gurl = global_url.clone();
+            let mid = mid.clone();
+            async move {
+                let info = if let Ok(Some(cached)) = match_cache::get_raw(&db, &mid) {
+                    cached
+                } else {
+                    let url = format!("{}/lol/match/v5/matches/{}", gurl, mid);
+                    match rc.get::<serde_json::Value>(&url).await {
+                        Ok(d) => {
+                            let info = d["info"].clone();
+                            let _ = match_cache::set_raw(&db, &mid, &info);
+                            info
+                        }
+                        Err(e) => { log::warn!("Failed to fetch match {}: {}", mid, e); return None; }
+                    }
+                };
+
+                let participants = info["participants"]
+                    .as_array()
+                    .map(|parts| parts.iter().map(|p| participant_from_json(p, "")).collect())
+                    .unwrap_or_default();
+
+                Some(MatchDetail {
+                    game_id: mid,
+                    game_creation: info["gameCreation"].as_i64().unwrap_or(0),
+                    game_duration: info["gameDuration"].as_i64().unwrap_or(0),
+                    game_mode: info["gameMode"].as_str().unwrap_or("").to_string(),
+                    game_type: info["gameType"].as_str().unwrap_or("").to_string(),
+                    game_version: info["gameVersion"].as_str().unwrap_or("").to_string(),
+                    map_id: info["mapId"].as_i64().unwrap_or(0),
+                    queue_id: info["queueId"].as_i64().unwrap_or(0),
+                    participants,
+                })
+            }
+        }).collect();
+
+        for detail in join_all(futs).await.into_iter().flatten() {
+            results.push(detail);
+        }
+    }
+
+    Ok(results)
 }
 
 #[tauri::command]

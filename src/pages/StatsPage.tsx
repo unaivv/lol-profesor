@@ -11,7 +11,7 @@ import { PerformanceRadar } from '../components/PerformanceRadar'
 import { MostPlayedChampions } from '../components/MostPlayedChampions'
 import { ProfileHeader } from '../components/ProfileHeader'
 import { PlayerData } from '../types/api'
-import { Trophy, Users, Star, Target, X } from 'lucide-react'
+import { Trophy, Star, Target, X } from 'lucide-react'
 import { invoke } from '@tauri-apps/api/core'
 import { useMyProfile } from '../hooks/useMyProfile'
 
@@ -34,6 +34,8 @@ export function StatsPage() {
   const [error, setError] = useState<string | null>(null)
   const [cachedAt, setCachedAt] = useState<number | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [extendedMatches, setExtendedMatches] = useState<any[] | null>(null)
+  const [loadingExtended, setLoadingExtended] = useState(false)
 
   const myProfile = getMyProfile()
   const urlRegion = params.region
@@ -100,6 +102,15 @@ export function StatsPage() {
     loadPlayerData()
   }, [region, gameName, tagLine])
 
+  useEffect(() => {
+    if (activeTab !== 'champions' || !playerData?.puuid || extendedMatches !== null) return
+    setLoadingExtended(true)
+    invoke<any[]>('get_extended_match_details', { puuid: playerData.puuid, count: 100 })
+      .then(data => setExtendedMatches(data))
+      .catch(() => setExtendedMatches([]))
+      .finally(() => setLoadingExtended(false))
+  }, [activeTab, playerData?.puuid, extendedMatches])
+
   if (isLoading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px' }}>
@@ -165,10 +176,17 @@ export function StatsPage() {
         )}
 
         {activeTab === 'champions' && (
-          hasMatches ? (
-            <ChampionStats matches={playerData.matches?.filter(m => m.participants) || []} />
+          loadingExtended ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 40px' }}>
+              <img src="/logo_sin_texto_sin_fondo.png" alt="" style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '16px', opacity: 0.6, animation: 'pulse 1.5s ease-in-out infinite' }} />
+              <p style={{ color: '#64748b', fontSize: '14px' }}>Cargando últimas 100 partidas...</p>
+            </div>
           ) : (
-            <EmptyState icon={Users} title="Sin datos de campeones" description="Juega partidas para ver estadísticas por campeón." />
+            <ChampionStats
+              matches={extendedMatches ?? playerData.matches?.filter(m => m.participants) ?? []}
+              playerPuuid={playerData.puuid}
+              mastery={playerData.mastery || []}
+            />
           )
         )}
 
