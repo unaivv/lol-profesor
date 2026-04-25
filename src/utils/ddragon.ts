@@ -25,7 +25,6 @@ export function initChampionMap(): void {
         }
       }
       loaded = true
-      console.log('Champion map loaded:', Object.keys(championMap).length, 'champions')
     })
     .catch(e => console.error('Failed to load champion map:', e))
 }

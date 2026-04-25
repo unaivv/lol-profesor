@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { DetailedMatch } from '../types/api'
+import { Tooltip } from './ui/tooltip'
 
 interface PerformanceRadarProps {
   matches: DetailedMatch[]
@@ -11,6 +12,7 @@ interface RadarMetric {
   label: string
   icon: string
   value: number
+  tooltip?: string
 }
 
 export interface PerformanceMetrics {
@@ -57,12 +59,7 @@ export const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string)
       ? match.participants?.find(p => p.puuid === playerPuuid)
       : match.participants?.[0]
 
-    if (!player) {
-      console.log('[survival] no player found for puuid:', playerPuuid, 'match:', match.gameId)
-      return
-    }
-
-    console.log('[survival] player found:', player.puuid, 'deaths:', player.deaths, 'timePlayed:', player.timePlayed, 'gameDuration:', match.gameDuration)
+    if (!player) return
 
     validMatchCount++
 
@@ -103,7 +100,6 @@ export const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string)
   })
 
   const n = validMatchCount
-  console.log('[survival] validMatchCount:', n, 'totalDeathsPer30:', totalDeathsPer30)
   const avgCsPerMin = totalCsPerMin / n
   const avgDeathsPer30 = totalDeathsPer30 / n
   const avgVisionScore = totalVisionScore / n
@@ -113,20 +109,19 @@ export const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string)
   const winRate = (totalWins / n) * 100
 
   const farmScore = Math.min(100, (avgCsPerMin / 8) * 100)
-  const survivalScore = Math.max(0, 100 - avgDeathsPer30 * 13)
-  console.log('[survival] avgDeathsPer30:', avgDeathsPer30, 'survivalScore:', survivalScore)
+  const survivalScore = Math.max(0, 100 - avgDeathsPer30 * 6)
   const visionScoreCalc = Math.min(100, (avgVisionScore / 40) * 100)
   const damageScore = Math.min(100, (avgDpm / 1000) * 100)
   const kdaScore = Math.min(100, (avgKda / 5) * 100)
   const impactScore = (winRate * 0.5) + (avgKillParticipation * 100 * 0.5)
 
   return [
-    { key: 'farm', label: 'Farm', icon: '🌾', value: Math.round(farmScore) },
-    { key: 'survival', label: 'Supervivencia', icon: '🛡️', value: Math.round(survivalScore) },
-    { key: 'vision', label: 'Visión', icon: '👁️', value: Math.round(visionScoreCalc) },
-    { key: 'damage', label: 'Daño', icon: '⚔️', value: Math.round(damageScore) },
-    { key: 'kda', label: 'KDA', icon: '🎯', value: Math.round(kdaScore) },
-    { key: 'impact', label: 'Impacto', icon: '🏆', value: Math.round(impactScore) }
+    { key: 'farm', label: 'Farm', icon: '🌾', value: Math.round(farmScore), tooltip: `CS/min: ${avgCsPerMin.toFixed(1)} / Objetivo: 8` },
+    { key: 'survival', label: 'Supervivencia', icon: '🛡️', value: Math.round(survivalScore), tooltip: `Muertes/30min: ${avgDeathsPer30.toFixed(1)} → 100 - deaths×6` },
+    { key: 'vision', label: 'Visión', icon: '👁️', value: Math.round(visionScoreCalc), tooltip: `Vision Score: ${Math.round(avgVisionScore)} / Objetivo: 40` },
+    { key: 'damage', label: 'Daño', icon: '⚔️', value: Math.round(damageScore), tooltip: `DPM: ${Math.round(avgDpm)} / Objetivo: 1000` },
+    { key: 'kda', label: 'KDA', icon: '🎯', value: Math.round(kdaScore), tooltip: `KDA: ${avgKda.toFixed(1)} / Objetivo: 5` },
+    { key: 'impact', label: 'Impacto', icon: '🏆', value: Math.round(impactScore), tooltip: `WR: ${winRate.toFixed(0)}% + KP: ${(avgKillParticipation * 100).toFixed(0)}%` }
   ]
 }
 
@@ -179,7 +174,7 @@ export const calculateRawMetrics = (matches: DetailedMatch[], playerPuuid?: stri
 
   return {
     farm: Math.round(Math.min(100, (avgCsPerMin / 8) * 100)),
-    survival: Math.round(Math.max(0, 100 - avgDeathsPer30 * 13)),
+    survival: Math.round(Math.max(0, 100 - avgDeathsPer30 * 6)),
     vision: Math.round(Math.min(100, (avgVisionScore / 40) * 100)),
     damage: Math.round(Math.min(100, (avgDpm / 1000) * 100)),
     kda: Math.round(Math.min(100, (avgKda / 5) * 100)),
@@ -395,22 +390,24 @@ export function PerformanceRadar({ matches, playerPuuid }: PerformanceRadarProps
         marginTop: '16px'
       }}>
         {metrics.map(m => (
-          <div key={m.key} style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 8px',
-            background: 'var(--bg-card-subtle)',
-            borderRadius: '8px'
-          }}>
-            <span style={{ fontSize: '12px' }}>{m.icon}</span>
-            <div>
-              <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{m.label}</div>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {m.value}/100
+          <Tooltip key={m.key} content={m.tooltip || m.label}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 8px',
+              background: 'var(--bg-card-subtle)',
+              borderRadius: '8px'
+            }}>
+              <span style={{ fontSize: '12px' }}>{m.icon}</span>
+              <div>
+                <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{m.label}</div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {m.value}/100
+                </div>
               </div>
             </div>
-          </div>
+          </Tooltip>
         ))}
       </div>
     </div>

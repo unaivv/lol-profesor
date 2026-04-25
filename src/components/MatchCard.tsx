@@ -1,6 +1,7 @@
 import { DetailedMatch, Participant } from '../types/api'
 import { Clock, ChevronDown, ChevronUp } from 'lucide-react'
 import { getChampionImageUrl, getItemImageUrl } from '../utils/ddragon'
+import { Tooltip } from './ui/tooltip'
 
 interface MatchCardProps {
   match: DetailedMatch
@@ -202,23 +203,23 @@ export function MatchCard({ match, playerPuuid, onExpand, isExpanded }: MatchCar
         {tags.length > 0 && (
           <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
             {tags.map((tag, idx) => (
-              <span 
-                key={idx} 
-                style={{ 
-                  fontSize: '11px', 
-                  padding: '2px 8px', 
-                  background: 'rgba(234, 179, 8, 0.1)', 
-                  borderRadius: '4px',
-                  color: '#a16207',
-                  fontWeight: 500,
-                  whiteSpace: 'nowrap',
-                  cursor: 'help',
-                  position: 'relative'
-                }}
-                title={tag.description}
-              >
-                {tag.label}
-              </span>
+              <Tooltip key={idx} content={tag.description}>
+                <span 
+                  style={{ 
+                    fontSize: '11px', 
+                    padding: '2px 8px', 
+                    background: 'rgba(234, 179, 8, 0.1)', 
+                    borderRadius: '4px',
+                    color: '#a16207',
+                    fontWeight: 500,
+                    whiteSpace: 'nowrap',
+                    cursor: 'help',
+                    position: 'relative'
+                  }}
+                >
+                  {tag.label}
+                </span>
+              </Tooltip>
             ))}
           </div>
         )}
