@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { PlayerStats } from '../components/PlayerStats'
 import { StatsOverview } from '../components/StatsOverview'
 import { MatchHistory } from '../components/MatchHistory'
@@ -10,188 +10,112 @@ import { ChampionMasteryCard } from '../components/ChampionMasteryCard'
 import { PerformanceRadar } from '../components/PerformanceRadar'
 import { MostPlayedChampions } from '../components/MostPlayedChampions'
 import { ProfileHeader } from '../components/ProfileHeader'
-import { Header } from '../components/layout/Header'
-import { Footer } from '../components/layout/Footer'
 import { PlayerData } from '../types/api'
-import { Search, Trophy, Users, Star, Zap, Target, X } from 'lucide-react'
+import { Trophy, Users, Star, Target, X } from 'lucide-react'
 import { invoke } from '@tauri-apps/api/core'
+import { useMyProfile } from '../hooks/useMyProfile'
 
 type TabId = 'summary' | 'champions' | 'mastery' | 'live'
 
-// Helper function para formatear puntos
 const formatPoints = (points: number): string => {
-  if (points >= 1000000) {
-    return `${(points / 1000000).toFixed(1)}M`
-  }
-  if (points >= 1000) {
-    return `${(points / 1000).toFixed(1)}K`
-  }
+  if (points >= 1000000) return `${(points / 1000000).toFixed(1)}M`
+  if (points >= 1000) return `${(points / 1000).toFixed(1)}K`
   return points.toString()
 }
 
-const tabs: { id: TabId; label: string; icon: React.ElementType; description: string }[] = [
-  { id: 'summary', label: 'Resumen', icon: Target, description: 'Estadísticas generales y historial' },
-  { id: 'champions', label: 'Campeones', icon: Users, description: 'Rendimiento por campeón' },
-  { id: 'mastery', label: 'Maestría', icon: Star, description: 'Progreso de maestría' },
-  { id: 'live', label: 'En Vivo', icon: Zap, description: 'Partida en curso' },
-]
-
 export function StatsPage() {
   const params = useParams<{ region?: string; gameName?: string; tagLine?: string }>()
+  const { getMyProfile } = useMyProfile()
+  const [searchParams] = useSearchParams()
+  const activeTab = (searchParams.get('tab') || 'summary') as TabId
+
   const [playerData, setPlayerData] = useState<PlayerData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<TabId>('summary')
   const [cachedAt, setCachedAt] = useState<number | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  // URL-based loading: /stats/:region/:gameName/:tagLine
+  const myProfile = getMyProfile()
   const urlRegion = params.region
   const urlGameName = params.gameName
   const urlTagLine = params.tagLine
 
+  // Use URL params if present (other player), fall back to myProfile (own profile at /me)
+  const region = urlRegion || myProfile?.region
+  const gameName = urlGameName || myProfile?.gameName
+  const tagLine = urlTagLine || myProfile?.tagLine
+
   const handleRefresh = useCallback(async () => {
-    if (!urlGameName || !urlTagLine || !urlRegion) return
+    if (!gameName || !tagLine || !region) return
     setIsRefreshing(true)
     try {
       const response = await invoke<any>('get_comprehensive_player', {
-        gameName: urlGameName,
-        tagLine: urlTagLine,
+        gameName,
+        tagLine,
         forceRefresh: true,
-        region: urlRegion,
+        region,
       })
-      const player: PlayerData = { ...response.data, region: urlRegion }
+      const player: PlayerData = { ...response.data, region }
       setPlayerData(player)
       setCachedAt(response.cachedAt ?? null)
       localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
-      if (response.cachedAt) {
-        localStorage.setItem('lolProfessorCachedAt', response.cachedAt.toString())
-      }
+      if (response.cachedAt) localStorage.setItem('lolProfessorCachedAt', response.cachedAt.toString())
     } catch (e) {
       console.error('Error refreshing player:', e)
     } finally {
       setIsRefreshing(false)
     }
-  }, [urlGameName, urlTagLine, urlRegion])
+  }, [gameName, tagLine, region])
 
   useEffect(() => {
     const loadPlayerData = async () => {
-      // If URL params exist, fetch from API (do NOT fall back to localStorage automatically)
-      if (urlRegion && urlGameName && urlTagLine) {
-        try {
-          setIsLoading(true)
-          const response = await invoke<any>('get_comprehensive_player', {
-            gameName: urlGameName,
-            tagLine: urlTagLine,
-            forceRefresh: false,
-            region: urlRegion,
-          })
-          const player: PlayerData = {
-            ...response.data,
-            region: urlRegion,
-          }
-          setPlayerData(player)
-          setCachedAt(response.cachedAt ?? null)
-          localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
-          if (response.cachedAt) {
-            localStorage.setItem('lolProfessorCachedAt', response.cachedAt.toString())
-          }
-          setIsLoading(false)
-          return
-        } catch (error) {
-          console.error('Error fetching player from URL:', error)
-          // DO NOT fall back to localStorage - show error instead
-          setError('Jugador no encontrado o error de conexión. Por favor, verifica el nombre y región.')
-          setIsLoading(false)
-          return
-        }
+      if (!region || !gameName || !tagLine) {
+        setError('No hay perfil configurado. Configurá tu perfil primero.')
+        setIsLoading(false)
+        return
       }
 
-      // Only load from localStorage when there are NO URL params (fresh app load)
-      const storedData = localStorage.getItem('lolProfessorPlayer')
-      if (storedData) {
-        try {
-          const data = JSON.parse(storedData)
+      setIsLoading(true)
+      setError(null)
 
-          // Check if data has required fields
-          if (data && data.puuid && data.gameName && data.tagLine) {
-            setPlayerData(data)
-            // Try to load cachedAt from localStorage
-            const cachedAtStr = localStorage.getItem('lolProfessorCachedAt')
-            if (cachedAtStr) {
-              setCachedAt(parseInt(cachedAtStr))
-            }
-          } else {
-            console.error('Invalid player data structure - missing required fields')
-            window.location.href = '/'
-          }
-        } catch (error) {
-          console.error('Error loading player data:', error)
-          localStorage.removeItem('lolProfessorPlayer')
-          window.location.href = '/'
-        }
-      } else {
-        window.location.href = '/'
+      try {
+        const response = await invoke<any>('get_comprehensive_player', {
+          gameName,
+          tagLine,
+          forceRefresh: false,
+          region,
+        })
+        const player: PlayerData = { ...response.data, region }
+        setPlayerData(player)
+        setCachedAt(response.cachedAt ?? null)
+        localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
+        if (response.cachedAt) localStorage.setItem('lolProfessorCachedAt', response.cachedAt.toString())
+      } catch {
+        setError('Jugador no encontrado o error de conexión.')
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     }
 
     loadPlayerData()
-  }, [urlRegion, urlGameName, urlTagLine])
-
-
-  const handleSearchNew = () => {
-    window.location.href = '/'
-  }
+  }, [region, gameName, tagLine])
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="relative mb-6">
-            <img
-              src="/logo_sin_texto_sin_fondo.png"
-              alt="LoL Profesor"
-              className="w-24 h-24 animate-pulse mx-auto block"
-              style={{ objectFit: 'contain' }}
-            />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">
-            Cargando estadísticas...
-          </h2>
-          <p className="text-slate-500">Preparando tu análisis profesional</p>
-          <div className="mt-6 flex justify-center gap-1">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-          </div>
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px' }}>
+        <img src="/logo_sin_texto_sin_fondo.png" alt="" style={{ width: '56px', height: '56px', objectFit: 'contain', marginBottom: '16px', opacity: 0.8, animation: 'pulse 1.5s ease-in-out infinite' }} />
+        <p style={{ color: '#64748b', fontSize: '14px' }}>Cargando estadísticas...</p>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <X size={32} className="text-white" />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-3">
-            Error al cargar jugador
-          </h2>
-          <p className="text-slate-500 mb-6">
-            {error}
-          </p>
-          <button
-            onClick={() => {
-              window.location.href = '/'
-            }}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-          >
-            <Search size={18} />
-            <span>Buscar Otro Jugador</span>
-          </button>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px' }}>
+        <div style={{ background: 'white', borderRadius: '12px', padding: '32px', maxWidth: '360px', width: '100%', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+          <X size={32} style={{ color: '#ef4444', marginBottom: '12px' }} />
+          <h3 style={{ color: '#1e293b', fontWeight: 600, marginBottom: '8px' }}>Error al cargar</h3>
+          <p style={{ color: '#64748b', fontSize: '14px' }}>{error}</p>
         </div>
       </div>
     )
@@ -199,25 +123,9 @@ export function StatsPage() {
 
   if (!playerData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <Trophy size={32} className="text-white" />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-3">
-            No hay datos del jugador
-          </h2>
-          <p className="text-slate-500 mb-6">
-            Por favor, busca un jugador para ver sus estadísticas
-          </p>
-          <button
-            onClick={handleSearchNew}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-          >
-            <Search size={18} />
-            <span>Buscar Jugador</span>
-          </button>
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px' }}>
+        <Trophy size={32} style={{ color: '#94a3b8', marginBottom: '12px' }} />
+        <p style={{ color: '#64748b', fontSize: '14px' }}>No hay datos del jugador</p>
       </div>
     )
   }
@@ -225,192 +133,95 @@ export function StatsPage() {
   const hasMatches = (playerData?.matches?.length || 0) > 0
 
   return (
-    <div style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #f3e8ff 100%)', minHeight: '100vh' }}>
-      <Header
-        variant="profile"
-        actions={
-          <button
-            onClick={handleSearchNew}
-            style={{
-              padding: '10px 20px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #3b82f6, #9333ea)',
-              color: 'white',
-              border: 'none',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-            }}
-          >
-            <Search size={18} />
-            Buscar Otro
-          </button>
-        }
-      />
+    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '20px' }}>
+        <ProfileHeader
+          playerData={playerData}
+          rankedStats={playerData.rankedStats as any}
+          cachedAt={cachedAt}
+          isRefreshing={isRefreshing}
+          onRefresh={handleRefresh}
+        />
+      </div>
 
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
-        {/* Profile Header */}
-        <div style={{ marginBottom: '24px' }}>
-          <ProfileHeader
-            playerData={playerData}
-            rankedStats={playerData.rankedStats as any}
-            cachedAt={cachedAt}
-            isRefreshing={isRefreshing}
-            onRefresh={handleRefresh}
-          />
-        </div>
+      <StatsOverview playerData={playerData} />
 
-        {/* Stats Overview Cards */}
-        <div style={{ marginTop: '24px', marginBottom: '24px' }}>
-          <StatsOverview playerData={playerData} />
-        </div>
-
-        {/* Modern Tab Navigation - Design System */}
-        <div style={{ padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '24px' }}>
-          <div className="flex flex-wrap gap-3 justify-center">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  style={{
-                    padding: '14px 28px',
-                    borderRadius: '12px',
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    justifyContent: 'center',
-                    flex: '1',
-                    minWidth: '120px',
-                    background: isActive ? 'linear-gradient(to right, #2563eb, #9333ea)' : '#f8fafc',
-                    color: isActive ? 'white' : '#475569',
-                    border: isActive ? 'none' : '1px solid #e2e8f0',
-                    boxShadow: isActive ? '0 10px 15px -3px rgba(59, 130, 246, 0.3)' : 'none'
-                  }}
-                >
-                  <Icon size={18} />
-                  <span>{tab.label}</span>
-                </button>
-              )
-            })}
+      <div style={{ marginTop: '20px' }}>
+        {activeTab === 'summary' && (
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            <div className="xl:col-span-8 space-y-6">
+              <RankedComparisonCard rankedStats={playerData.rankedStats as any} />
+              {hasMatches ? (
+                <MatchHistory matches={playerData.matches || []} playerPuuid={playerData.puuid} currentPlayerData={playerData} />
+              ) : (
+                <EmptyState icon={Target} title="Sin historial de partidas" description="No se encontraron partidas recientes." />
+              )}
+            </div>
+            <div className="xl:col-span-4 space-y-6">
+              <PerformanceRadar matches={playerData.matches || []} playerPuuid={playerData.puuid} />
+              <MostPlayedChampions matches={playerData.matches || []} playerPuuid={playerData.puuid} mastery={playerData.mastery || []} />
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Tab Content */}
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ padding: '0 4px' }}>
-          {activeTab === 'summary' && (
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-              <div className="xl:col-span-8 space-y-6">
-                <RankedComparisonCard rankedStats={playerData.rankedStats as any} />
-                {hasMatches ? (
-                  <MatchHistory matches={playerData.matches || []} playerPuuid={playerData.puuid} currentPlayerData={playerData} />
-                ) : (
-                  <EmptyState
-                    icon={Target}
-                    title="Sin historial de partidas"
-                    description="No se encontraron partidas recientes para este jugador."
-                    action="Las partidas pueden tardar en aparecer si el jugador tiene privacidad activada."
-                  />
-                )}
-              </div>
-              <div className="xl:col-span-4 space-y-6">
-                <PerformanceRadar matches={playerData.matches || []} playerPuuid={playerData.puuid} />
-                <MostPlayedChampions
-                  matches={playerData.matches || []}
-                  playerPuuid={playerData.puuid}
-                  mastery={playerData.mastery || []}
-                />
+        {activeTab === 'champions' && (
+          hasMatches ? (
+            <ChampionStats matches={playerData.matches?.filter(m => m.participants) || []} />
+          ) : (
+            <EmptyState icon={Users} title="Sin datos de campeones" description="Juega partidas para ver estadísticas por campeón." />
+          )
+        )}
+
+        {activeTab === 'mastery' && (
+          playerData.mastery && playerData.mastery.length > 0 ? (
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+                <Star className="w-6 h-6 text-yellow-500" />
+                Maestría de Campeones
+              </h2>
+              <p className="text-slate-500 mb-4">
+                {playerData.mastery.length} campeones · {formatPoints(playerData.mastery.reduce((acc, m) => acc + m.championPoints, 0))} puntos
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {playerData.mastery.map((m, idx) => (
+                  <ChampionMasteryCard key={idx} mastery={m} />
+                ))}
               </div>
             </div>
-          )}
+          ) : (
+            <EmptyState icon={Star} title="Sin datos de maestría" description="No se encontraron datos de maestría." />
+          )
+        )}
 
-          {activeTab === 'champions' && (
-            hasMatches ? (
-              <ChampionStats matches={playerData.matches?.filter(m => m.participants) || []} />
-            ) : (
-              <EmptyState
-                icon={Users}
-                title="Sin datos de campeones"
-                description="Juega partidas para ver estadísticas por campeón."
-              />
-            )
-          )}
-
-          {activeTab === 'mastery' && (
-            playerData.mastery && playerData.mastery.length > 0 ? (
-              <div className="space-y-6">
-                <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-                  <h2 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
-                    <Star className="w-6 h-6 text-yellow-500" />
-                    Maestría de Campeones
-                  </h2>
-                  <p className="text-slate-500 mb-4">
-                    {playerData.mastery.length} campeones • {formatPoints(playerData.mastery.reduce((acc, m) => acc + m.championPoints, 0))} puntos totales
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {playerData.mastery.map((m, idx) => (
-                      <ChampionMasteryCard key={idx} mastery={m} />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <EmptyState
-                icon={Star}
-                title="Sin datos de maestría"
-                description="No se encontraron datos de maestría para este jugador."
-                action="Los datos de maestría pueden tardar en actualizarse."
-              />
-            )
-          )}
-
-          {activeTab === 'live' && (
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-              <div className="xl:col-span-8">
-                <SpectatorCard puuid={playerData.puuid} />
-              </div>
-              <div className="xl:col-span-4 space-y-6">
-                <PlayerStats rankedStats={playerData.rankedStats} />
-              </div>
+        {activeTab === 'live' && (
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            <div className="xl:col-span-8">
+              <SpectatorCard puuid={playerData.puuid} />
             </div>
-          )}
-        </div>
-      </main>
-
-      <Footer playerData={playerData} showPlayerInfo={true} />
+            <div className="xl:col-span-4 space-y-6">
+              <PlayerStats rankedStats={playerData.rankedStats} />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
-// Empty State Component
 interface EmptyStateProps {
   icon: React.ElementType
   title: string
   description: string
-  action?: string
 }
 
-function EmptyState({ icon: Icon, title, description, action }: EmptyStateProps) {
+function EmptyState({ icon: Icon, title, description }: EmptyStateProps) {
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 text-center">
-      <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
-        <Icon className="w-8 h-8 text-slate-400" />
+      <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <Icon className="w-7 h-7 text-slate-400" />
       </div>
       <h3 className="text-lg font-bold text-slate-800 mb-2">{title}</h3>
-      <p className="text-slate-500 mb-3">{description}</p>
-      {action && (
-        <p className="text-xs text-slate-400 bg-slate-50 rounded-lg px-3 py-2 inline-block">
-          {action}
-        </p>
-      )}
+      <p className="text-slate-500 text-sm">{description}</p>
     </div>
   )
 }

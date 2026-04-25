@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Trophy, Sword } from 'lucide-react'
 import { DetailedMatch, PlayerData } from '../types/api'
 import { MatchCard } from './MatchCard'
-import { MatchDetail } from './MatchDetail'
 import { WinRateChart } from './WinRateChart'
 import { calculateRawMetrics } from './PerformanceRadar'
 
@@ -13,7 +13,7 @@ interface MatchHistoryProps {
 }
 
 export function MatchHistory({ matches, playerPuuid, currentPlayerData }: MatchHistoryProps) {
-  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null)
+  const navigate = useNavigate()
   const validMatches = matches.filter((m): m is DetailedMatch =>
     m && typeof m.gameId === 'string' && Array.isArray(m.participants)
   )
@@ -38,10 +38,12 @@ export function MatchHistory({ matches, playerPuuid, currentPlayerData }: MatchH
   }
 
   const handleExpand = (gameId: string) => {
-    setExpandedMatchId(expandedMatchId === gameId ? null : gameId)
+    const match = validMatches.find(m => m.gameId === gameId)
+    if (!match) return
+    navigate(`/match/${gameId}`, {
+      state: { match, playerPuuid, region: currentPlayerData?.region, recentMetrics }
+    })
   }
-
-  const expandedMatch = validMatches.find(m => m.gameId === expandedMatchId)
 
   return (
     <div style={containerStyle}>
@@ -76,7 +78,7 @@ export function MatchHistory({ matches, playerPuuid, currentPlayerData }: MatchH
                 key={match.gameId}
                 match={match}
                 playerPuuid={playerPuuid}
-                isExpanded={expandedMatchId === match.gameId}
+                isExpanded={false}
                 onExpand={() => handleExpand(match.gameId)}
               />
             ))}
@@ -84,15 +86,6 @@ export function MatchHistory({ matches, playerPuuid, currentPlayerData }: MatchH
         )}
       </div>
 
-      {expandedMatch && (
-        <MatchDetail
-          match={expandedMatch}
-          playerPuuid={playerPuuid}
-          currentRegion={currentPlayerData?.region}
-          onClose={() => setExpandedMatchId(null)}
-          recentMetrics={recentMetrics}
-        />
-      )}
     </div>
   )
 }
