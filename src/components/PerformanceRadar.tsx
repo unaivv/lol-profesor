@@ -57,7 +57,7 @@ export const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string)
       ? match.participants?.find(p => p.puuid === playerPuuid)
       : match.participants?.[0]
 
-    if (!player) return
+    if (!player || !player.deaths) return
 
     validMatchCount++
 
@@ -140,7 +140,7 @@ export const calculateRawMetrics = (matches: DetailedMatch[], playerPuuid?: stri
       ? match.participants?.find(p => p.puuid === playerPuuid)
       : match.participants?.[0]
 
-    if (!player) return
+    if (!player || !player.deaths) return
     n++
 
     const minutes = Math.max((player.timePlayed || match.gameDuration || 0) / 60, 15)
