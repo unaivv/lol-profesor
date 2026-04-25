@@ -20,33 +20,34 @@ const ACTIVE_BORDER = '#3b82f6'
 const TEXT = '#f1f5f9'
 const TEXT_MUTED = '#64748b'
 
-function readProfileIconId(): number {
-  try {
-    const raw = localStorage.getItem('lolProfessorPlayer')
-    if (raw) return JSON.parse(raw).profileIconId || 1
-  } catch { /* empty */ }
-  return 1
-}
-
 export function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const { getMyProfile } = useMyProfile()
   const myProfile = getMyProfile()
-
   const [query, setQuery] = useState('')
   const [region, setRegion] = useState('EUW')
   const [searching, setSearching] = useState(false)
   const [searchErr, setSearchErr] = useState<string | null>(null)
-  const [iconId, setIconId] = useState(readProfileIconId)
   const [iconError, setIconError] = useState(false)
 
-  // Re-read icon when navigating (player data may have loaded)
-  useEffect(() => {
-    setIconId(readProfileIconId())
-    setIconError(false)
-  }, [location.pathname])
+  // Get logged-in user's icon - only from dedicated my profile storage
+  const profileIconId = (() => {
+    try {
+      const raw = localStorage.getItem('lolProfessorMyProfileData')
+      const cached = raw ? JSON.parse(raw) : null
+      
+      // Use cached icon if it exists and matches logged-in profile
+      if (cached && myProfile) {
+        if (cached.gameName === myProfile.gameName && cached.tagLine === myProfile.tagLine) {
+          return cached.profileIconId || 1
+        }
+      }
+    } catch { /* ignore */ }
+    // Default icon if no match
+    return 1
+  })()
 
   const onPlayerPage = location.pathname === '/me' || location.pathname.startsWith('/player/')
   const onSettings = location.pathname === '/settings'
@@ -115,7 +116,7 @@ export function Sidebar() {
                 <User size={18} color={TEXT_MUTED} />
               ) : (
                 <img
-                  src={getProfileIconUrl(iconId)}
+                  src={getProfileIconUrl(profileIconId)}
                   alt=""
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={() => setIconError(true)}
