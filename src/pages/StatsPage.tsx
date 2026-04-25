@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { PlayerStats } from '../components/PlayerStats'
 import { StatsOverview } from '../components/StatsOverview'
@@ -45,7 +45,12 @@ export function StatsPage() {
   const [cachedAt, setCachedAt] = useState<number | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const handleRefresh = async () => {
+  // URL-based loading: /stats/:region/:gameName/:tagLine
+  const urlRegion = params.region
+  const urlGameName = params.gameName
+  const urlTagLine = params.tagLine
+
+  const handleRefresh = useCallback(async () => {
     if (!urlGameName || !urlTagLine || !urlRegion) return
     setIsRefreshing(true)
     try {
@@ -67,12 +72,7 @@ export function StatsPage() {
     } finally {
       setIsRefreshing(false)
     }
-  }
-
-  // URL-based loading: /stats/:region/:gameName/:tagLine
-  const urlRegion = params.region
-  const urlGameName = params.gameName
-  const urlTagLine = params.tagLine
+  }, [urlGameName, urlTagLine, urlRegion])
 
   useEffect(() => {
     const loadPlayerData = async () => {

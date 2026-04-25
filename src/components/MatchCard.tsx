@@ -1,6 +1,6 @@
 import { DetailedMatch, Participant } from '../types/api'
 import { Clock, ChevronDown, ChevronUp } from 'lucide-react'
-import { getChampionImageUrl } from '../utils/champions'
+import { getChampionImageUrl, getItemImageUrl } from '../utils/ddragon'
 
 interface MatchCardProps {
   match: DetailedMatch
@@ -241,7 +241,7 @@ export function hasItem(player: Participant, itemId: number): boolean {
 
 export function getItemIcon(itemId: number): string {
   if (itemId === 0) return ''
-  return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/item/${itemId}.png`
+  return getItemImageUrl(itemId)
 }
 
 export { calculateKDARatio }

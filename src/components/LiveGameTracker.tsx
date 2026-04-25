@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Activity, Clock, AlertCircle, Wifi, WifiOff, Gamepad2 } from 'lucide-react'
 import { LiveGameData } from '../types'
+import { getChampionImageUrl } from '../utils/ddragon'
 
 // Placeholder components for UI elements
 const HealthBar = ({ current, max }: { current: number; max: number }) => {
@@ -36,12 +37,9 @@ const KDABadge = ({ kills, deaths, assists }: { kills: number; deaths: number; a
 
 const ChampionIconSmall = ({ championId, championName }: { championId: number; championName: string }) => (
   <img
-    src={`https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championId}.png`}
+    src={getChampionImageUrl(championId)}
     alt={championName}
     className="w-10 h-10 rounded-lg border-2 border-slate-200"
-    onError={(e) => {
-      (e.target as HTMLImageElement).src = 'https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/Aatrox.png'
-    }}
   />
 )
 

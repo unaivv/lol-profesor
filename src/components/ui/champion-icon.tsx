@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
 import { cn } from "@/lib/utils"
+import { getChampionImageUrl } from '@/utils/ddragon'
 
 interface ChampionIconProps {
   championId: number
@@ -17,9 +18,7 @@ export function ChampionIcon({ championId, championName, size = "md", className 
     }
   }
 
-  const getChampionImage = (id: number) => {
-    return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${id}.png`
-  }
+  const getChampionImage = (id: number) => getChampionImageUrl(id)
 
   return (
     <Avatar className={cn(getSizeClasses(), "rounded-lg border-2 border-gray-200", className)}>

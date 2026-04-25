@@ -9,8 +9,8 @@ import { Timeline } from '../MatchDetailComponents/Timeline'
 import { MatchDetailProps, PlayerRowProps } from './types'
 import { invoke } from '@tauri-apps/api/core'
 import * as S from './styles'
+import { getChampionImageUrl } from '../../utils/ddragon'
 
-// Helper functions
 const formatDuration = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
@@ -27,12 +27,7 @@ const getItemIcon = (itemId: number): string => {
   return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/item/${itemId}.png`
 }
 
-const getChampionIcon = (championId: number, championName?: string): string => {
-  if (championName) {
-    return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championName}.png`
-  }
-  return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championId}.png`
-}
+const getChampionIcon = (championId: number): string => getChampionImageUrl(championId)
 
 const getQueueName = (queueId?: number): string => {
   const queues: Record<number, string> = {
@@ -70,7 +65,7 @@ const PlayerRow = ({ player, isCurrentPlayer, isMVP, onPlayerClick }: PlayerRowP
         </div>
       )}
       <img
-        src={getChampionIcon(player.championId, player.championName)}
+        src={getChampionIcon(player.championId)}
         alt={player.championName}
         style={S.championIcon}
       />
@@ -187,7 +182,7 @@ export function MatchDetail({ match, playerPuuid, currentRegion, onClose }: Matc
               </div>
               <div style={S.headerRight}>
                 <img
-                  src={getChampionIcon(currentPlayer?.championId || 0, currentPlayer?.championName)}
+                  src={getChampionIcon(currentPlayer?.championId || 0)}
                   alt={currentPlayer?.championName}
                   style={{ width: '56px', height: '56px', borderRadius: '12px', border: '3px solid #eab308' }}
                 />

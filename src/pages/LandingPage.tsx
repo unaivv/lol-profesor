@@ -5,6 +5,7 @@ import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
 import { PlayerData, RankedStats, RankedStatsExtended } from '../types/api'
 import { Sparkles, Trophy, Target, Shield, AlertCircle, Loader2 } from 'lucide-react'
+import { getProfileIconUrl } from '../utils/ddragon'
 
 // Helper para obtener solo ranked
 function getSoloRanked(stats: RankedStats | RankedStatsExtended | null | undefined): RankedStats | null {
@@ -118,16 +119,12 @@ export function LandingPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
                     <div style={{ position: 'relative' }}>
                       <img
-                        src={`https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${playerData.profileIconId || '1'}.png`}
-                        alt="Champion"
+                        src={getProfileIconUrl(playerData.profileIconId || 1)}
+                        alt="Profile"
                         className="w-24 h-24 rounded-2xl border-4 border-white shadow-lg"
                         style={{
                           border: '4px solid white',
                           boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)'
-                        }}
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.src = 'https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/Aatrox.png'
                         }}
                       />
                       <div style={{

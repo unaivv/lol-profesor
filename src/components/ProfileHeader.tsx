@@ -1,5 +1,6 @@
 import { Trophy, Shield, Zap, TrendingUp, Calendar, Clock, RefreshCw } from 'lucide-react'
 import { PlayerData, RankedStats, RankedStatsExtended } from '../types/api'
+import { getProfileIconUrl } from '../utils/ddragon'
 
 interface ProfileHeaderProps {
   playerData: PlayerData
@@ -100,13 +101,9 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
           <div className="relative shrink-0">
             <div className="w-28 h-28 rounded-3xl overflow-hidden ring-4 ring-white/20 shadow-2xl">
               <img
-                src={`https://ddragon.leagueoflegends.com/cdn/16.7.1/img/profileicon/${playerData.profileIconId || '1'}.png`}
+                src={getProfileIconUrl(playerData.profileIconId || 1)}
                 alt="Profile"
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.src = 'https://ddragon.leagueoflegends.com/cdn/16.7.1/img/profileicon/1.png'
-                }}
               />
             </div>
             <div className="absolute -bottom-2 -right-2 bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-2xl px-3 py-1 font-bold text-sm border-2 border-slate-800 shadow-lg">

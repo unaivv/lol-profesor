@@ -6,7 +6,7 @@ import { StatsPage } from './pages/StatsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TitleBar } from './components/TitleBar'
 import { SplashScreen } from './components/SplashScreen'
-import { initChampionMap } from './utils/champions'
+import { initChampionMap } from './utils/ddragon'
 
 const isMac = navigator.userAgent.includes('Mac OS')
 

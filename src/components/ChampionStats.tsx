@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Users, Trophy, TrendingUp, BarChart3, Target, Swords } from 'lucide-react'
 import { DetailedMatch } from '../types/api'
+import { getChampionImageUrl } from '../utils/ddragon'
 
 interface ChampionStatsProps {
   matches: DetailedMatch[]
@@ -30,9 +31,7 @@ interface ChampionStat {
 
 type SortKey = 'winRate' | 'games' | 'kda' | 'avgDamage' | 'avgCsPerMinute'
 
-const getChampionIcon = (championId: number): string => {
-  return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championId}.png`
-}
+const getChampionIcon = (championId: number): string => getChampionImageUrl(championId)
 
 const getWinRateColor = (winRate: number): string => {
   if (winRate >= 60) return 'bg-emerald-100 text-emerald-700 border-emerald-200'
@@ -201,10 +200,6 @@ export function ChampionStats({ matches }: ChampionStatsProps) {
                       src={getChampionIcon(champion.championId)}
                       alt={champion.championName}
                       className="w-10 h-10 rounded-lg border-2 border-slate-200 shadow-sm"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement
-                        target.src = 'https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/Aatrox.png'
-                      }}
                     />
                     <div>
                       <div className="font-semibold text-slate-900">{champion.championName}</div>

@@ -1,18 +1,13 @@
 import { Participant } from '../../types/api'
 import { getChampionItems, getTrinket, calculateKDARatio } from '../MatchCard'
+import { getChampionImageUrl } from '../../utils/ddragon'
 
-// Utils
 const getItemIcon = (itemId: number): string => {
   if (itemId === 0) return ''
   return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/item/${itemId}.png`
 }
 
-const getChampionIcon = (championId: number, championName?: string): string => {
-  if (championName) {
-    return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championName}.png`
-  }
-  return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championId}.png`
-}
+const getChampionIcon = (championId: number): string => getChampionImageUrl(championId)
 
 interface PlayerRowProps {
   player: Participant
@@ -87,7 +82,7 @@ export function PlayerRow({ player, isCurrentPlayer, isMVP, onPlayerClick }: Pla
         </div>
       )}
       <img
-        src={getChampionIcon(player.championId, player.championName)}
+        src={getChampionIcon(player.championId)}
         alt={player.championName}
         style={{ width: '32px', height: '32px', borderRadius: '6px' }}
       />

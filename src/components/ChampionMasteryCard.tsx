@@ -1,6 +1,7 @@
 import { Star, Lock, Clock } from 'lucide-react'
 import { ChampionMastery } from '../types'
 import { getChampionName } from '../lib/champions'
+import { getChampionImageUrl } from '../utils/ddragon'
 
 interface TopChampionData {
   championId: number
@@ -90,13 +91,9 @@ export function ChampionMasteryCard({ mastery }: ChampionMasteryCardProps) {
         <div className="relative">
           <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${getMasteryLevelColor(level)} p-0.5`}>
             <img
-              src={`https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championName}.png`}
+              src={getChampionImageUrl(mastery.championId)}
               alt={championName}
               className="w-full h-full rounded-lg bg-slate-900 object-cover"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement
-                target.src = 'https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/Aatrox.png'
-              }}
             />
           </div>
           {level > 0 && (

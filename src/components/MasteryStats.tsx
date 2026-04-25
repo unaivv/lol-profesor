@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Star, Trophy, Target, Zap, Crown, Clock } from 'lucide-react'
 import { DetailedMatch } from '../types/api'
+import { getChampionImageUrl } from '../utils/ddragon'
 
 interface MasteryStatsProps {
   matches: DetailedMatch[]
@@ -25,9 +26,7 @@ interface ChampionMastery {
 
 type SortKey = 'masteryLevel' | 'masteryPoints' | 'winRate' | 'gamesPlayed'
 
-const getChampionIcon = (championId: number): string => {
-  return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championId}.png`
-}
+const getChampionIcon = (championId: number): string => getChampionImageUrl(championId)
 
 const getMasteryLevelColor = (level: number): string => {
   switch (level) {
