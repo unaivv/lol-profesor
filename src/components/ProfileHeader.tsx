@@ -93,7 +93,7 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
     : 0
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+    <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
       {/* Main Profile Section with Gradient */}
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6 lg:p-8">
         <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6">
@@ -204,7 +204,7 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
       </div>
 
       {/* Bottom Info Bar */}
-      <div className="bg-slate-50 border-t border-slate-200 px-6 py-3">
+      <div className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
             {bestRanked?.hotStreak && (
@@ -220,14 +220,14 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-500">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <Clock size={12} />
             <span>{formatTimeAgo(cachedAt)}</span>
             {onRefresh && (
               <button
                 onClick={onRefresh}
                 disabled={isRefreshing}
-                className="flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-50"
               >
                 <RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
                 {isRefreshing ? 'Actualizando...' : 'Actualizar'}

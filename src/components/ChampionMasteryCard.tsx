@@ -86,7 +86,7 @@ export function ChampionMasteryCard({ mastery }: ChampionMasteryCardProps) {
   const wins = 'wins' in mastery ? mastery.wins : 0
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-4 hover:shadow-xl transition-shadow">
+    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 hover:shadow-xl transition-shadow">
       <div className="flex items-start gap-4 mb-4">
         <div className="relative">
           <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${getMasteryLevelColor(level)} p-0.5`}>
@@ -109,11 +109,11 @@ export function ChampionMasteryCard({ mastery }: ChampionMasteryCardProps) {
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-slate-900 truncate">{championName}</h3>
-          <p className="text-xs text-slate-500">{getMasteryLevelText(level)}</p>
+          <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate">{championName}</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{getMasteryLevelText(level)}</p>
           <div className="flex items-center gap-2 mt-1">
             <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-            <span className="text-sm font-semibold text-slate-700">{formatPoints(masteryData.championPoints || 0)} pts</span>
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{formatPoints(masteryData.championPoints || 0)} pts</span>
           </div>
           {totalGames > 0 && (
             <div className="text-xs text-slate-500 mt-1">
@@ -129,7 +129,7 @@ export function ChampionMasteryCard({ mastery }: ChampionMasteryCardProps) {
             <span className="text-slate-500">Progreso a M{nextLevel}</span>
             <span className="font-medium text-slate-700">{progress}%</span>
           </div>
-          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full bg-gradient-to-r ${getMasteryLevelColor(level)}`}
               style={{ width: `${progress}%` }}
@@ -158,7 +158,7 @@ export function ChampionMasteryCard({ mastery }: ChampionMasteryCardProps) {
       )}
 
       {masteryData.lastPlayTime && masteryData.lastPlayTime > 0 && (
-        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+        <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
           <Clock className="w-3.5 h-3.5" />
           <span>Última partida: {formatLastPlayed(masteryData.lastPlayTime)}</span>
         </div>

@@ -152,7 +152,7 @@ export function ChampionStats({ matches, playerPuuid, mastery = [] }: ChampionSt
   }, [matches, mastery, playerPuuid, sortBy, sortOrder])
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -194,26 +194,26 @@ export function ChampionStats({ matches, playerPuuid, mastery = [] }: ChampionSt
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-slate-50 border-b border-slate-200">
+          <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Campeón</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Maestría</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Partidas rec.</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Win Rate</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">KDA</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">K/D/A Prom</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">CS/min</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Campeón</th>
+              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Maestría</th>
+              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Partidas rec.</th>
+              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Win Rate</th>
+              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">KDA</th>
+              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">K/D/A Prom</th>
+              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">CS/min</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
             {championStats.map(c => (
-              <tr key={c.championId} className="hover:bg-slate-50 transition-colors">
+              <tr key={c.championId} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-3">
                     <img src={getChampionImageUrl(c.championId)} alt={c.championName} className="w-10 h-10 rounded-lg border-2 border-slate-200 shadow-sm" />
                     <div>
-                      <div className="font-semibold text-slate-900">{c.championName}</div>
-                      {c.games > 0 && <div className="text-xs text-slate-500">{c.wins}V {c.losses}D</div>}
+                      <div className="font-semibold text-slate-900 dark:text-slate-100">{c.championName}</div>
+                      {c.games > 0 && <div className="text-xs text-slate-500 dark:text-slate-400">{c.wins}V {c.losses}D</div>}
                     </div>
                   </div>
                 </td>
@@ -227,28 +227,28 @@ export function ChampionStats({ matches, playerPuuid, mastery = [] }: ChampionSt
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-center">
                   {c.games > 0
-                    ? <span className="font-semibold text-slate-900">{c.games}</span>
-                    : <span className="text-slate-300">—</span>}
+                    ? <span className="font-semibold text-slate-900 dark:text-slate-100">{c.games}</span>
+                    : <span className="text-slate-300 dark:text-slate-600">—</span>}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-center">
                   {c.winRate !== null
                     ? <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${winRateClass(c.winRate)}`}>{c.winRate.toFixed(1)}%</span>
-                    : <span className="text-slate-300">—</span>}
+                    : <span className="text-slate-300 dark:text-slate-600">—</span>}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-center">
                   {c.kda !== null
                     ? <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${kdaClass(c.kda)}`}>{c.kda.toFixed(2)}</span>
-                    : <span className="text-slate-300">—</span>}
+                    : <span className="text-slate-300 dark:text-slate-600">—</span>}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-center">
                   {c.avgKills !== null
                     ? <span className="text-sm font-medium text-slate-700">{c.avgKills.toFixed(1)}/<span className="text-rose-500">{c.avgDeaths!.toFixed(1)}</span>/{c.avgAssists!.toFixed(1)}</span>
-                    : <span className="text-slate-300">—</span>}
+                    : <span className="text-slate-300 dark:text-slate-600">—</span>}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-center">
                   {c.avgCsPerMinute !== null
                     ? <span className={`text-sm font-medium ${c.avgCsPerMinute >= 7 ? 'text-emerald-600' : c.avgCsPerMinute >= 5 ? 'text-blue-600' : 'text-slate-600'}`}>{c.avgCsPerMinute.toFixed(1)}</span>
-                    : <span className="text-slate-300">—</span>}
+                    : <span className="text-slate-300 dark:text-slate-600">—</span>}
                 </td>
               </tr>
             ))}

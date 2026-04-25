@@ -339,8 +339,9 @@ export function PerformanceRadar({ matches, playerPuuid }: PerformanceRadarProps
   return (
     <div style={{
       padding: '20px',
-      background: 'white',
+      background: 'var(--bg-card)',
       borderRadius: '16px',
+      border: '1px solid var(--border-color)',
       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
     }}>
       <div style={{ 
@@ -352,7 +353,7 @@ export function PerformanceRadar({ matches, playerPuuid }: PerformanceRadarProps
         <h3 style={{ 
           fontSize: '16px', 
           fontWeight: 700, 
-          color: '#1e293b',
+          color: 'var(--text-primary)',
           display: 'flex',
           alignItems: 'center',
           gap: '8px'
@@ -390,13 +391,13 @@ export function PerformanceRadar({ matches, playerPuuid }: PerformanceRadarProps
             alignItems: 'center',
             gap: '6px',
             padding: '6px 8px',
-            background: '#f8fafc',
+            background: 'var(--bg-card-subtle)',
             borderRadius: '8px'
           }}>
             <span style={{ fontSize: '12px' }}>{m.icon}</span>
             <div>
-              <div style={{ fontSize: '10px', color: '#64748b' }}>{m.label}</div>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#1e293b' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{m.label}</div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
                 {m.value}/100
               </div>
             </div>

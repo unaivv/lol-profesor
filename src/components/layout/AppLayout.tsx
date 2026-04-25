@@ -5,7 +5,7 @@ export function AppLayout() {
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
       <Sidebar />
-      <main style={{ flex: 1, overflowY: 'auto', background: '#f8fafc' }}>
+      <main style={{ flex: 1, overflowY: 'auto', background: 'var(--bg-page)' }}>
         <Outlet />
       </main>
     </div>

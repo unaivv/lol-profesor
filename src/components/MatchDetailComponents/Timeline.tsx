@@ -188,13 +188,13 @@ export function Timeline({ gameId, match }: TimelineProps) {
   if (timelineLoading) {
     return (
       <div style={{
-        background: '#f8fafc',
+        background: 'var(--bg-card-subtle)',
         borderRadius: '12px',
         padding: '20px',
-        border: '1px solid #e2e8f0',
+        border: '1px solid var(--border-color)',
         minHeight: '160px'
       }}>
-        <div style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
+        <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px' }}>
           Cargando timeline...
         </div>
       </div>
@@ -204,13 +204,13 @@ export function Timeline({ gameId, match }: TimelineProps) {
   if (timelineError) {
     return (
       <div style={{
-        background: '#f8fafc',
+        background: 'var(--bg-card-subtle)',
         borderRadius: '12px',
         padding: '20px',
-        border: '1px solid #e2e8f0',
+        border: '1px solid var(--border-color)',
         minHeight: '160px'
       }}>
-        <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>
+        <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>
           {timelineError}
         </div>
       </div>
@@ -221,15 +221,15 @@ export function Timeline({ gameId, match }: TimelineProps) {
     <div>
       {/* Timeline Visual con línea horizontal */}
       <div style={{
-        background: '#f8fafc',
+        background: 'var(--bg-card-subtle)',
         borderRadius: '12px',
         padding: '20px',
-        border: '1px solid #e2e8f0',
+        border: '1px solid var(--border-color)',
         minHeight: '160px',
         overflowX: 'hidden',
         marginBottom: '24px'
       }}>
-        <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Zap size={16} color="#8b5cf6" />
           Timeline - Línea de Tiempo
         </h3>
@@ -270,7 +270,7 @@ export function Timeline({ gameId, match }: TimelineProps) {
                     }} />
                     <div style={{
                       fontSize: '10px',
-                      color: '#64748b',
+                      color: 'var(--text-secondary)',
                       marginTop: '4px',
                       whiteSpace: 'nowrap'
                     }}>
@@ -382,51 +382,51 @@ export function Timeline({ gameId, match }: TimelineProps) {
             </div>
 
             {/* Leyenda */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <div style={{ width: '10px', height: '10px', background: '#3b82f6', borderRadius: '50%' }} />
-                <span style={{ fontSize: '11px', color: '#64748b' }}>Equipo Azul ({keyEvents.blue.length})</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Equipo Azul ({keyEvents.blue.length})</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <div style={{ width: '10px', height: '10px', background: '#ef4444', borderRadius: '50%' }} />
-                <span style={{ fontSize: '11px', color: '#64748b' }}>Equipo Rojo ({keyEvents.red.length})</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Equipo Rojo ({keyEvents.red.length})</span>
               </div>
             </div>
           </div>
         ) : (
-          <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>
             No hay timeline disponible
           </div>
         )}
       </div>
 
       {/* Lista de eventos detallada con timeline sincronizado */}
-      <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
         <Zap size={16} color="#8b5cf6" />
         Línea de Tiempo Sincronizada
       </h3>
 
       <div style={{
-        background: '#f8fafc',
+        background: 'var(--bg-card-subtle)',
         borderRadius: '12px',
         padding: '16px',
-        border: '1px solid #e2e8f0',
+        border: '1px solid var(--border-color)',
         minHeight: '120px',
         width: '100%',
         boxSizing: 'border-box'
       }}>
         {timelineLoading ? (
-          <div style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
+          <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px' }}>
             Cargando timeline...
           </div>
         ) : timelineError ? (
-          <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>
             {timelineError}
           </div>
         ) : keyEvents && keyEvents.merged.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             {/* Header */}
-            <div style={{ display: 'flex', padding: '4px 4px', fontSize: '10px', fontWeight: 600, color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', padding: '4px 4px', fontSize: '10px', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)' }}>
               <div style={{ width: '40px', flexShrink: 0 }}>Tiempo</div>
               <div style={{ flex: 1, minWidth: 0, paddingLeft: '4px' }}>Azul</div>
               <div style={{ flex: 1, minWidth: 0, paddingLeft: '4px' }}>Rojo</div>
@@ -444,10 +444,10 @@ export function Timeline({ gameId, match }: TimelineProps) {
                       display: 'flex',
                       alignItems: 'center',
                       padding: '4px 4px',
-                      background: rowIdx % 2 === 0 ? 'white' : '#f8fafc',
+                      background: rowIdx % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-card-subtle)',
                       borderRadius: '4px',
                       fontSize: '11px',
-                      borderBottom: '1px solid #f1f5f9',
+                      borderBottom: '1px solid var(--border-color)',
                       transition: 'background 0.2s, border 0.2s',
                       border: isActive ? '2px solid #3b82f6' : '1px solid transparent',
                       width: '100%',
@@ -456,7 +456,7 @@ export function Timeline({ gameId, match }: TimelineProps) {
                     }}
                   >
                     {/* Tiempo */}
-                    <div style={{ width: '40px', fontWeight: 600, color: '#64748b', flexShrink: 0 }}>
+                    <div style={{ width: '40px', fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0 }}>
                       {row.time}
                     </div>
 
@@ -465,10 +465,10 @@ export function Timeline({ gameId, match }: TimelineProps) {
                       {row.blue ? (
                         <>
                           <div style={{ width: '6px', height: '6px', background: '#3b82f6', borderRadius: '50%', flexShrink: 0 }} />
-                          <span style={{ color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.blue.typeLabel}</span>
+                          <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.blue.typeLabel}</span>
                         </>
                       ) : (
-                        <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>—</span>
+                        <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>
                       )}
                     </div>
 
@@ -477,10 +477,10 @@ export function Timeline({ gameId, match }: TimelineProps) {
                       {row.red ? (
                         <>
                           <div style={{ width: '6px', height: '6px', background: '#ef4444', borderRadius: '50%', flexShrink: 0 }} />
-                          <span style={{ color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.red.typeLabel}</span>
+                          <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.red.typeLabel}</span>
                         </>
                       ) : (
-                        <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>—</span>
+                        <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>
                       )}
                     </div>
                   </div>
@@ -489,7 +489,7 @@ export function Timeline({ gameId, match }: TimelineProps) {
             </div>
           </div>
         ) : (
-          <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>
             No hay eventos destacados disponibles
           </div>
         )}

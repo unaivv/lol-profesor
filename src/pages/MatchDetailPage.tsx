@@ -111,7 +111,7 @@ export function MatchDetailPage() {
 
   if (!state?.match) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
         <p>No se encontraron datos de la partida.</p>
         <button onClick={() => navigate(-1)} style={{ marginTop: '16px', padding: '8px 16px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
           Volver
@@ -148,17 +148,17 @@ export function MatchDetailPage() {
   }
 
   return (
-    <div style={{ minHeight: '100%', background: '#f8fafc' }}>
+    <div style={{ minHeight: '100%', background: 'var(--bg-page)' }}>
       {/* Topbar */}
-      <div style={{ padding: '12px 24px', background: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 10 }}>
+      <div style={{ padding: '12px 24px', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 10 }}>
         <button
           onClick={() => navigate(-1)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', color: '#475569', fontSize: '13px', fontWeight: 500 }}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500 }}
         >
           <ChevronLeft size={16} />
           Volver
         </button>
-        <div style={{ color: '#94a3b8', fontSize: '13px' }}>
+        <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
           {getQueueName(match.queueId)} · {formatDuration(match.gameDuration)}
         </div>
       </div>
@@ -195,31 +195,31 @@ export function MatchDetailPage() {
         {/* Performance + Build */}
         <div style={S.statsGrid}>
           <div>
-            <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Shield size={15} color="#3b82f6" /> Tu Performance
             </h3>
             <div style={S.performanceCard}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '14px' }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b' }}>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
                     {currentPlayer?.kills}/{currentPlayer?.deaths}/{currentPlayer?.assists}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>KDA</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>KDA</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '18px', fontWeight: 700, color: '#ca8a04' }}>{formatGold(currentPlayer?.goldEarned || 0)}</div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>Gold</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Gold</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '18px', fontWeight: 700, color: '#059669' }}>{currentPlayer?.totalMinionsKilled || 0}</div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>CS</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>CS</div>
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                 {[['CS/min', csPerMin], ['Gold/min', goldPerMin], ['Dmg/min', dmgPerMin]].map(([label, val]) => (
-                  <div key={label as string} style={{ background: 'white', padding: '7px', borderRadius: '6px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>{val}</div>
-                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>{label}</div>
+                  <div key={label as string} style={{ background: 'var(--bg-card)', padding: '7px', borderRadius: '6px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>{val}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{label}</div>
                   </div>
                 ))}
               </div>
@@ -227,7 +227,7 @@ export function MatchDetailPage() {
           </div>
 
           <div>
-            <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Target size={15} color="#f59e0b" /> Tu Build
             </h3>
             <div style={S.buildCard}>
@@ -243,14 +243,14 @@ export function MatchDetailPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', color: '#64748b' }}>Trinket:</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Trinket:</span>
                   {currentPlayer?.item6 && currentPlayer.item6 > 0 && (
                     <div style={{ width: '28px', height: '28px', background: '#0f172a', borderRadius: '4px', overflow: 'hidden' }}>
                       <img src={getItemIcon(currentPlayer.item6)} alt="" style={{ width: '100%', height: '100%' }} />
                     </div>
                   )}
                 </div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                   {(currentPlayer?.damageDealtToChampions || 0).toLocaleString()} dmg
                 </div>
               </div>

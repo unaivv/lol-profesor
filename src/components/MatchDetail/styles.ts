@@ -84,14 +84,14 @@ export const statsGrid = {
 }
 
 export const performanceCard = {
-  background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+  background: 'var(--bg-card-subtle)',
   borderRadius: '12px',
   padding: '16px',
   border: '1px solid #93c5fd'
 }
 
 export const buildCard = {
-  background: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)',
+  background: 'var(--bg-card-subtle)',
   borderRadius: '12px',
   padding: '16px',
   border: '1px solid #fde047'
@@ -109,14 +109,17 @@ export const itemSlot = (item: number) => ({
 export const teamSection = {
   display: 'flex',
   flexDirection: 'column' as const,
-  gap: '4px'
+  gap: '4px',
+  background: 'var(--bg-card)',
+  borderRadius: '8px',
+  padding: '4px'
 }
 
 // Note: accentColor passed but ignored for baseline styling
 export const teamTitle = (_color: string) => ({
   fontSize: '14px',
   fontWeight: 600,
-  color: '#1e293b',
+  color: 'var(--text-primary)',
   marginBottom: '8px',
   display: 'flex',
   alignItems: 'center',
@@ -157,7 +160,7 @@ export const championIcon = {
 export const championName = (isCurrentPlayer: boolean) => ({
   fontSize: '12px',
   fontWeight: isCurrentPlayer ? 700 : 500,
-  color: isCurrentPlayer ? '#b45309' : '#1e293b',
+  color: isCurrentPlayer ? '#b45309' : 'var(--text-primary)',
   whiteSpace: 'nowrap' as const,
   overflow: 'hidden',
   textOverflow: 'ellipsis'
@@ -165,7 +168,7 @@ export const championName = (isCurrentPlayer: boolean) => ({
 
 export const championDetail = {
   fontSize: '10px',
-  color: '#64748b'
+  color: 'var(--text-secondary)'
 }
 
 // Note: color passed for future use

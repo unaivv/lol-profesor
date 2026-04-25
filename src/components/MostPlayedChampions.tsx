@@ -53,8 +53,8 @@ export function MostPlayedChampions({ matches, playerPuuid, mastery }: MostPlaye
   if (topChampions.length === 0) return null
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-4">
-      <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-4">
+      <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-2">
         <Star className="w-5 h-5 text-yellow-500" />
         Más Jugados
       </h3>

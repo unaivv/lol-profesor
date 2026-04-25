@@ -2,7 +2,8 @@ import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, RefreshCw, CheckCircle, Download, AlertCircle } from 'lucide-react'
+import { ArrowLeft, RefreshCw, CheckCircle, Download, AlertCircle, Monitor, Sun, Moon } from 'lucide-react'
+import { useTheme, type Theme } from '../context/ThemeContext'
 
 type UpdateState =
   | { status: 'idle' }
@@ -13,8 +14,15 @@ type UpdateState =
   | { status: 'ready' }
   | { status: 'error'; message: string }
 
+const THEME_OPTIONS: { value: Theme; label: string; Icon: React.ElementType }[] = [
+  { value: 'system', label: 'Sistema', Icon: Monitor },
+  { value: 'light',  label: 'Claro',   Icon: Sun },
+  { value: 'dark',   label: 'Oscuro',  Icon: Moon },
+]
+
 export function SettingsPage() {
   const navigate = useNavigate()
+  const { theme, setTheme } = useTheme()
   const [update, setUpdate] = useState<UpdateState>({ status: 'idle' })
 
   const checkForUpdates = async () => {
@@ -81,6 +89,44 @@ export function SettingsPage() {
         }}>
           Configuración
         </h1>
+
+        {/* Apariencia */}
+        <div style={{
+          background: 'white', borderRadius: '16px', padding: '24px',
+          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)',
+          border: '1px solid rgba(99,102,241,0.08)', marginBottom: '16px',
+        }}>
+          <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+            Apariencia
+          </h2>
+          <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>
+            Elegí el tema de la interfaz
+          </p>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {THEME_OPTIONS.map(({ value, label, Icon }) => {
+              const active = theme === value
+              return (
+                <button
+                  key={value}
+                  onClick={() => setTheme(value)}
+                  style={{
+                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    gap: '6px', padding: '12px 8px', borderRadius: '10px', border: 'none',
+                    cursor: 'pointer', transition: 'all 0.15s',
+                    background: active ? 'linear-gradient(135deg, #3b82f6, #9333ea)' : '#f3f4f6',
+                    color: active ? 'white' : '#374151',
+                    fontWeight: active ? 600 : 400,
+                    fontSize: '13px',
+                    boxShadow: active ? '0 4px 12px rgba(59,130,246,0.3)' : 'none',
+                  }}
+                >
+                  <Icon size={18} />
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
 
         {/* Actualizaciones */}
         <div style={{

@@ -115,7 +115,7 @@ export function StatsPage() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px' }}>
         <img src="/logo_sin_texto_sin_fondo.png" alt="" style={{ width: '56px', height: '56px', objectFit: 'contain', marginBottom: '16px', opacity: 0.8, animation: 'pulse 1.5s ease-in-out infinite' }} />
-        <p style={{ color: '#64748b', fontSize: '14px' }}>Cargando estadísticas...</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Cargando estadísticas...</p>
       </div>
     )
   }
@@ -123,10 +123,10 @@ export function StatsPage() {
   if (error) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px' }}>
-        <div style={{ background: 'white', borderRadius: '12px', padding: '32px', maxWidth: '360px', width: '100%', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+        <div style={{ background: 'var(--bg-card)', borderRadius: '12px', padding: '32px', maxWidth: '360px', width: '100%', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
           <X size={32} style={{ color: '#ef4444', marginBottom: '12px' }} />
-          <h3 style={{ color: '#1e293b', fontWeight: 600, marginBottom: '8px' }}>Error al cargar</h3>
-          <p style={{ color: '#64748b', fontSize: '14px' }}>{error}</p>
+          <h3 style={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: '8px' }}>Error al cargar</h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{error}</p>
         </div>
       </div>
     )
@@ -136,7 +136,7 @@ export function StatsPage() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px' }}>
         <Trophy size={32} style={{ color: '#94a3b8', marginBottom: '12px' }} />
-        <p style={{ color: '#64748b', fontSize: '14px' }}>No hay datos del jugador</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>No hay datos del jugador</p>
       </div>
     )
   }
@@ -179,7 +179,7 @@ export function StatsPage() {
           loadingExtended ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 40px' }}>
               <img src="/logo_sin_texto_sin_fondo.png" alt="" style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '16px', opacity: 0.6, animation: 'pulse 1.5s ease-in-out infinite' }} />
-              <p style={{ color: '#64748b', fontSize: '14px' }}>Cargando últimas 100 partidas...</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Cargando últimas 100 partidas...</p>
             </div>
           ) : (
             <ChampionStats

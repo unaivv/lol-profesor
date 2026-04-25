@@ -10,6 +10,7 @@ import { TitleBar } from './components/TitleBar'
 import { SplashScreen } from './components/SplashScreen'
 import { initChampionMap } from './utils/ddragon'
 import { useMyProfile } from './hooks/useMyProfile'
+import { ThemeProvider } from './context/ThemeContext'
 import { useState } from 'react'
 
 const isMac = navigator.userAgent.includes('Mac OS')
@@ -73,9 +74,11 @@ function StatsPageRedirect() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppInner />
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <AppInner />
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }
 

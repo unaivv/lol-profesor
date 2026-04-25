@@ -112,9 +112,9 @@ export function MatchCard({ match, playerPuuid, onExpand, isExpanded }: MatchCar
     <div style={{
       borderRadius: '12px',
       border: teamWon ? '2px solid #10b981' : '2px solid #ef4444',
-      background: teamWon 
-        ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%)'
-        : 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.02) 100%)',
+      background: teamWon
+        ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, var(--bg-card) 100%)'
+        : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, var(--bg-card) 100%)',
       overflow: 'hidden',
       transition: 'all 0.2s ease',
       marginBottom: '8px'
@@ -135,10 +135,10 @@ export function MatchCard({ match, playerPuuid, onExpand, isExpanded }: MatchCar
                 style={{ width: '48px', height: '48px', borderRadius: '8px', border: '2px solid #eab308' }}
               />
               <div>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b' }}>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
                   {currentPlayer.summonerName || currentPlayer.championName}
                 </div>
-                <div style={{ fontSize: '11px', color: '#64748b' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                   {currentPlayer.championName} • lvl {currentPlayer.championLevel}
                 </div>
               </div>
@@ -172,7 +172,7 @@ export function MatchCard({ match, playerPuuid, onExpand, isExpanded }: MatchCar
               <span>{formatDuration(match.gameDuration)}</span>
             </div>
 
-            <div style={{ fontSize: '11px', color: '#94a3b8', padding: '2px 8px', background: '#f1f5f9', borderRadius: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', padding: '2px 8px', background: 'var(--bg-card-subtle)', borderRadius: '4px' }}>
               {getQueueName(match.queueId)}
             </div>
 
@@ -189,10 +189,10 @@ export function MatchCard({ match, playerPuuid, onExpand, isExpanded }: MatchCar
             width: '32px',
             height: '32px',
             borderRadius: '8px',
-            border: '1px solid #e2e8f0',
-            background: 'white',
+            border: '1px solid var(--border-color)',
+            background: 'var(--bg-card)',
             cursor: 'pointer',
-            color: '#64748b',
+            color: 'var(--text-secondary)',
             flexShrink: 0
           }}>
             {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
