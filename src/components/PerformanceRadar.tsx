@@ -61,7 +61,7 @@ export const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string)
 
     validMatchCount++
 
-    const minutes = Math.max(player.timePlayed / 60, 1)
+    const minutes = Math.max((player.timePlayed || match.gameDuration || 0) / 60, 15)
 
     // Farm: CS/min (jungle minions included)
     const csPerMin = player.totalMinionsKilled / minutes
@@ -143,7 +143,7 @@ export const calculateRawMetrics = (matches: DetailedMatch[], playerPuuid?: stri
     if (!player) return
     n++
 
-    const minutes = Math.max(player.timePlayed / 60, 1)
+    const minutes = Math.max((player.timePlayed || match.gameDuration || 0) / 60, 15)
     const teamKills = match.participants
       ?.filter(p => p.teamId === player.teamId)
       .reduce((sum, p) => sum + p.kills, 0) ?? 0
