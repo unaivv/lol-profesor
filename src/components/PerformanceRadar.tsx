@@ -57,7 +57,12 @@ export const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string)
       ? match.participants?.find(p => p.puuid === playerPuuid)
       : match.participants?.[0]
 
-    if (!player) return
+    if (!player) {
+      console.log('[survival] no player found for puuid:', playerPuuid, 'match:', match.gameId)
+      return
+    }
+
+    console.log('[survival] player found:', player.puuid, 'deaths:', player.deaths, 'timePlayed:', player.timePlayed, 'gameDuration:', match.gameDuration)
 
     validMatchCount++
 
