@@ -1,6 +1,6 @@
 [package]
 name = "lol-professor"
-version = "1.1.0"
+version = "1.1.1"
 description = "League of Legends statistics and match analysis app"
 authors = ["LoL Professor"]
 edition = "2021"
