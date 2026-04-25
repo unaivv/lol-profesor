@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { Home, Users, Star, Zap, Settings, Search, Loader2, AlertCircle, User } from 'lucide-react'
 import { useMyProfile } from '../../hooks/useMyProfile'
@@ -20,7 +20,7 @@ const ACTIVE_BORDER = '#3b82f6'
 const TEXT = '#f1f5f9'
 const TEXT_MUTED = '#64748b'
 
-function getCachedProfileIconId(): number {
+function readProfileIconId(): number {
   try {
     const raw = localStorage.getItem('lolProfessorPlayer')
     if (raw) return JSON.parse(raw).profileIconId || 1
@@ -39,6 +39,14 @@ export function Sidebar() {
   const [region, setRegion] = useState('EUW')
   const [searching, setSearching] = useState(false)
   const [searchErr, setSearchErr] = useState<string | null>(null)
+  const [iconId, setIconId] = useState(readProfileIconId)
+  const [iconError, setIconError] = useState(false)
+
+  // Re-read icon when navigating (player data may have loaded)
+  useEffect(() => {
+    setIconId(readProfileIconId())
+    setIconError(false)
+  }, [location.pathname])
 
   const onPlayerPage = location.pathname === '/me' || location.pathname.startsWith('/player/')
   const onSettings = location.pathname === '/settings'
@@ -102,8 +110,17 @@ export function Sidebar() {
               padding: '8px 10px',
             }}
           >
-            <div style={{ width: '32px', height: '32px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, background: '#1e293b' }}>
-              <img src={getProfileIconUrl(getCachedProfileIconId())} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div style={{ width: '32px', height: '32px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {iconError ? (
+                <User size={18} color={TEXT_MUTED} />
+              ) : (
+                <img
+                  src={getProfileIconUrl(iconId)}
+                  alt=""
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={() => setIconError(true)}
+                />
+              )}
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ color: TEXT, fontSize: '12px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
