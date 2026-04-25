@@ -150,7 +150,7 @@ export function MatchDetailPage() {
   return (
     <div style={{ minHeight: '100%', background: 'var(--bg-page)' }}>
       {/* Topbar */}
-      <div style={{ padding: '12px 24px', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 10 }}>
+      <div style={{ padding: '12px 24px', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 100 }}>
         <button
           onClick={() => navigate(-1)}
           style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500 }}
@@ -163,7 +163,7 @@ export function MatchDetailPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '24px' }}>
+      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '24px 24px 0' }}>
         {/* Match header */}
         <div style={{ background: 'linear-gradient(90deg, #1e293b 0%, #0f172a 100%)', borderRadius: '12px', padding: '20px 24px', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

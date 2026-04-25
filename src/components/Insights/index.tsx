@@ -57,15 +57,11 @@ export default function Insights({ matchGameId, playerPuuid, recentMetrics }: In
 
   return (
     <>
-      {/* Fixed Analyze Button - Always visible */}
+      {/* Sticky Analyze Button */}
       <div style={{
-        position: 'absolute',
+        position: 'sticky',
         bottom: 0,
-        left: 0,
-        right: 0,
-        padding: '16px 24px',
-        background: 'white',
-        borderTop: '1px solid #e2e8f0',
+        padding: '16px 0',
         display: 'flex',
         justifyContent: 'center',
         zIndex: 20
@@ -113,15 +109,15 @@ export default function Insights({ matchGameId, playerPuuid, recentMetrics }: In
         )}
 
         {aiAnalysis && (
-          <div style={{ marginTop: '16px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-            <h4 style={{ fontSize: '16px', fontWeight: 600, color: '#1e293b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ marginTop: '16px', padding: '16px', background: 'var(--bg-card-subtle)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Sparkles size={18} color="#8b5cf6" />
               Análisis de la partida
             </h4>
-            <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.6 }}>{aiAnalysis.summary}</p>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{aiAnalysis.summary}</p>
             {aiAnalysis.insights && aiAnalysis.insights.length > 0 && (
               <div style={{ marginTop: '16px' }}>
-                <h5 style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', marginBottom: '8px' }}>Insights:</h5>
+                <h5 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>Insights:</h5>
                 {aiAnalysis.insights.map((insight: any, idx: number) => (
                   <div key={idx} style={{
                     marginBottom: '8px',

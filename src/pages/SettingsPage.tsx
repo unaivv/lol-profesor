@@ -66,7 +66,7 @@ export function SettingsPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #f3e8ff 100%)',
+      background: 'var(--bg-page)',
       padding: '32px',
     }}>
       <div style={{ maxWidth: '600px', margin: '0 auto' }}>
@@ -75,7 +75,7 @@ export function SettingsPage() {
           style={{
             display: 'flex', alignItems: 'center', gap: '8px',
             background: 'none', border: 'none', cursor: 'pointer',
-            color: '#6b7280', fontSize: '14px', marginBottom: '24px',
+            color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px',
             padding: 0,
           }}
         >
@@ -92,14 +92,14 @@ export function SettingsPage() {
 
         {/* Apariencia */}
         <div style={{
-          background: 'white', borderRadius: '16px', padding: '24px',
+          background: 'var(--bg-card)', borderRadius: '16px', padding: '24px',
           boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)',
-          border: '1px solid rgba(99,102,241,0.08)', marginBottom: '16px',
+          border: '1px solid var(--border-color)', marginBottom: '16px',
         }}>
-          <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
             Apariencia
           </h2>
-          <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
             Elegí el tema de la interfaz
           </p>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -113,8 +113,8 @@ export function SettingsPage() {
                     flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
                     gap: '6px', padding: '12px 8px', borderRadius: '10px', border: 'none',
                     cursor: 'pointer', transition: 'all 0.15s',
-                    background: active ? 'linear-gradient(135deg, #3b82f6, #9333ea)' : '#f3f4f6',
-                    color: active ? 'white' : '#374151',
+                    background: active ? 'linear-gradient(135deg, #3b82f6, #9333ea)' : 'var(--bg-card-subtle)',
+                    color: active ? 'white' : 'var(--text-primary)',
                     fontWeight: active ? 600 : 400,
                     fontSize: '13px',
                     boxShadow: active ? '0 4px 12px rgba(59,130,246,0.3)' : 'none',
@@ -130,14 +130,14 @@ export function SettingsPage() {
 
         {/* Actualizaciones */}
         <div style={{
-          background: 'white', borderRadius: '16px', padding: '24px',
+          background: 'var(--bg-card)', borderRadius: '16px', padding: '24px',
           boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)',
-          border: '1px solid rgba(99,102,241,0.08)',
+          border: '1px solid var(--border-color)',
         }}>
-          <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
             Actualizaciones
           </h2>
-          <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
             Versión actual: <strong>{__APP_VERSION__}</strong>
           </p>
 
