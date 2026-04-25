@@ -2,9 +2,8 @@ use tauri::State;
 use crate::error::ApiError;
 use crate::models::match_::{Match, MatchDetail};
 use crate::models::timeline::MatchTimeline;
-use crate::models::summoner::RiotAccount;
 use crate::AppState;
-use crate::db::{match_cache, summoner_cache};
+use crate::db::match_cache;
 use super::{extract_perks, participant_from_json};
 
 #[tauri::command]
@@ -137,73 +136,13 @@ pub async fn get_match_details(
         match state.riot_client.get::<serde_json::Value>(&match_url).await {
             Ok(match_data) => {
                 let info = &match_data["info"];
-                let participant_puuids: Vec<String> = match_data["metadata"]["participants"]
-                    .as_array()
-                    .cloned()
-                    .unwrap_or_default()
-                    .iter()
-                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                    .collect();
-
-                // Resolve names for all participants
-                let name_futures: Vec<_> = participant_puuids
-                    .iter()
-                    .map(|puid| {
-                        let puid = puid.clone();
-                        let db = state.db.clone();
-                        let riot_client = state.riot_client.clone();
-                        let global_url = global_url.clone();
-                        let regional_url = regional_url.clone();
-                        async move {
-                            // Check DB first
-                            if let Ok(Some((gname, tag, icon))) =
-                                summoner_cache::get(&db, &puid)
-                            {
-                                return (format!("{}#{}", gname, tag), icon);
-                            }
-
-                            // Try account API
-                            let acc_url = format!(
-                                "{}/riot/account/v1/accounts/by-puuid/{}",
-                                global_url, puid
-                            );
-                            if let Ok(acc) = riot_client.get::<RiotAccount>(&acc_url).await {
-                                let _ = summoner_cache::set(
-                                    &db, &puid, &acc.game_name, &acc.tag_line, 1,
-                                );
-                                return (format!("{}#{}", acc.game_name, acc.tag_line), 1);
-                            }
-
-                            // Try summoner API
-                            let sum_url = format!(
-                                "{}/lol/summoner/v4/summoners/by-puuid/{}",
-                                regional_url, puid
-                            );
-                            if let Ok(sum) =
-                                riot_client.get::<serde_json::Value>(&sum_url).await
-                            {
-                                let name = sum["name"].as_str().unwrap_or("").to_string();
-                                let icon = sum["profileIconId"].as_i64().unwrap_or(1);
-                                return (name, icon);
-                            }
-
-                            ("".to_string(), 1)
-                        }
-                    })
-                    .collect();
-
-                let names: Vec<(String, i64)> = futures::future::join_all(name_futures).await;
 
                 let participants = info["participants"]
                     .as_array()
                     .map(|parts| {
                         parts
                             .iter()
-                            .enumerate()
-                            .map(|(i, p)| {
-                                let name = names.get(i).map(|(n, _)| n.as_str()).unwrap_or("");
-                                participant_from_json(p, name)
-                            })
+                            .map(|p| participant_from_json(p, ""))
                             .collect()
                     })
                     .unwrap_or_default();

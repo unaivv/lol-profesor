@@ -66,13 +66,25 @@ pub fn participant_from_json(
 
     let champ_level = p["champLevel"].as_i64().unwrap_or(0);
 
+    let resolved_name = {
+        let game_name = p["riotIdGameName"].as_str().unwrap_or("");
+        let tag_line = p["riotIdTagline"].as_str().unwrap_or("");
+        if !game_name.is_empty() {
+            format!("{}#{}", game_name, tag_line)
+        } else if !summoner_name.is_empty() {
+            summoner_name.to_string()
+        } else {
+            String::new()
+        }
+    };
+
     crate::models::match_::Participant {
         participant_id: p["participantId"].as_i64().unwrap_or(0),
         team_id: p["teamId"].as_i64().unwrap_or(0),
         win: p["win"].as_bool().unwrap_or(false),
         champion_id: p["championId"].as_i64().unwrap_or(0),
         champion_name: p["championName"].as_str().unwrap_or("").to_string(),
-        summoner_name: summoner_name.to_string(),
+        summoner_name: resolved_name,
         profile_icon_id: p["profileIconId"].as_i64().unwrap_or(1),
         puuid: p["puuid"].as_str().map(|s| s.to_string()),
         kills: p["kills"].as_i64().unwrap_or(0),

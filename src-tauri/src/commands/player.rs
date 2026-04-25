@@ -291,7 +291,6 @@ pub async fn get_comprehensive_player(
 
     // Fetch matches: check cache first, then fetch missing ones in parallel batches of 5
     let mut matches: Vec<Match> = vec![];
-    let mut all_puuids: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut raw_matches: Vec<(String, serde_json::Value)> = vec![];
 
     if let Ok(match_ids) = match_ids_result {
@@ -322,13 +321,6 @@ pub async fn get_comprehensive_player(
             }).collect();
 
             for item in futures::future::join_all(futs).await.into_iter().flatten() {
-                if let Some(parts) = item.1["participants"].as_array() {
-                    for p in parts {
-                        if let Some(puid) = p["puuid"].as_str() {
-                            all_puuids.insert(puid.to_string());
-                        }
-                    }
-                }
                 raw_matches.push(item);
             }
         }
@@ -336,46 +328,7 @@ pub async fn get_comprehensive_player(
         log::warn!("Failed to fetch match IDs");
     }
 
-    // Resolve summoner names: cache first, then parallel fetch for missing
-    let mut name_map: std::collections::HashMap<String, String> =
-        std::collections::HashMap::new();
-    let mut missing_puuids: Vec<String> = vec![];
-
-    for puid in &all_puuids {
-        match summoner_cache::get(&state.db, puid) {
-            Ok(Some((gname, tag, _))) => {
-                name_map.insert(puid.clone(), format!("{}#{}", gname, tag));
-            }
-            _ => missing_puuids.push(puid.clone()),
-        }
-    }
-
-    {
-        let riot_client = state.riot_client.clone();
-        let db_pool = state.db.clone();
-        let futs: Vec<_> = missing_puuids.iter().take(10).map(|puid| {
-            let rc = riot_client.clone();
-            let db = db_pool.clone();
-            let gurl = global_url.clone();
-            let p = puid.clone();
-            async move {
-                let url = format!("{}/riot/account/v1/accounts/by-puuid/{}", gurl, p);
-                match rc.get::<RiotAccount>(&url).await {
-                    Ok(acc) => {
-                        let _ = summoner_cache::set(&db, &p, &acc.game_name, &acc.tag_line, 1);
-                        Some((p, format!("{}#{}", acc.game_name, acc.tag_line)))
-                    }
-                    Err(e) => { log::warn!("Failed to fetch account for {}: {}", p, e); None }
-                }
-            }
-        }).collect();
-
-        for (puid, name) in futures::future::join_all(futs).await.into_iter().flatten() {
-            name_map.insert(puid, name);
-        }
-    }
-
-    // Build match structs (raw_matches now stores info directly, not full match response)
+    // Build match structs
     for (match_id, info) in raw_matches {
         let participants_json = info["participants"].as_array();
 
@@ -385,11 +338,7 @@ pub async fn get_comprehensive_player(
         if let Some(participant) = player_participant {
             let parts: Vec<_> = participants_json
                 .map(|parts| {
-                    parts.iter().map(|p| {
-                        let puid_str = p["puuid"].as_str().unwrap_or("");
-                        let name = name_map.get(puid_str).cloned().unwrap_or_default();
-                        participant_from_json(p, &name)
-                    }).collect()
+                    parts.iter().map(|p| participant_from_json(p, "")).collect()
                 })
                 .unwrap_or_default();
 
