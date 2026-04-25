@@ -78,32 +78,104 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
 
-      - name: Generate latest.json for updater
-        if: matrix.platform == 'macos-latest'
+  update-manifest:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate and upload latest.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
         run: |
-          TAG=${GITHUB_REF_NAME#v}
-          # Get the dmg asset URL
-          ASSET_URL=$(curl -sH "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/v$TAG" | \
-            jq -r '.assets[] | select(.name | endswith(".dmg")) | .browser_download_url' | head -1)
-          
-          # Create latest.json in required format
-          cat > latest.json << EOF
-          {
-            "version": "$TAG",
-            "notes": "See the assets to download this version and install.",
-            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "platforms": {
-              "darwin-aarch64": {
-                "signature": "",
-                "url": "$ASSET_URL"
-              }
-            }
+          VERSION=${TAG#v}
+
+          # Fetch release JSON (retry a few times in case assets are still uploading)
+          for i in $(seq 1 10); do
+            RELEASE_JSON=$(curl -sf \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPO/releases/tags/$TAG") && break
+            echo "Attempt $i failed, retrying in 15s..."
+            sleep 15
+          done
+
+          RELEASE_ID=$(echo "$RELEASE_JSON" | jq -r '.id')
+          PUB_DATE=$(echo "$RELEASE_JSON" | jq -r '.published_at')
+          NOTES=$(echo "$RELEASE_JSON" | jq -r '.body // "See release assets."')
+
+          echo "Release ID: $RELEASE_ID"
+          echo "Assets:"
+          echo "$RELEASE_JSON" | jq -r '.assets[].name'
+
+          # Helper: get browser_download_url for an asset matching a pattern
+          get_url() {
+            echo "$RELEASE_JSON" | jq -r ".assets[] | select(.name | test(\"$1\")) | .browser_download_url" | head -1
           }
-          EOF
-          
-          # Upload latest.json to release
-          curl -sH "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+
+          # Helper: download a .sig asset and return its content
+          get_sig() {
+            local sig_url
+            sig_url=$(echo "$RELEASE_JSON" | jq -r ".assets[] | select(.name | test(\"$1\")) | .browser_download_url" | head -1)
+            if [ -z "$sig_url" ]; then echo ""; return; fi
+            curl -sL -H "Authorization: token $GITHUB_TOKEN" "$sig_url"
+          }
+
+          # macOS aarch64
+          MAC_URL=$(get_url 'aarch64\\.app\\.tar\\.gz$')
+          MAC_SIG=$(get_sig 'aarch64\\.app\\.tar\\.gz\\.sig$')
+
+          # Linux x86_64
+          LINUX_URL=$(get_url 'amd64\\.AppImage$')
+          LINUX_SIG=$(get_sig 'amd64\\.AppImage\\.sig$')
+
+          # Windows x86_64 (NSIS installer)
+          WIN_URL=$(get_url 'x64-setup\\.exe$')
+          WIN_SIG=$(get_sig 'x64-setup\\.exe\\.sig$')
+
+          echo "MAC_URL: $MAC_URL"
+          echo "MAC_SIG length: ${#MAC_SIG}"
+          echo "LINUX_URL: $LINUX_URL"
+          echo "WIN_URL: $WIN_URL"
+
+          # Build latest.json using jq for proper JSON escaping
+          jq -n \
+            --arg version "$VERSION" \
+            --arg notes "$NOTES" \
+            --arg pub_date "$PUB_DATE" \
+            --arg mac_url "$MAC_URL" \
+            --arg mac_sig "$MAC_SIG" \
+            --arg linux_url "$LINUX_URL" \
+            --arg linux_sig "$LINUX_SIG" \
+            --arg win_url "$WIN_URL" \
+            --arg win_sig "$WIN_SIG" \
+            '{
+              version: $version,
+              notes: $notes,
+              pub_date: $pub_date,
+              platforms: {
+                "darwin-aarch64": { signature: $mac_sig, url: $mac_url },
+                "linux-x86_64": { signature: $linux_sig, url: $linux_url },
+                "windows-x86_64": { signature: $win_sig, url: $win_url }
+              }
+            }' > latest.json
+
+          echo "Generated latest.json:"
+          cat latest.json
+
+          # Upload to release using numeric release ID (correct GitHub API URL)
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
             -H "Content-Type: application/json" \
             --data-binary @latest.json \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/tags/v$TAG/assets?name=latest.json"
+            "https://uploads.github.com/repos/$REPO/releases/$RELEASE_ID/assets?name=latest.json")
+
+          echo "Upload HTTP status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" != "201" ]; then
+            echo "Upload failed with status $HTTP_STATUS"
+            exit 1
+          fi
+          echo "latest.json uploaded successfully"

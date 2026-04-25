@@ -39,13 +39,13 @@ export function SettingsPage() {
 
       setUpdate({ status: 'downloading', progress: 0 })
       let totalSize = 0
+      let downloaded = 0
       await result.downloadAndInstall(event => {
         if (event.event === 'Started') {
           totalSize = event.data.contentLength || 0
         } else if (event.event === 'Progress') {
-          const pct = totalSize > 0
-            ? Math.round((event.data.chunkLength / totalSize) * 100)
-            : 0
+          downloaded += event.data.chunkLength
+          const pct = totalSize > 0 ? Math.round((downloaded / totalSize) * 100) : 0
           setUpdate({ status: 'downloading', progress: pct })
         }
       })
