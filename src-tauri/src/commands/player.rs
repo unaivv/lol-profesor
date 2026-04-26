@@ -281,6 +281,7 @@ pub async fn get_comprehensive_player(
             game_queue_config_id: game["gameQueueConfigId"].as_i64().unwrap_or(0),
             participants: game["participants"].as_array().cloned().unwrap_or_default(),
             banned_champions: None,
+            participant_ranks: None,
         }),
         Err(ApiError::NotFound { .. }) => None,
         Err(e) => {

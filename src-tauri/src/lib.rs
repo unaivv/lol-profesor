@@ -129,6 +129,7 @@ pub fn run() {
             commands::stats::get_ranked_stats,
             commands::stats::get_mastery,
             commands::live::get_live_game,
+            commands::live::get_live_game_with_ranks,
             commands::analysis::analyze_match,
         ])
         .run(tauri::generate_context!())

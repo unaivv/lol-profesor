@@ -24,6 +24,17 @@ pub struct BannedChampion {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ParticipantRank {
+    pub puuid: String,
+    pub tier: String,
+    pub rank: String,
+    pub lp: i64,
+    pub wins: i64,
+    pub losses: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LiveGame {
     pub game_id: serde_json::Value,
     pub game_mode: String,
@@ -36,4 +47,6 @@ pub struct LiveGame {
     pub participants: Vec<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub banned_champions: Option<Vec<BannedChampion>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub participant_ranks: Option<Vec<ParticipantRank>>,
 }
