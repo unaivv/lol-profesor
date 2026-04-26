@@ -1,6 +1,6 @@
 use tauri::State;
 use crate::error::ApiError;
-use crate::models::live_game::{BannedChampion, LiveGame, ParticipantRank};
+use crate::models::live_game::{BannedChampion, LiveGame, ParticipantChampStats, ParticipantRank};
 use crate::models::summoner::ComprehensivePlayerData;
 use crate::AppState;
 
@@ -37,6 +37,7 @@ pub async fn get_live_game(
                     }).collect()
                 }),
                 participant_ranks: None,
+                participant_champ_stats: None,
             };
             Ok(Some(live))
         }
@@ -72,22 +73,30 @@ pub async fn get_live_game_with_ranks(
         }).collect()
     });
 
-    let participant_puuids: Vec<String> = game["participants"]
+    let participant_infos: Vec<(String, i64)> = game["participants"]
         .as_array()
         .unwrap_or(&vec![])
         .iter()
-        .filter_map(|p| p["puuid"].as_str().map(|s| s.to_string()))
+        .filter_map(|p| {
+            let puuid = p["puuid"].as_str()?.to_string();
+            let champ_id = p["championId"].as_i64().unwrap_or(0);
+            Some((puuid, champ_id))
+        })
         .collect();
 
     let regional_url = state.riot_client.regional_url().to_string();
     let now = chrono::Utc::now().timestamp();
     let mut participant_ranks: Vec<ParticipantRank> = Vec::new();
+    let mut participant_champ_stats: Vec<ParticipantChampStats> = Vec::new();
 
-    for p_puuid in &participant_puuids {
-        // Cache hit: reuse ranked stats if fresher than 2 hours
+    for (p_puuid, champ_id) in &participant_infos {
+        // Cache hit: reuse ranked stats and compute champ stats if fresher than 2 hours
         if let Ok(Some((cached_data, cached_at))) = crate::db::player_cache::get(&state.db, p_puuid) {
             if now - cached_at < 7200 {
                 participant_ranks.push(rank_from_player_data(&cached_data, p_puuid));
+                if let Some(stats) = champ_stats_from_matches(&cached_data.matches, p_puuid, *champ_id) {
+                    participant_champ_stats.push(stats);
+                }
                 continue;
             }
         }
@@ -122,7 +131,25 @@ pub async fn get_live_game_with_ranks(
         participants: game["participants"].as_array().cloned().unwrap_or_default(),
         banned_champions,
         participant_ranks: Some(participant_ranks),
+        participant_champ_stats: if participant_champ_stats.is_empty() { None } else { Some(participant_champ_stats) },
     }))
+}
+
+fn champ_stats_from_matches(
+    matches: &[crate::models::match_::Match],
+    puuid: &str,
+    champion_id: i64,
+) -> Option<ParticipantChampStats> {
+    let champ: Vec<_> = matches.iter()
+        .filter(|m| m.champion_id == Some(champion_id))
+        .collect();
+    if champ.is_empty() { return None; }
+    let games = champ.len() as i64;
+    let wins = champ.iter().filter(|m| m.win == Some(true)).count() as i64;
+    let avg_kills   = champ.iter().filter_map(|m| m.kills).sum::<i64>() as f64 / games as f64;
+    let avg_deaths  = champ.iter().filter_map(|m| m.deaths).sum::<i64>() as f64 / games as f64;
+    let avg_assists = champ.iter().filter_map(|m| m.assists).sum::<i64>() as f64 / games as f64;
+    Some(ParticipantChampStats { puuid: puuid.to_string(), games, wins, avg_kills, avg_deaths, avg_assists })
 }
 
 fn rank_from_player_data(data: &ComprehensivePlayerData, puuid: &str) -> ParticipantRank {

@@ -282,6 +282,7 @@ pub async fn get_comprehensive_player(
             participants: game["participants"].as_array().cloned().unwrap_or_default(),
             banned_champions: None,
             participant_ranks: None,
+            participant_champ_stats: None,
         }),
         Err(ApiError::NotFound { .. }) => None,
         Err(e) => {
