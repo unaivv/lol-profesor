@@ -14,6 +14,7 @@ import { PlayerData } from '../types/api'
 import { Trophy, Star, Target, X } from 'lucide-react'
 import { invoke } from '@tauri-apps/api/core'
 import { useMyProfile } from '../hooks/useMyProfile'
+import { useFavorites } from '../hooks/useFavorites'
 
 type TabId = 'summary' | 'champions' | 'mastery' | 'live'
 
@@ -38,6 +39,7 @@ export function StatsPage() {
   const [loadingExtended, setLoadingExtended] = useState(false)
 
   const myProfile = getMyProfile()
+  const { isFavorite, addFavorite, removeFavorite } = useFavorites()
   const urlRegion = params.region
   const urlGameName = params.gameName
   const urlTagLine = params.tagLine
@@ -47,6 +49,24 @@ export function StatsPage() {
   const gameName = urlGameName || myProfile?.gameName
   const tagLine = urlTagLine || myProfile?.tagLine
   const isMyProfile = !urlGameName  // true if on /me page
+
+  const [favorited, setFavorited] = useState(false)
+
+  useEffect(() => {
+    if (!isMyProfile && gameName && tagLine && region) {
+      setFavorited(isFavorite(gameName, tagLine, region))
+    }
+  }, [gameName, tagLine, region, isMyProfile])
+
+  const toggleFavorite = () => {
+    if (!gameName || !tagLine || !region) return
+    if (favorited) {
+      removeFavorite(gameName, tagLine, region)
+    } else {
+      addFavorite({ gameName, tagLine, region, profileIconId: playerData?.profileIconId })
+    }
+    setFavorited(f => !f)
+  }
 
   const handleRefresh = useCallback(async () => {
     if (!gameName || !tagLine || !region) return
@@ -166,6 +186,8 @@ export function StatsPage() {
           cachedAt={cachedAt}
           isRefreshing={isRefreshing}
           onRefresh={handleRefresh}
+          isFavorite={!isMyProfile ? favorited : undefined}
+          onToggleFavorite={!isMyProfile ? toggleFavorite : undefined}
         />
       </div>
 

@@ -1,4 +1,4 @@
-import { Trophy, Shield, Zap, TrendingUp, Calendar, Clock, RefreshCw } from 'lucide-react'
+import { Trophy, Shield, Zap, TrendingUp, Calendar, Clock, RefreshCw, Star } from 'lucide-react'
 import { PlayerData, RankedStats, RankedStatsExtended } from '../types/api'
 import { getProfileIconUrl } from '../utils/ddragon'
 
@@ -8,6 +8,8 @@ interface ProfileHeaderProps {
   cachedAt?: number | null
   isRefreshing?: boolean
   onRefresh?: () => Promise<void>
+  isFavorite?: boolean
+  onToggleFavorite?: () => void
 }
 
 const formatTimeAgo = (timestamp: number | null | undefined): string => {
@@ -86,7 +88,7 @@ const getRankGradient = (tier: string): string => {
   return gradients[tier] || 'from-slate-600 to-slate-500'
 }
 
-export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing, onRefresh }: ProfileHeaderProps) {
+export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing, onRefresh, isFavorite, onToggleFavorite }: ProfileHeaderProps) {
   const bestRanked = getBestRanked(rankedStats)
   const winRate = bestRanked
     ? Math.round((bestRanked.wins / (bestRanked.wins + bestRanked.losses)) * 100)
@@ -98,23 +100,39 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6 lg:p-8">
         <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6">
           {/* Avatar Section */}
-          <div className="relative shrink-0">
-            <div className="w-28 h-28 rounded-3xl overflow-hidden ring-4 ring-white/20 shadow-2xl">
-              <img
-                src={getProfileIconUrl(playerData.profileIconId || 1)}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="absolute -bottom-2 -right-2 bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-2xl px-3 py-1 font-bold text-sm border-2 border-slate-800 shadow-lg">
-              {playerData.summonerLevel}
-            </div>
-            {bestRanked && (
-              <div
-                className={`absolute -top-2 -left-2 w-8 h-8 rounded-full bg-gradient-to-br ${getRankGradient(bestRanked.tier)} flex items-center justify-center text-xs font-bold border-2 border-slate-800 shadow-lg`}
-              >
-                {bestRanked.tier[0]}
+          <div className="flex flex-col items-center gap-3 shrink-0">
+            <div className="relative">
+              <div className="w-28 h-28 rounded-3xl overflow-hidden ring-4 ring-white/20 shadow-2xl">
+                <img
+                  src={getProfileIconUrl(playerData.profileIconId || 1)}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
               </div>
+              <div className="absolute -bottom-2 -right-2 bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-2xl px-3 py-1 font-bold text-sm border-2 border-slate-800 shadow-lg">
+                {playerData.summonerLevel}
+              </div>
+              {bestRanked && (
+                <div
+                  className={`absolute -top-2 -left-2 w-8 h-8 rounded-full bg-gradient-to-br ${getRankGradient(bestRanked.tier)} flex items-center justify-center text-xs font-bold border-2 border-slate-800 shadow-lg`}
+                >
+                  {bestRanked.tier[0]}
+                </div>
+              )}
+            </div>
+            {onToggleFavorite && (
+              <button
+                onClick={onToggleFavorite}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
+                style={{
+                  background: isFavorite ? 'rgba(234,179,8,0.15)' : 'rgba(255,255,255,0.08)',
+                  color: isFavorite ? '#eab308' : '#94a3b8',
+                  border: `1px solid ${isFavorite ? 'rgba(234,179,8,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                }}
+              >
+                <Star size={12} fill={isFavorite ? '#eab308' : 'none'} />
+                {isFavorite ? 'Favorito' : 'Añadir'}
+              </button>
             )}
           </div>
 
