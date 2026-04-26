@@ -36,22 +36,29 @@ export function Sidebar() {
   const [searchErr, setSearchErr] = useState<string | null>(null)
   const [iconError, setIconError] = useState(false)
 
-  // Get logged-in user's icon - only from dedicated my profile storage
-  const profileIconId = (() => {
+  const readProfileIconId = () => {
     try {
       const raw = localStorage.getItem('lolProfessorMyProfileData')
       const cached = raw ? JSON.parse(raw) : null
-
-      // Use cached icon if it exists and matches logged-in profile
       if (cached && myProfile) {
         if (cached.gameName === myProfile.gameName && cached.tagLine === myProfile.tagLine) {
           return cached.profileIconId || 1
         }
       }
     } catch { /* ignore */ }
-    // Default icon if no match
     return 1
-  })()
+  }
+
+  const [profileIconId, setProfileIconId] = useState(readProfileIconId)
+
+  useEffect(() => {
+    const refresh = () => {
+      setProfileIconId(readProfileIconId())
+      setIconError(false)
+    }
+    window.addEventListener('myProfileDataChanged', refresh)
+    return () => window.removeEventListener('myProfileDataChanged', refresh)
+  }, [myProfile?.gameName, myProfile?.tagLine])
 
   useEffect(() => {
     setFavorites(getFavorites())

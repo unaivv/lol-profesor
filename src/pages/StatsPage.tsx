@@ -86,8 +86,8 @@ export function StatsPage() {
       if (!isMyProfile) {
         localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
       } else {
-        // Save my profile data separately for the sidebar to read
         localStorage.setItem('lolProfessorMyProfileData', JSON.stringify(player))
+        window.dispatchEvent(new Event('myProfileDataChanged'))
       }
       if (response.cachedAt) localStorage.setItem('lolProfessorCachedAt', response.cachedAt.toString())
     } catch (e) {
@@ -119,9 +119,9 @@ export function StatsPage() {
         setPlayerData(player)
         setCachedAt(response.cachedAt ?? null)
         
-        // Save separately for own profile vs other players
         if (isMyProfile) {
           localStorage.setItem('lolProfessorMyProfileData', JSON.stringify(player))
+          window.dispatchEvent(new Event('myProfileDataChanged'))
         } else {
           localStorage.setItem('lolProfessorPlayer', JSON.stringify(player))
         }

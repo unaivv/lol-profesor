@@ -30,6 +30,7 @@ export function useMyProfile() {
 
   const clearMyProfile = () => {
     localStorage.removeItem(KEY)
+    localStorage.removeItem('lolProfessorMyProfileData')
   }
 
   return { getMyProfile, setMyProfile, updateProfileIcon, clearMyProfile }
