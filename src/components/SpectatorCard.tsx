@@ -46,7 +46,7 @@ const formatGameLength = (seconds: number): string => {
 }
 
 const getDisplayName = (p: SpectatorParticipant): string => {
-  if (p.riotId) return p.riotId.split('#')[0]
+  if (p.riotId) return p.riotId
   if (p.summonerName) return p.summonerName
   return 'Jugador'
 }
