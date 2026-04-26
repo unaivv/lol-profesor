@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { PlayerStats } from '../components/PlayerStats'
 import { StatsOverview } from '../components/StatsOverview'
 import { MatchHistory } from '../components/MatchHistory'
 import { ChampionStats } from '../components/ChampionStats'
@@ -248,14 +247,7 @@ export function StatsPage() {
         )}
 
         {activeTab === 'live' && (
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-            <div className="xl:col-span-8">
-              <SpectatorCard puuid={playerData.puuid} />
-            </div>
-            <div className="xl:col-span-4 space-y-6">
-              <PlayerStats rankedStats={playerData.rankedStats} />
-            </div>
-          </div>
+          <SpectatorCard puuid={playerData.puuid} />
         )}
       </div>
     </div>
