@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { Home, Users, Star, Zap, Settings, Search, Loader2, AlertCircle, User } from 'lucide-react'
 import { invoke } from '@tauri-apps/api/core'
@@ -62,6 +63,27 @@ export function Sidebar() {
   }, [myProfile?.gameName, myProfile?.tagLine])
 
   const [myUserLive, setMyUserLive] = useState(false)
+  const prevLive = useRef(false)
+
+  useEffect(() => {
+    if (myUserLive && !prevLive.current) {
+      const notify = async () => {
+        let granted = await isPermissionGranted()
+        if (!granted) {
+          const permission = await requestPermission()
+          granted = permission === 'granted'
+        }
+        if (granted) {
+          sendNotification({
+            title: '¡Partida en vivo detectada!',
+            body: 'Tu invocador está en una partida. Abrí la pestaña En Vivo.',
+          })
+        }
+      }
+      notify()
+    }
+    prevLive.current = myUserLive
+  }, [myUserLive])
 
   useEffect(() => {
     if (!myProfile) { setMyUserLive(false); return }
