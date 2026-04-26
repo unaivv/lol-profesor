@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { listen } from '@tauri-apps/api/event'
 import { StatsPage } from './pages/StatsPage'
@@ -8,10 +8,12 @@ import { MatchDetailPage } from './pages/MatchDetailPage'
 import { AppLayout } from './components/layout/AppLayout'
 import { TitleBar } from './components/TitleBar'
 import { SplashScreen } from './components/SplashScreen'
+import { NotificationCenter } from './components/ui/NotificationCenter'
 import { initChampionMap } from './utils/ddragon'
 import { useMyProfile } from './hooks/useMyProfile'
 import { ThemeProvider } from './context/ThemeContext'
-import { useState } from 'react'
+import { NotificationProvider } from './context/NotificationContext'
+import { useUpdateCheck } from './hooks/useUpdateCheck'
 
 const isMac = navigator.userAgent.includes('Mac OS')
 
@@ -25,6 +27,8 @@ function AppInner() {
   const [splash, setSplash] = useState(true)
   const navigate = useNavigate()
 
+  useUpdateCheck(!splash)
+
   useEffect(() => {
     initChampionMap()
   }, [])
@@ -36,6 +40,7 @@ function AppInner() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      <NotificationCenter />
       {splash && <SplashScreen onDone={() => setSplash(false)} />}
       {!isMac && <TitleBar />}
       <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -75,9 +80,11 @@ function StatsPageRedirect() {
 function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <AppInner />
-      </BrowserRouter>
+      <NotificationProvider>
+        <BrowserRouter>
+          <AppInner />
+        </BrowserRouter>
+      </NotificationProvider>
     </ThemeProvider>
   )
 }
