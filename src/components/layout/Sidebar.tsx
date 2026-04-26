@@ -90,7 +90,13 @@ export function Sidebar() {
 
     check()
     const interval = setInterval(check, 60_000)
-    return () => clearInterval(interval)
+
+    // Re-check immediately when profile data lands (puuid may not be available yet on first login)
+    window.addEventListener('myProfileDataChanged', check)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('myProfileDataChanged', check)
+    }
   }, [myProfile?.gameName, myProfile?.tagLine])
 
   useEffect(() => {
