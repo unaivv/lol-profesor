@@ -1,4 +1,4 @@
-# Configuración de LoL Professor
+# Configuración de LoL Profesor
 
 ## Pasos para configurar el proyecto
 

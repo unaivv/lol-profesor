@@ -54,7 +54,7 @@ export function OnboardingPage() {
       <div style={{ textAlign: 'center', marginBottom: '56px' }}>
         <img
           src="/logo_sin_fondo.png"
-          alt="LoL Professor"
+          alt="LoL Profesor"
           style={{ height: '90px', objectFit: 'contain', display: 'block', margin: '0 auto 20px' }}
         />
         <p style={{ color: '#64748b', fontSize: '15px', margin: 0 }}>

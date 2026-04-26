@@ -2,7 +2,7 @@
 name = "lol-professor"
 version = "1.1.6"
 description = "League of Legends statistics and match analysis app"
-authors = ["LoL Professor"]
+authors = ["LoL Profesor"]
 edition = "2021"
 
 [lib]

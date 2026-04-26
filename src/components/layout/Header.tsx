@@ -9,8 +9,8 @@ interface HeaderProps {
   variant?: 'default' | 'minimal' | 'profile'
 }
 
-export function Header({ 
-  title: _title = 'LoL Professor', 
+export function Header({
+  title: _title = 'LoL Profesor',
   subtitle = '',
   showFeatures = true,
   actions,
@@ -75,7 +75,7 @@ export function Header({
   }
 
   return (
-    <header style={{ 
+    <header style={{
       background: 'rgba(255, 255, 255, 0.9)',
       backdropFilter: 'blur(10px)',
       borderBottom: '1px solid rgba(99, 102, 241, 0.1)',

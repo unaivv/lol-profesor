@@ -1,4 +1,4 @@
-// API Response Types for LoL Professor
+// API Response Types for LoL Profesor
 
 // Base Player Information
 export interface PlayerData {
@@ -87,7 +87,7 @@ export interface Participant {
   kills: number
   deaths: number
   assists: number
-goldEarned: number
+  goldEarned: number
   totalMinionsKilled: number
   visionWardsBoughtInGame: number
   visionScore: number

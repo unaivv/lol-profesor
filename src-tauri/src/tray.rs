@@ -7,7 +7,7 @@ use tauri::{
 pub fn setup_tray<R: Runtime>(app: &tauri::App<R>) -> tauri::Result<()> {
     log::info!("Setting up system tray...");
 
-    let show_item = MenuItem::with_id(app, "show", "Abrir LoL Professor", true, None::<&str>)?;
+    let show_item = MenuItem::with_id(app, "show", "Abrir LoL Profesor", true, None::<&str>)?;
     let settings_item = MenuItem::with_id(app, "settings", "Configuración", true, None::<&str>)?;
     let separator = MenuItem::with_id(app, "sep", "────────────", false, None::<&str>)?;
     let quit_item = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
@@ -26,7 +26,7 @@ pub fn setup_tray<R: Runtime>(app: &tauri::App<R>) -> tauri::Result<()> {
         .icon(icon)
         .icon_as_template(cfg!(target_os = "macos"))
         .menu(&menu)
-        .tooltip("LoL Professor")
+        .tooltip("LoL Profesor")
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
             "show" => {

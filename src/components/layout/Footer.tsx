@@ -58,7 +58,7 @@ export function Footer({
           <div style={{ width: '32px', height: '32px', background: 'rgba(255, 255, 255, 0.2)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Sparkles size={16} style={{ color: 'white' }} />
           </div>
-          <h3 style={{ fontSize: '20px', fontWeight: 'bold' }}>LoL Professor</h3>
+          <h3 style={{ fontSize: '20px', fontWeight: 'bold' }}>LoL Profesor</h3>
         </div>
         <p style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
           {playerData ? `Análisis profesional para ${playerData.gameName}#${playerData.tagLine}` : 'Análisis profesional para jugadores de League of Legends'}
@@ -112,7 +112,7 @@ export function Footer({
         </div>
         <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.2)', marginTop: '40px', paddingTop: '32px', textAlign: 'center' }}>
           <p style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-            © {new Date().getFullYear()} LoL Professor. Todos los derechos reservados. Datos proporcionados por Riot Games API.
+            © {new Date().getFullYear()} LoL Profesor. Todos los derechos reservados. Datos proporcionados por Riot Games API.
           </p>
         </div>
       </div>

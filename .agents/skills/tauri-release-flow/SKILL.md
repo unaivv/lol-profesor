@@ -1,4 +1,4 @@
-# Tauri Release Flow — LoL Professor
+# Tauri Release Flow — LoL Profesor
 
 ## Flujo completo de publicación
 

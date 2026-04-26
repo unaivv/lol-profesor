@@ -190,7 +190,7 @@ export const calculateRawMetrics = (matches: DetailedMatch[], playerPuuid?: stri
 }
 
 const RadarChart = ({ metrics }: { metrics: RadarMetric[] }) => {
-  const size = 200
+  const size = 220
   const center = size / 2
   const radius = 80
   const levels = 5
@@ -207,7 +207,7 @@ const RadarChart = ({ metrics }: { metrics: RadarMetric[] }) => {
 
 const getLabelPoint = (index: number): { x: number; y: number } => {
     const angle = angleSlice * index - Math.PI / 2
-    const r = radius + 22
+    const r = radius + 28
     let x = center + r * Math.cos(angle)
     let y = center + r * Math.sin(angle)
     

@@ -37,7 +37,7 @@ export function Sidebar() {
     try {
       const raw = localStorage.getItem('lolProfessorMyProfileData')
       const cached = raw ? JSON.parse(raw) : null
-      
+
       // Use cached icon if it exists and matches logged-in profile
       if (cached && myProfile) {
         if (cached.gameName === myProfile.gameName && cached.tagLine === myProfile.tagLine) {
@@ -98,7 +98,7 @@ export function Sidebar() {
       {/* Logo */}
       <div style={{ padding: '16px 14px 14px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
         <img src="/logo_sin_texto_sin_fondo.png" alt="" style={{ width: '26px', height: '26px', objectFit: 'contain' }} />
-        <span style={{ color: TEXT, fontWeight: 700, fontSize: '14px', letterSpacing: '-0.01em' }}>LoL Professor</span>
+        <span style={{ color: TEXT, fontWeight: 700, fontSize: '14px', letterSpacing: '-0.01em' }}>LoL Profesor</span>
       </div>
 
       {/* Mi Perfil */}

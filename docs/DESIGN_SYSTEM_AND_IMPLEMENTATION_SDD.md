@@ -1,4 +1,4 @@
-# LoL Professor - Software Design Document (SDD)
+# LoL Profesor - Software Design Document (SDD)
 ## Implementación Completa de APIs Riot + UI/UX Profesional
 
 **Versión:** 2.0  
