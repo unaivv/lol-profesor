@@ -146,7 +146,6 @@ export const calculateRawMetrics = (matches: DetailedMatch[], playerPuuid?: stri
     if (!player) return
     n++
 
-    const deaths = player.deaths ?? 0
     const minutes = Math.max((player.timePlayed || match.gameDuration || 0) / 60, 15)
     const teamKills = match.participants
       ?.filter(p => p.teamId === player.teamId)
@@ -205,19 +204,19 @@ const RadarChart = ({ metrics }: { metrics: RadarMetric[] }) => {
     return `${x},${y}`
   }
 
-const getLabelPoint = (index: number): { x: number; y: number } => {
+  const getLabelPoint = (index: number): { x: number; y: number } => {
     const angle = angleSlice * index - Math.PI / 2
     const r = radius + 28
     let x = center + r * Math.cos(angle)
     let y = center + r * Math.sin(angle)
-    
+
     // Ajustar posición para que no se salga del SVG
     const padding = 5
     if (x < padding) x = padding
     if (x > size - padding) x = size - padding
     if (y < padding) y = padding
     if (y > size - padding) y = size - padding
-    
+
     return { x, y }
   }
 
@@ -252,7 +251,7 @@ const getLabelPoint = (index: number): { x: number; y: number } => {
         fill="#3b82f6"
         fillOpacity={0.3}
       />
-      
+
       {/* Border del radar */}
       <polygon
         points={pathD}
@@ -312,7 +311,7 @@ const getLabelPoint = (index: number): { x: number; y: number } => {
         )
       })}
 
-{metrics.map((m, i) => {
+      {metrics.map((m, i) => {
         const labelPos = getLabelPoint(i)
         return (
           <text
@@ -348,15 +347,15 @@ export function PerformanceRadar({ matches, playerPuuid }: PerformanceRadarProps
       border: '1px solid var(--border-color)',
       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
     }}>
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: '16px'
       }}>
-        <h3 style={{ 
-          fontSize: '16px', 
-          fontWeight: 700, 
+        <h3 style={{
+          fontSize: '16px',
+          fontWeight: 700,
           color: 'var(--text-primary)',
           display: 'flex',
           alignItems: 'center',
@@ -383,9 +382,9 @@ export function PerformanceRadar({ matches, playerPuuid }: PerformanceRadarProps
         <RadarChart metrics={metrics} />
       </div>
 
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(3, 1fr)', 
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
         gap: '8px',
         marginTop: '16px'
       }}>
