@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { Home, Users, Star, Zap, Settings, Search, Loader2, AlertCircle, User } from 'lucide-react'
+import { invoke } from '@tauri-apps/api/core'
 import { useMyProfile } from '../../hooks/useMyProfile'
 import { useFavorites } from '../../hooks/useFavorites'
 import { FavoriteItem } from './FavoriteItem'
@@ -58,6 +59,38 @@ export function Sidebar() {
     }
     window.addEventListener('myProfileDataChanged', refresh)
     return () => window.removeEventListener('myProfileDataChanged', refresh)
+  }, [myProfile?.gameName, myProfile?.tagLine])
+
+  const [myUserLive, setMyUserLive] = useState(false)
+
+  useEffect(() => {
+    if (!myProfile) { setMyUserLive(false); return }
+
+    const getPuuid = (): string | null => {
+      try {
+        const raw = localStorage.getItem('lolProfessorMyProfileData')
+        const data = raw ? JSON.parse(raw) : null
+        if (data?.gameName === myProfile.gameName && data?.tagLine === myProfile.tagLine) {
+          return data?.puuid ?? null
+        }
+      } catch { /* ignore */ }
+      return null
+    }
+
+    const check = async () => {
+      const puuid = getPuuid()
+      if (!puuid) return
+      try {
+        const game = await invoke<unknown>('get_live_game', { puuid })
+        setMyUserLive(!!game)
+      } catch {
+        setMyUserLive(false)
+      }
+    }
+
+    check()
+    const interval = setInterval(check, 60_000)
+    return () => clearInterval(interval)
   }, [myProfile?.gameName, myProfile?.tagLine])
 
   useEffect(() => {
@@ -208,9 +241,21 @@ export function Sidebar() {
           {NAV_TABS.map(tab => {
             const Icon = tab.icon
             const active = activeTab === tab.id
+            const liveHighlight = tab.id === 'live' && myUserLive
             return (
-              <button key={tab.id} onClick={() => setSearchParams({ tab: tab.id })} style={navBtn(active)}>
-                <Icon size={14} />
+              <button
+                key={tab.id}
+                onClick={() => setSearchParams({ tab: tab.id })}
+                style={{
+                  ...navBtn(active),
+                  color: liveHighlight ? '#eab308' : (active ? '#93c5fd' : TEXT_MUTED),
+                }}
+              >
+                <Icon
+                  size={14}
+                  fill={liveHighlight ? '#eab308' : 'none'}
+                  style={liveHighlight ? { animation: 'zapGlow 1.4s ease-in-out infinite' } : {}}
+                />
                 {tab.label}
               </button>
             )
@@ -250,6 +295,13 @@ export function Sidebar() {
           Configuración
         </button>
       </div>
+
+      <style>{`
+        @keyframes zapGlow {
+          0%, 100% { filter: drop-shadow(0 0 3px #eab308); opacity: 1; }
+          50%       { filter: drop-shadow(0 0 7px #fbbf24); opacity: 0.75; }
+        }
+      `}</style>
     </div>
   )
 }
