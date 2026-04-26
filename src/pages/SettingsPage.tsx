@@ -2,8 +2,9 @@ import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, RefreshCw, CheckCircle, Download, AlertCircle, Monitor, Sun, Moon } from 'lucide-react'
+import { ArrowLeft, RefreshCw, CheckCircle, Download, AlertCircle, Monitor, Sun, Moon, LogOut } from 'lucide-react'
 import { useTheme, type Theme } from '../context/ThemeContext'
+import { useMyProfile } from '../hooks/useMyProfile'
 
 type UpdateState =
   | { status: 'idle' }
@@ -23,7 +24,13 @@ const THEME_OPTIONS: { value: Theme; label: string; Icon: React.ElementType }[] 
 export function SettingsPage() {
   const navigate = useNavigate()
   const { theme, setTheme } = useTheme()
+  const { clearMyProfile } = useMyProfile()
   const [update, setUpdate] = useState<UpdateState>({ status: 'idle' })
+
+  const handleLogout = () => {
+    clearMyProfile()
+    navigate('/onboarding', { replace: true })
+  }
 
   const checkForUpdates = async () => {
     setUpdate({ status: 'checking' })
@@ -126,6 +133,35 @@ export function SettingsPage() {
               )
             })}
           </div>
+        </div>
+
+        {/* Cuenta */}
+        <div style={{
+          background: 'var(--bg-card)', borderRadius: '16px', padding: '24px',
+          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)',
+          border: '1px solid var(--border-color)', marginBottom: '16px',
+        }}>
+          <h2 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+            Cuenta
+          </h2>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+            Cambiá de invocador o configurá un perfil nuevo
+          </p>
+          <button
+            onClick={handleLogout}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              background: 'transparent', color: '#ef4444',
+              border: '1px solid rgba(239,68,68,0.3)', borderRadius: '10px',
+              padding: '10px 20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <LogOut size={15} />
+            Cerrar sesión
+          </button>
         </div>
 
         {/* Actualizaciones */}
