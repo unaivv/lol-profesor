@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { Home, Users, Star, Zap, Settings, Search, Loader2, AlertCircle, User } from 'lucide-react'
 import { useMyProfile } from '../../hooks/useMyProfile'
+import { useFavorites } from '../../hooks/useFavorites'
+import { FavoriteItem } from './FavoriteItem'
 import { getProfileIconUrl } from '../../utils/ddragon'
 
 const REGIONS = ['EUW', 'EUN', 'NA', 'KR', 'JP', 'BR', 'LAN', 'LAS', 'OCE', 'TR', 'RU']
@@ -25,7 +27,9 @@ export function Sidebar() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const { getMyProfile } = useMyProfile()
+  const { getFavorites, removeFavorite } = useFavorites()
   const myProfile = getMyProfile()
+  const [favorites, setFavorites] = useState(getFavorites)
   const [query, setQuery] = useState('')
   const [region, setRegion] = useState('EUW')
   const [searching, setSearching] = useState(false)
@@ -48,6 +52,16 @@ export function Sidebar() {
     // Default icon if no match
     return 1
   })()
+
+  useEffect(() => {
+    setFavorites(getFavorites())
+  }, [location.pathname])
+
+  useEffect(() => {
+    const refresh = () => setFavorites(getFavorites())
+    window.addEventListener('favoritesChanged', refresh)
+    return () => window.removeEventListener('favoritesChanged', refresh)
+  }, [])
 
   const onPlayerPage = location.pathname === '/me' || location.pathname.startsWith('/player/')
   const onSettings = location.pathname === '/settings'
@@ -198,6 +212,29 @@ export function Sidebar() {
       )}
 
       {!onPlayerPage && <div style={{ flex: 1 }} />}
+
+      {/* Favoritos */}
+      {favorites.length > 0 && (
+        <div style={{ padding: '10px 8px', borderTop: `1px solid ${BORDER}`, maxHeight: '220px', overflowY: 'auto' }}>
+          <div style={{ color: TEXT_MUTED, fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', paddingLeft: '2px' }}>
+            Favoritos
+          </div>
+          {favorites.map(f => (
+            <FavoriteItem
+              key={`${f.region}-${f.gameName}-${f.tagLine}`}
+              gameName={f.gameName}
+              tagLine={f.tagLine}
+              region={f.region}
+              profileIconId={f.profileIconId}
+              onClick={() => navigate(`/player/${f.region}/${encodeURIComponent(f.gameName)}/${encodeURIComponent(f.tagLine)}`)}
+              onRemove={() => {
+                removeFavorite(f.gameName, f.tagLine, f.region)
+                setFavorites(getFavorites())
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Settings */}
       <div style={{ padding: '8px', borderTop: `1px solid ${BORDER}` }}>
