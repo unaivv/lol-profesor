@@ -1,6 +1,6 @@
 use tauri::State;
 use crate::error::ApiError;
-use crate::models::live_game::LiveGame;
+use crate::models::live_game::{BannedChampion, LiveGame};
 use crate::AppState;
 
 #[tauri::command]
@@ -27,7 +27,15 @@ pub async fn get_live_game(
                 platform_id: game["platformId"].as_str().unwrap_or("").to_string(),
                 game_queue_config_id: game["gameQueueConfigId"].as_i64().unwrap_or(0),
                 participants: game["participants"].as_array().cloned().unwrap_or_default(),
-                banned_champions: None,
+                banned_champions: game["bannedChampions"].as_array().map(|arr| {
+                    arr.iter().filter_map(|b| {
+                        Some(BannedChampion {
+                            champion_id: b["championId"].as_i64()?,
+                            team_id: b["teamId"].as_i64()?,
+                            pick_turn: b["pickTurn"].as_i64()?,
+                        })
+                    }).collect()
+                }),
             };
             Ok(Some(live))
         }
