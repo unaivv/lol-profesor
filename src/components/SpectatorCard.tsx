@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Radio, Users, Clock, Swords } from 'lucide-react'
 import { invoke } from '@tauri-apps/api/core'
-import { SpectatorGameData, SpectatorParticipant } from '../types/api'
+import { SpectatorGameData, SpectatorParticipant, ParticipantRank } from '../types/api'
 import { getChampionImageUrl, getSpellImageUrl } from '../utils/ddragon'
 
 interface SpectatorCardProps {
@@ -36,6 +36,27 @@ const SPELL_NAMES: Record<number, string> = {
   32: 'SummonerSnowball',
 }
 
+const TIER_COLORS: Record<string, string> = {
+  IRON:        '#8B4513',
+  BRONZE:      '#CD7F32',
+  SILVER:      '#94a3b8',
+  GOLD:        '#EAB308',
+  PLATINUM:    '#22d3ee',
+  EMERALD:     '#34d399',
+  DIAMOND:     '#60a5fa',
+  MASTER:      '#c084fc',
+  GRANDMASTER: '#f87171',
+  CHALLENGER:  '#fbbf24',
+  UNRANKED:    '#475569',
+}
+
+const TIER_ABBR: Record<string, string> = {
+  IRON: 'I', BRONZE: 'B', SILVER: 'S', GOLD: 'G',
+  PLATINUM: 'P', EMERALD: 'E', DIAMOND: 'D',
+  MASTER: 'M', GRANDMASTER: 'GM', CHALLENGER: 'CH',
+  UNRANKED: 'NR',
+}
+
 const getSpellIcon = (spellId: number): string =>
   getSpellImageUrl(SPELL_NAMES[spellId] || 'SummonerFlash')
 
@@ -51,7 +72,41 @@ const getDisplayName = (p: SpectatorParticipant): string => {
   return 'Jugador'
 }
 
-function ParticipantRow({ participant, isBlue }: { participant: SpectatorParticipant; isBlue: boolean }) {
+function RankBadge({ rank }: { rank: ParticipantRank | undefined }) {
+  if (!rank) return null
+  const color = TIER_COLORS[rank.tier] ?? TIER_COLORS.UNRANKED
+  const abbr  = TIER_ABBR[rank.tier]  ?? 'NR'
+  const wr    = rank.wins + rank.losses > 0
+    ? Math.round((rank.wins / (rank.wins + rank.losses)) * 100)
+    : null
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+      <span style={{
+        fontSize: '10px', fontWeight: 700, color,
+        background: `${color}22`, borderRadius: '3px',
+        padding: '0 4px', lineHeight: '15px',
+      }}>
+        {abbr}{rank.rank ? ` ${rank.rank}` : ''}
+      </span>
+      {wr !== null && (
+        <span style={{ fontSize: '10px', color: '#64748b' }}>
+          {wr}% WR
+        </span>
+      )}
+    </div>
+  )
+}
+
+function ParticipantRow({
+  participant,
+  isBlue,
+  rank,
+}: {
+  participant: SpectatorParticipant
+  isBlue: boolean
+  rank: ParticipantRank | undefined
+}) {
   const bg = isBlue
     ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800'
     : 'bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800'
@@ -67,11 +122,12 @@ function ParticipantRow({ participant, isBlue }: { participant: SpectatorPartici
         <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
           {getDisplayName(participant)}
         </p>
-        <div className="flex gap-0.5 mt-0.5">
+        <div className="flex items-center gap-1">
           <img src={getSpellIcon(participant.spell1Id)} alt="" className="w-3.5 h-3.5 rounded-sm" />
           <img src={getSpellIcon(participant.spell2Id)} alt="" className="w-3.5 h-3.5 rounded-sm" />
         </div>
       </div>
+      <RankBadge rank={rank} />
     </div>
   )
 }
@@ -86,7 +142,7 @@ export function SpectatorCard({ puuid }: SpectatorCardProps) {
     const checkGame = async () => {
       setLoading(true)
       try {
-        const data = await invoke<SpectatorGameData | null>('get_live_game', { puuid })
+        const data = await invoke<SpectatorGameData | null>('get_live_game_with_ranks', { puuid })
         setGame(data)
       } catch {
         setGame(null)
@@ -141,13 +197,17 @@ export function SpectatorCard({ puuid }: SpectatorCardProps) {
 
   const blueTeam = game.participants.filter(p => p.teamId === 100)
   const redTeam  = game.participants.filter(p => p.teamId === 200)
+  const ranks    = game.participantRanks ?? []
   const queueName = QUEUE_NAMES[game.gameQueueConfigId] || `Cola ${game.gameQueueConfigId}`
   const mapName   = MAP_NAMES[game.mapId] || `Mapa ${game.mapId}`
 
-  const bans = (game.bannedChampions ?? []).filter(b => b.championId !== -1)
+  const bans     = (game.bannedChampions ?? []).filter(b => b.championId !== -1)
   const blueBans = bans.filter(b => b.teamId === 100)
   const redBans  = bans.filter(b => b.teamId === 200)
   const hasBans  = blueBans.length > 0 || redBans.length > 0
+
+  const getRank = (p: SpectatorParticipant) =>
+    ranks.find(r => r.puuid === (p as any).puuid)
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-4">
@@ -177,7 +237,9 @@ export function SpectatorCard({ puuid }: SpectatorCardProps) {
             <Swords className="w-3.5 h-3.5" /> EQUIPO AZUL
           </h3>
           <div className="space-y-1">
-            {blueTeam.map((p, i) => <ParticipantRow key={i} participant={p} isBlue={true} />)}
+            {blueTeam.map((p, i) => (
+              <ParticipantRow key={i} participant={p} isBlue={true} rank={getRank(p)} />
+            ))}
           </div>
         </div>
         <div>
@@ -185,36 +247,26 @@ export function SpectatorCard({ puuid }: SpectatorCardProps) {
             <Swords className="w-3.5 h-3.5" /> EQUIPO ROJO
           </h3>
           <div className="space-y-1">
-            {redTeam.map((p, i) => <ParticipantRow key={i} participant={p} isBlue={false} />)}
+            {redTeam.map((p, i) => (
+              <ParticipantRow key={i} participant={p} isBlue={false} rank={getRank(p)} />
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Bans — solo si hay alguno */}
+      {/* Bans */}
       {hasBans && (
         <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
           <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Baneos</h4>
           <div className="flex justify-between">
             <div className="flex gap-1">
               {blueBans.map((ban, i) => (
-                <img
-                  key={i}
-                  src={getChampionImageUrl(ban.championId)}
-                  alt=""
-                  className="w-6 h-6 rounded opacity-60"
-                  title={`Ban ${i + 1}`}
-                />
+                <img key={i} src={getChampionImageUrl(ban.championId)} alt="" className="w-6 h-6 rounded opacity-60" />
               ))}
             </div>
             <div className="flex gap-1">
               {redBans.map((ban, i) => (
-                <img
-                  key={i}
-                  src={getChampionImageUrl(ban.championId)}
-                  alt=""
-                  className="w-6 h-6 rounded opacity-60"
-                  title={`Ban ${i + 1}`}
-                />
+                <img key={i} src={getChampionImageUrl(ban.championId)} alt="" className="w-6 h-6 rounded opacity-60" />
               ))}
             </div>
           </div>

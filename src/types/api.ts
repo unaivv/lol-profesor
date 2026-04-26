@@ -37,6 +37,15 @@ export interface ChampionMastery {
 }
 
 // Spectator API data (partida en vivo via Riot API)
+export interface ParticipantRank {
+  puuid: string
+  tier: string
+  rank: string
+  lp: number
+  wins: number
+  losses: number
+}
+
 export interface SpectatorGameData {
   gameId: number
   mapId: number
@@ -49,6 +58,7 @@ export interface SpectatorGameData {
   bannedChampions?: BannedChampion[]
   gameStartTime: number
   gameLength: number         // Segundos transcurridos
+  participantRanks?: ParticipantRank[]
 }
 
 export interface SpectatorParticipant {
