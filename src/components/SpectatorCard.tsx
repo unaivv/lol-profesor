@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Radio, Users, Clock, Swords } from 'lucide-react'
 import { invoke } from '@tauri-apps/api/core'
 import { SpectatorGameData, SpectatorParticipant } from '../types/api'
+import { getChampionImageUrl, getSpellImageUrl } from '../utils/ddragon'
 
 interface SpectatorCardProps {
   puuid: string | undefined
@@ -13,61 +14,62 @@ const QUEUE_NAMES: Record<number, string> = {
   450: 'ARAM',
   400: 'Normal 5v5',
   430: 'Normal Blind',
-  700: 'Clash'
+  700: 'Clash',
 }
 
 const MAP_NAMES: Record<number, string> = {
   11: 'Grieta del Invocador',
-  12: 'Abismo de los Lamentos (ARAM)',
-  21: 'Puente del Carnicero'
+  12: 'Abismo de los Lamentos',
+  21: 'Puente del Carnicero',
 }
 
-const getChampionIcon = (championId: number): string => {
-  return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/${championId}.png`
+const SPELL_NAMES: Record<number, string> = {
+  1:  'SummonerBoost',
+  3:  'SummonerExhaust',
+  4:  'SummonerFlash',
+  6:  'SummonerHaste',
+  7:  'SummonerHeal',
+  11: 'SummonerSmite',
+  12: 'SummonerTeleport',
+  14: 'SummonerDot',
+  21: 'SummonerBarrier',
+  32: 'SummonerSnowball',
 }
 
-const getSpellIcon = (spellId: number): string => {
-  const spellMap: Record<number, string> = {
-    1: 'SummonerBoost',      // Cleanse
-    3: 'SummonerExhaust',    // Exhaust
-    4: 'SummonerFlash',      // Flash
-    6: 'SummonerHaste',      // Ghost
-    7: 'SummonerHeal',       // Heal
-    11: 'SummonerSmite',     // Smite
-    12: 'SummonerTeleport',   // Teleport
-    14: 'SummonerDot',       // Ignite
-    21: 'SummonerBarrier',   // Barrier
-    32: 'SummonerSnowball'   // Mark (ARAM)
-  }
-  const spellName = spellMap[spellId] || 'SummonerFlash'
-  return `https://ddragon.leagueoflegends.com/cdn/16.7.1/img/spell/${spellName}.png`
-}
+const getSpellIcon = (spellId: number): string =>
+  getSpellImageUrl(SPELL_NAMES[spellId] || 'SummonerFlash')
 
 const formatGameLength = (seconds: number): string => {
-  const minutes = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${minutes}:${secs.toString().padStart(2, '0')}`
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-function ParticipantRow({ participant, isAlly }: { participant: SpectatorParticipant; isAlly: boolean }) {
+const getDisplayName = (p: SpectatorParticipant): string => {
+  if (p.riotId) return p.riotId.split('#')[0]
+  if (p.summonerName) return p.summonerName
+  return 'Jugador'
+}
+
+function ParticipantRow({ participant, isBlue }: { participant: SpectatorParticipant; isBlue: boolean }) {
+  const bg = isBlue
+    ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800'
+    : 'bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800'
+
   return (
-    <div className={`flex items-center gap-2 p-2 rounded-lg ${isAlly ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800' : 'bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800'}`}>
-      <div className="relative">
-        <img
-          src={getChampionIcon(participant.championId)}
-          alt="Champion"
-          className="w-8 h-8 rounded-lg"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement
-            target.src = 'https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/Aatrox.png'
-          }}
-        />
-      </div>
+    <div className={`flex items-center gap-2 p-2 rounded-lg ${bg}`}>
+      <img
+        src={getChampionImageUrl(participant.championId)}
+        alt=""
+        className="w-8 h-8 rounded-lg flex-shrink-0"
+      />
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">{participant.summonerName}</p>
+        <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
+          {getDisplayName(participant)}
+        </p>
         <div className="flex gap-0.5 mt-0.5">
-          <img src={getSpellIcon(participant.spell1Id)} alt="Spell 1" className="w-3.5 h-3.5 rounded-sm" />
-          <img src={getSpellIcon(participant.spell2Id)} alt="Spell 2" className="w-3.5 h-3.5 rounded-sm" />
+          <img src={getSpellIcon(participant.spell1Id)} alt="" className="w-3.5 h-3.5 rounded-sm" />
+          <img src={getSpellIcon(participant.spell2Id)} alt="" className="w-3.5 h-3.5 rounded-sm" />
         </div>
       </div>
     </div>
@@ -86,7 +88,7 @@ export function SpectatorCard({ puuid }: SpectatorCardProps) {
       try {
         const data = await invoke<SpectatorGameData | null>('get_live_game', { puuid })
         setGame(data)
-      } catch (err) {
+      } catch {
         setGame(null)
       } finally {
         setLoading(false)
@@ -94,9 +96,7 @@ export function SpectatorCard({ puuid }: SpectatorCardProps) {
     }
 
     checkGame()
-
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(checkGame, 30000)
+    const interval = setInterval(checkGame, 30_000)
     return () => clearInterval(interval)
   }, [puuid])
 
@@ -140,9 +140,14 @@ export function SpectatorCard({ puuid }: SpectatorCardProps) {
   }
 
   const blueTeam = game.participants.filter(p => p.teamId === 100)
-  const redTeam = game.participants.filter(p => p.teamId === 200)
+  const redTeam  = game.participants.filter(p => p.teamId === 200)
   const queueName = QUEUE_NAMES[game.gameQueueConfigId] || `Cola ${game.gameQueueConfigId}`
-  const mapName = MAP_NAMES[game.mapId] || `Mapa ${game.mapId}`
+  const mapName   = MAP_NAMES[game.mapId] || `Mapa ${game.mapId}`
+
+  const bans = (game.bannedChampions ?? []).filter(b => b.championId !== -1)
+  const blueBans = bans.filter(b => b.teamId === 100)
+  const redBans  = bans.filter(b => b.teamId === 200)
+  const hasBans  = blueBans.length > 0 || redBans.length > 0
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-4">
@@ -161,61 +166,54 @@ export function SpectatorCard({ puuid }: SpectatorCardProps) {
               {formatGameLength(game.gameLength)}
             </span>
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">{queueName} • {mapName}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{queueName} · {mapName}</p>
         </div>
       </div>
 
       {/* Teams */}
       <div className="grid grid-cols-2 gap-4">
-        {/* Blue Team */}
         <div>
           <h3 className="text-xs font-bold text-blue-600 mb-2 flex items-center gap-1">
-            <Swords className="w-3.5 h-3.5" />
-            EQUIPO AZUL
+            <Swords className="w-3.5 h-3.5" /> EQUIPO AZUL
           </h3>
           <div className="space-y-1">
-            {blueTeam.map((participant, idx) => (
-              <ParticipantRow key={idx} participant={participant} isAlly={true} />
-            ))}
+            {blueTeam.map((p, i) => <ParticipantRow key={i} participant={p} isBlue={true} />)}
           </div>
         </div>
-
-        {/* Red Team */}
         <div>
           <h3 className="text-xs font-bold text-red-600 mb-2 flex items-center gap-1">
-            <Swords className="w-3.5 h-3.5" />
-            EQUIPO ROJO
+            <Swords className="w-3.5 h-3.5" /> EQUIPO ROJO
           </h3>
           <div className="space-y-1">
-            {redTeam.map((participant, idx) => (
-              <ParticipantRow key={idx} participant={participant} isAlly={false} />
-            ))}
+            {redTeam.map((p, i) => <ParticipantRow key={i} participant={p} isBlue={false} />)}
           </div>
         </div>
       </div>
 
-      {/* Bans */}
-      {game.bannedChampions.length > 0 && (
+      {/* Bans — solo si hay alguno */}
+      {hasBans && (
         <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
           <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Baneos</h4>
-          <div className="flex gap-4">
+          <div className="flex justify-between">
             <div className="flex gap-1">
-              {game.bannedChampions.filter(b => b.teamId === 100).map((ban, idx) => (
+              {blueBans.map((ban, i) => (
                 <img
-                  key={idx}
-                  src={getChampionIcon(ban.championId)}
-                  alt="Ban"
-                  className="w-6 h-6 rounded opacity-50"
+                  key={i}
+                  src={getChampionImageUrl(ban.championId)}
+                  alt=""
+                  className="w-6 h-6 rounded opacity-60"
+                  title={`Ban ${i + 1}`}
                 />
               ))}
             </div>
-            <div className="flex gap-1 ml-auto">
-              {game.bannedChampions.filter(b => b.teamId === 200).map((ban, idx) => (
+            <div className="flex gap-1">
+              {redBans.map((ban, i) => (
                 <img
-                  key={idx}
-                  src={getChampionIcon(ban.championId)}
-                  alt="Ban"
-                  className="w-6 h-6 rounded opacity-50"
+                  key={i}
+                  src={getChampionImageUrl(ban.championId)}
+                  alt=""
+                  className="w-6 h-6 rounded opacity-60"
+                  title={`Ban ${i + 1}`}
                 />
               ))}
             </div>

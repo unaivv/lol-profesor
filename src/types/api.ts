@@ -46,7 +46,7 @@ export interface SpectatorGameData {
   participants: SpectatorParticipant[]
   observers: { encryptionKey: string }
   platformId: string          // EUW1
-  bannedChampions: BannedChampion[]
+  bannedChampions?: BannedChampion[]
   gameStartTime: number
   gameLength: number         // Segundos transcurridos
 }
@@ -57,7 +57,8 @@ export interface SpectatorParticipant {
   spell2Id: number          // Hechizo 2
   championId: number
   profileIconId: number
-  summonerName: string
+  riotId?: string            // Spectator v5: "GameName#TagLine"
+  summonerName?: string      // Deprecated en v5, puede llegar vacío
   bot: boolean
   summonerId: string
   gameCustomizationObjects: any[]
