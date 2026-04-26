@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Radio, Users, Clock, Swords } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { invoke } from '@tauri-apps/api/core'
-import { SpectatorGameData, SpectatorParticipant, ParticipantRank } from '../types/api'
+import { SpectatorGameData, SpectatorParticipant, ParticipantRank, ParticipantChampStats } from '../types/api'
 import { getChampionImageUrl, getSpellImageUrl } from '../utils/ddragon'
 
 interface SpectatorCardProps {
   puuid: string | undefined
+  myPuuid?: string
 }
 
 const QUEUE_NAMES: Record<number, string> = {
@@ -34,6 +36,12 @@ const SPELL_NAMES: Record<number, string> = {
   14: 'SummonerDot',
   21: 'SummonerBarrier',
   32: 'SummonerSnowball',
+}
+
+const PLATFORM_TO_REGION: Record<string, string> = {
+  EUW1: 'EUW', EUN1: 'EUN', NA1: 'NA', KR: 'KR',
+  JP1: 'JP', BR1: 'BR', LA1: 'LAN', LA2: 'LAS',
+  OC1: 'OCE', TR1: 'TR', RU: 'RU',
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -72,6 +80,8 @@ const getDisplayName = (p: SpectatorParticipant): string => {
   return 'Jugador'
 }
 
+const fmt1 = (n: number) => n.toFixed(1)
+
 function RankBadge({ rank }: { rank: ParticipantRank | undefined }) {
   if (!rank) return null
   const color = TIER_COLORS[rank.tier] ?? TIER_COLORS.UNRANKED
@@ -102,39 +112,70 @@ function ParticipantRow({
   participant,
   isBlue,
   rank,
+  champStats,
+  isMe,
+  onClick,
 }: {
   participant: SpectatorParticipant
   isBlue: boolean
   rank: ParticipantRank | undefined
+  champStats: ParticipantChampStats | undefined
+  isMe: boolean
+  onClick: () => void
 }) {
-  const bg = isBlue
+  const bg = isMe
+    ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-600'
+    : isBlue
     ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800'
     : 'bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800'
 
+  const wr = champStats && champStats.games > 0
+    ? Math.round((champStats.wins / champStats.games) * 100)
+    : null
+  const wrColor = wr !== null ? (wr >= 60 ? '#22c55e' : wr >= 50 ? '#94a3b8' : '#ef4444') : '#94a3b8'
+
   return (
-    <div className={`flex items-center gap-2 p-2 rounded-lg ${bg}`}>
+    <div
+      className={`flex items-center gap-2 p-2 rounded-lg ${bg} cursor-pointer hover:brightness-95 transition-all`}
+      onClick={onClick}
+    >
       <img
         src={getChampionImageUrl(participant.championId)}
         alt=""
         className="w-8 h-8 rounded-lg flex-shrink-0"
       />
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
-          {getDisplayName(participant)}
-        </p>
+        <div className="flex items-center gap-1">
+          {isMe && (
+            <span style={{
+              fontSize: '9px', fontWeight: 700, color: '#92400e',
+              background: '#fef08a', borderRadius: '3px', padding: '0 3px', lineHeight: '14px',
+            }}>TÚ</span>
+          )}
+          <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
+            {getDisplayName(participant)}
+          </p>
+        </div>
         <div className="flex items-center gap-1">
           <img src={getSpellIcon(participant.spell1Id)} alt="" className="w-3.5 h-3.5 rounded-sm" />
           <img src={getSpellIcon(participant.spell2Id)} alt="" className="w-3.5 h-3.5 rounded-sm" />
         </div>
+        {champStats && champStats.games > 0 && (
+          <p style={{ fontSize: '9px', color: '#64748b', marginTop: '1px', lineHeight: 1.2 }}>
+            {champStats.games}G · <span style={{ color: wrColor, fontWeight: 600 }}>{wr}%</span>
+            {' · '}{fmt1(champStats.avgKills)}/{fmt1(champStats.avgDeaths)}/{fmt1(champStats.avgAssists)}
+          </p>
+        )}
       </div>
       <RankBadge rank={rank} />
     </div>
   )
 }
 
-export function SpectatorCard({ puuid }: SpectatorCardProps) {
+export function SpectatorCard({ puuid, myPuuid }: SpectatorCardProps) {
   const [game, setGame] = useState<SpectatorGameData | null>(null)
   const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!puuid) return
@@ -198,8 +239,10 @@ export function SpectatorCard({ puuid }: SpectatorCardProps) {
   const blueTeam = game.participants.filter(p => p.teamId === 100)
   const redTeam  = game.participants.filter(p => p.teamId === 200)
   const ranks    = game.participantRanks ?? []
+  const champStats = game.participantChampStats ?? []
   const queueName = QUEUE_NAMES[game.gameQueueConfigId] || `Cola ${game.gameQueueConfigId}`
   const mapName   = MAP_NAMES[game.mapId] || `Mapa ${game.mapId}`
+  const region    = PLATFORM_TO_REGION[game.platformId?.toUpperCase?.()] ?? 'EUW'
 
   const bans     = (game.bannedChampions ?? []).filter(b => b.championId !== -1)
   const blueBans = bans.filter(b => b.teamId === 100)
@@ -207,7 +250,17 @@ export function SpectatorCard({ puuid }: SpectatorCardProps) {
   const hasBans  = blueBans.length > 0 || redBans.length > 0
 
   const getRank = (p: SpectatorParticipant) =>
-    ranks.find(r => r.puuid === (p as any).puuid)
+    ranks.find(r => r.puuid === p.puuid)
+
+  const getChampStats = (p: SpectatorParticipant) =>
+    champStats.find(s => s.puuid === p.puuid)
+
+  const handleParticipantClick = (p: SpectatorParticipant) => {
+    if (!p.riotId) return
+    const [gameName, tagLine] = p.riotId.split('#')
+    if (!gameName || !tagLine) return
+    navigate(`/player/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`)
+  }
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-4">
@@ -238,7 +291,15 @@ export function SpectatorCard({ puuid }: SpectatorCardProps) {
           </h3>
           <div className="space-y-1">
             {blueTeam.map((p, i) => (
-              <ParticipantRow key={i} participant={p} isBlue={true} rank={getRank(p)} />
+              <ParticipantRow
+                key={i}
+                participant={p}
+                isBlue={true}
+                rank={getRank(p)}
+                champStats={getChampStats(p)}
+                isMe={!!myPuuid && p.puuid === myPuuid}
+                onClick={() => handleParticipantClick(p)}
+              />
             ))}
           </div>
         </div>
@@ -248,7 +309,15 @@ export function SpectatorCard({ puuid }: SpectatorCardProps) {
           </h3>
           <div className="space-y-1">
             {redTeam.map((p, i) => (
-              <ParticipantRow key={i} participant={p} isBlue={false} rank={getRank(p)} />
+              <ParticipantRow
+                key={i}
+                participant={p}
+                isBlue={false}
+                rank={getRank(p)}
+                champStats={getChampStats(p)}
+                isMe={!!myPuuid && p.puuid === myPuuid}
+                onClick={() => handleParticipantClick(p)}
+              />
             ))}
           </div>
         </div>

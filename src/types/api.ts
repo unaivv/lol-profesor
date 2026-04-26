@@ -46,6 +46,15 @@ export interface ParticipantRank {
   losses: number
 }
 
+export interface ParticipantChampStats {
+  puuid: string
+  games: number
+  wins: number
+  avgKills: number
+  avgDeaths: number
+  avgAssists: number
+}
+
 export interface SpectatorGameData {
   gameId: number
   mapId: number
@@ -59,6 +68,7 @@ export interface SpectatorGameData {
   gameStartTime: number
   gameLength: number         // Segundos transcurridos
   participantRanks?: ParticipantRank[]
+  participantChampStats?: ParticipantChampStats[]
 }
 
 export interface SpectatorParticipant {
@@ -67,6 +77,7 @@ export interface SpectatorParticipant {
   spell2Id: number          // Hechizo 2
   championId: number
   profileIconId: number
+  puuid?: string
   riotId?: string            // Spectator v5: "GameName#TagLine"
   summonerName?: string      // Deprecated en v5, puede llegar vacío
   bot: boolean

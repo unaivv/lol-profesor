@@ -247,7 +247,15 @@ export function StatsPage() {
         )}
 
         {activeTab === 'live' && (
-          <SpectatorCard puuid={playerData.puuid} />
+          <SpectatorCard
+            puuid={playerData.puuid}
+            myPuuid={(() => {
+              try {
+                const raw = localStorage.getItem('lolProfessorMyProfileData')
+                return raw ? JSON.parse(raw)?.puuid : undefined
+              } catch { return undefined }
+            })()}
+          />
         )}
       </div>
     </div>
