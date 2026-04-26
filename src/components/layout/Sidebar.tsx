@@ -251,7 +251,7 @@ export function Sidebar() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setSearchParams({ tab: tab.id })}
+                onClick={() => tab.id === 'live' ? navigate('/me?tab=live') : setSearchParams({ tab: tab.id })}
                 style={{
                   ...navBtn(active),
                   color: liveHighlight ? '#eab308' : (active ? '#93c5fd' : TEXT_MUTED),
