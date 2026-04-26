@@ -3,6 +3,7 @@ pub mod summoner_cache;
 pub mod match_cache;
 pub mod player_cache;
 pub mod analysis_cache;
+pub mod lp_history;
 
 use std::path::Path;
 use r2d2::Pool;

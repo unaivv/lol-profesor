@@ -4,6 +4,7 @@ use crate::models::ranked::RankedStats;
 use crate::models::mastery::ChampionMastery;
 use crate::AppState;
 use crate::api::champions::get_champion_name;
+use crate::db::lp_history::LpSnapshot;
 
 #[tauri::command]
 pub async fn get_ranked_stats(
@@ -77,4 +78,14 @@ pub async fn get_mastery(
         .collect();
 
     Ok(mastery)
+}
+
+#[tauri::command]
+pub async fn get_lp_history(
+    puuid: String,
+    queue_type: String,
+    limit: i64,
+    state: State<'_, AppState>,
+) -> Result<Vec<LpSnapshot>, ApiError> {
+    crate::db::lp_history::get_history(&state.db, &puuid, &queue_type, limit)
 }

@@ -41,9 +41,20 @@ pub fn run(pool: &Pool<SqliteConnectionManager>) -> Result<(), ApiError> {
             cached_at INTEGER NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS lp_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            puuid TEXT NOT NULL,
+            queue_type TEXT NOT NULL,
+            tier TEXT NOT NULL,
+            rank TEXT NOT NULL,
+            lp INTEGER NOT NULL,
+            recorded_at INTEGER NOT NULL
+        );
+
         CREATE INDEX IF NOT EXISTS idx_summoner_names_puuid ON summoner_names(puuid);
         CREATE INDEX IF NOT EXISTS idx_match_info_match_id ON match_info(match_id);
         CREATE INDEX IF NOT EXISTS idx_player_cache_puuid ON player_cache(puuid);
+        CREATE INDEX IF NOT EXISTS idx_lp_history_puuid ON lp_history(puuid, queue_type);
         ",
     )
     .map_err(|e| ApiError::DatabaseError {

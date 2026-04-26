@@ -414,6 +414,23 @@ pub async fn get_comprehensive_player(
     };
 
     let _ = player_cache::set(&state.db, &player_data.puuid, &player_data);
+
+    // Record LP snapshot for history (only inserts if values changed)
+    if let Some(ref rs) = player_data.ranked_stats {
+        if let Some(ref solo) = rs.solo {
+            let _ = crate::db::lp_history::record(
+                &state.db, &player_data.puuid,
+                "RANKED_SOLO_5x5", &solo.tier, &solo.rank, solo.league_points,
+            );
+        }
+        if let Some(ref flex) = rs.flex {
+            let _ = crate::db::lp_history::record(
+                &state.db, &player_data.puuid,
+                "RANKED_FLEX_SR", &flex.tier, &flex.rank, flex.league_points,
+            );
+        }
+    }
+
     let now = chrono::Utc::now().timestamp();
 
     Ok(CachedPlayerResponse {
