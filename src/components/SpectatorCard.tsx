@@ -160,12 +160,12 @@ function ParticipantRow({
           <img src={getSpellIcon(participant.spell1Id)} alt="" className="w-3.5 h-3.5 rounded-sm" />
           <img src={getSpellIcon(participant.spell2Id)} alt="" className="w-3.5 h-3.5 rounded-sm" />
         </div>
-        {champStats && champStats.games > 0 && (
-          <p style={{ fontSize: '9px', color: '#64748b', marginTop: '1px', lineHeight: 1.2 }}>
-            {champStats.games}G · <span style={{ color: wrColor, fontWeight: 600 }}>{wr}%</span>
-            {' · '}{fmt1(champStats.avgKills)}/{fmt1(champStats.avgDeaths)}/{fmt1(champStats.avgAssists)}
-          </p>
-        )}
+        <p style={{ fontSize: '9px', color: '#64748b', marginTop: '1px', lineHeight: 1.2, visibility: champStats && champStats.games > 0 ? 'visible' : 'hidden' }}>
+          {champStats && champStats.games > 0
+            ? <>{champStats.games}G · <span style={{ color: wrColor, fontWeight: 600 }}>{wr}%</span>{' · '}{fmt1(champStats.avgKills)}/{fmt1(champStats.avgDeaths)}/{fmt1(champStats.avgAssists)}</>
+            : ' '
+          }
+        </p>
       </div>
       <RankBadge rank={rank} />
     </div>
