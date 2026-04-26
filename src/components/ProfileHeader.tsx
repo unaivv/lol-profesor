@@ -1,6 +1,7 @@
 import { Trophy, Shield, Zap, TrendingUp, Calendar, Clock, RefreshCw, Star } from 'lucide-react'
 import { PlayerData, RankedStats, RankedStatsExtended } from '../types/api'
 import { getProfileIconUrl } from '../utils/ddragon'
+import { LpSparkline } from './LpSparkline'
 
 interface ProfileHeaderProps {
   playerData: PlayerData
@@ -183,6 +184,7 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
                     <div className="text-slate-400 text-sm">{bestRanked.tier} {bestRanked.rank}</div>
                   </div>
                 </div>
+                <LpSparkline puuid={playerData.puuid} />
               </div>
 
               {/* Win/Loss Card */}
