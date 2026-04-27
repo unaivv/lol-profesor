@@ -171,7 +171,7 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
 
             {/* LP Progression */}
             {bestRanked && (
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl px-4 pt-3 pb-2 border border-white/10 overflow-hidden mt-3">
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl px-4 pt-3 pb-2 border border-white/10 overflow-hidden mt-3" style={{ maxWidth: '260px' }}>
                 <div className="text-xs text-slate-400 mb-1">Progresión LP</div>
                 <LpSparkline puuid={playerData.puuid} />
               </div>
