@@ -168,6 +168,14 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
                 <span>S2026</span>
               </span>
             </div>
+
+            {/* LP Progression */}
+            {bestRanked && (
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl px-4 pt-3 pb-2 border border-white/10 overflow-hidden mt-3">
+                <div className="text-xs text-slate-400 mb-1">Progresión LP</div>
+                <LpSparkline puuid={playerData.puuid} />
+              </div>
+            )}
           </div>
 
           {/* Ranked Stats Cards */}
@@ -184,12 +192,6 @@ export function ProfileHeader({ playerData, rankedStats, cachedAt, isRefreshing,
                     <div className="text-slate-400 text-sm">{bestRanked.tier} {bestRanked.rank}</div>
                   </div>
                 </div>
-              </div>
-
-              {/* LP Progression Card */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl px-4 pt-3 pb-2 border border-white/10 overflow-hidden">
-                <div className="text-xs text-slate-400 mb-1">Progresión LP</div>
-                <LpSparkline puuid={playerData.puuid} />
               </div>
 
               {/* Win/Loss Card */}
