@@ -1,55 +1,55 @@
 # LoL Profesor
 
-Aplicación de escritorio para analizar tu rendimiento en League of Legends. Construida con Tauri v2, React 19 y Rust.
+Desktop app to analyze your League of Legends performance. Built with Tauri v2, React 19 and Rust.
 
 ![Version](https://img.shields.io/badge/version-1.1.18-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey)
 
-## Funcionalidades
+## Features
 
-- **Perfil de invocador** — stats de ranked Solo/Duo y Flex, nivel, íconos, win rate
-- **Progresión de LP** — sparkline SVG con historial de LP a lo largo del tiempo
-- **Historial de partidas** — vista detallada por partida con KDA, daño, CS, visión y timeline
-- **Análisis IA** — insights automáticos por partida usando Groq (positivos, negativos y mejoras)
-- **Estadísticas por campeón** — win rate, KDA, CS/min y maestría agrupados por campeón
-- **Maestría** — tarjetas con nivel, puntos, tokens y progreso al siguiente nivel
-- **Partida en vivo** — detección automática con rango, keystone, stats del campeón en uso y cronómetro en tiempo real
-- **Jugadores favoritos** — guardado local, acceso rápido desde la sidebar
-- **Notificaciones nativas** — aviso del SO cuando tu invocador entra en partida
-- **Bandeja del sistema** — la app se minimiza a la barra en vez de cerrarse
-- **Actualizaciones automáticas** — integrado con el sistema de releases de GitHub
-- **Modo oscuro** — toggle persistente
+- **Summoner profile** — Solo/Duo and Flex ranked stats, level, icons, win rate
+- **LP progression** — SVG sparkline tracking LP history over time
+- **Match history** — detailed match view with KDA, damage, CS, vision and timeline
+- **AI analysis** — automatic per-match insights using Groq (positives, negatives, improvements)
+- **Champion stats** — win rate, KDA, CS/min and mastery grouped by champion
+- **Mastery** — cards with level, points, tokens and progress to next level
+- **Live game** — auto-detection with rank, keystone rune, champion stats and real-time countdown
+- **Favorite players** — local storage, quick access from the sidebar
+- **Native notifications** — OS alert when your summoner enters a game
+- **System tray** — app minimizes to tray instead of closing
+- **Auto-updater** — integrated with GitHub releases
+- **Dark mode** — persistent toggle
 
 ## Stack
 
-| Capa | Tecnología |
+| Layer | Technology |
 |---|---|
 | UI | React 19 + TypeScript + TailwindCSS |
 | Desktop | Tauri v2 |
 | Backend | Rust |
-| Base de datos | SQLite (r2d2 + r2d2-sqlite) |
+| Database | SQLite (r2d2 + r2d2-sqlite) |
 | Assets | DDragon (Riot CDN) |
-| IA | Groq API |
+| AI | Groq API |
 
-## Requisitos
+## Requirements
 
 - [Node.js](https://nodejs.org/) 18+
 - [Rust](https://www.rust-lang.org/tools/install) (stable)
 - [Tauri CLI](https://tauri.app/start/prerequisites/)
-- Riot API Key (`RIOT_API_KEY` en `.env`)
-- Groq API Key (`GROQ_API_KEY` en `.env`, opcional — necesario para análisis IA)
+- Riot API Key (`RIOT_API_KEY` in `.env`)
+- Groq API Key (`GROQ_API_KEY` in `.env`, optional — required for AI analysis)
 
-## Desarrollo
+## Development
 
 ```bash
-# Instalar dependencias
+# Install dependencies
 npm install
 
-# Iniciar en modo desarrollo
+# Start in development mode
 npm run tauri dev
 ```
 
-Crea un archivo `.env` en la raíz del proyecto:
+Create a `.env` file at the project root:
 
 ```env
 RIOT_API_KEY=RGAPI-...
@@ -62,8 +62,8 @@ GROQ_API_KEY=gsk_...
 npm run tauri build
 ```
 
-El instalador se genera en `src-tauri/target/release/bundle/`.
+The installer is generated in `src-tauri/target/release/bundle/`.
 
-## Regiones soportadas
+## Supported regions
 
 EUW · EUNE · NA · KR · JP · BR · LAN · LAS · OCE · TR · RU
