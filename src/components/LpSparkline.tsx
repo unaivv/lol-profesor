@@ -97,7 +97,7 @@ export function LpSparkline({ puuid, queueType = 'RANKED_SOLO_5x5' }: LpSparklin
   const areaColor = trend >= 0 ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', marginTop: '10px' }}>
+    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
       {isMock && (
         <div style={{ position: 'absolute', top: 4, right: 0, fontSize: '9px', color: '#64748b', background: 'rgba(15,23,42,0.5)', borderRadius: '3px', padding: '1px 5px', zIndex: 5, pointerEvents: 'none' }}>
           demo
