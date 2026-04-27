@@ -11,8 +11,8 @@ interface LpSnapshot {
 interface LpSparklineProps {
   puuid: string
   queueType?: string
+  current?: { tier: string; rank: string; lp: number }
 }
-
 
 const TIER_BASE: Record<string, number> = {
   IRON: 0, BRONZE: 400, SILVER: 800, GOLD: 1200,
@@ -32,7 +32,7 @@ const tierLabel = (tier: string, rank: string, lp: number): string => {
   return `${tier} ${rank} · ${lp} LP`
 }
 
-export function LpSparkline({ puuid, queueType = 'RANKED_SOLO_5x5' }: LpSparklineProps) {
+export function LpSparkline({ puuid, queueType = 'RANKED_SOLO_5x5', current }: LpSparklineProps) {
   const [data, setData] = useState<LpSnapshot[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(300)
@@ -46,15 +46,28 @@ export function LpSparkline({ puuid, queueType = 'RANKED_SOLO_5x5' }: LpSparklin
 
   useEffect(() => {
     if (!containerRef.current) return
-    const ro = new ResizeObserver(entries => {
-      setWidth(entries[0].contentRect.width)
-    })
+    const ro = new ResizeObserver(entries => setWidth(entries[0].contentRect.width))
     ro.observe(containerRef.current)
     setWidth(containerRef.current.offsetWidth)
     return () => ro.disconnect()
   }, [])
 
-  if (data.length < 2) return null
+  // Single point: show current LP as a dot with label
+  if (data.length < 2) {
+    if (!current) return null
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '4px', paddingBottom: '2px' }}>
+        <svg width={24} height={24}>
+          <circle cx={12} cy={12} r={5} fill="#60a5fa" opacity={0.8} />
+          <circle cx={12} cy={12} r={2.5} fill="#93c5fd" />
+        </svg>
+        <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: 500 }}>
+          {tierLabel(current.tier, current.rank, current.lp)}
+        </span>
+        <span style={{ fontSize: '10px', color: '#475569' }}>· punto actual</span>
+      </div>
+    )
+  }
 
   const H = 56
   const PAD = { t: 6, b: 6, l: 4, r: 4 }
@@ -86,39 +99,26 @@ export function LpSparkline({ puuid, queueType = 'RANKED_SOLO_5x5' }: LpSparklin
         style={{ display: 'block', overflow: 'visible' }}
         onMouseLeave={() => setTooltip(null)}
       >
-        {/* Area fill */}
         <path d={areaPath} fill={areaColor} />
-        {/* Line */}
         <path d={linePath} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-        {/* Hit targets + dots */}
         {points.map((p, i) => (
           <g key={i}>
             <circle cx={p.x} cy={p.y} r={2.5} fill={lineColor} opacity={tooltip?.snap === p.snap ? 1 : 0.5} />
-            <rect
-              x={p.x - 10} y={PAD.t} width={20} height={innerH}
-              fill="transparent"
-              onMouseEnter={() => setTooltip({ x: p.x, y: p.y, snap: p.snap })}
-            />
+            <rect x={p.x - 10} y={PAD.t} width={20} height={innerH} fill="transparent"
+              onMouseEnter={() => setTooltip({ x: p.x, y: p.y, snap: p.snap })} />
           </g>
         ))}
       </svg>
 
-      {/* Tooltip */}
       {tooltip && (
         <div style={{
           position: 'absolute',
           bottom: H - tooltip.y + 8,
           left: Math.min(Math.max(tooltip.x - 56, 0), W - 120),
-          background: 'rgba(15,23,42,0.92)',
-          color: '#f1f5f9',
-          borderRadius: '6px',
-          padding: '5px 9px',
-          fontSize: '11px',
-          fontWeight: 500,
-          pointerEvents: 'none',
-          whiteSpace: 'nowrap',
-          zIndex: 10,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+          background: 'rgba(15,23,42,0.92)', color: '#f1f5f9',
+          borderRadius: '6px', padding: '5px 9px', fontSize: '11px',
+          fontWeight: 500, pointerEvents: 'none', whiteSpace: 'nowrap',
+          zIndex: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
         }}>
           <div style={{ color: lineColor, fontWeight: 700 }}>{tierLabel(tooltip.snap.tier, tooltip.snap.rank, tooltip.snap.lp)}</div>
           <div style={{ color: '#94a3b8', fontSize: '10px', marginTop: '1px' }}>{formatDate(tooltip.snap.recordedAt)}</div>
