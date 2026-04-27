@@ -13,21 +13,6 @@ interface LpSparklineProps {
   queueType?: string
 }
 
-const MOCK_DATA: LpSnapshot[] = (() => {
-  const now = Math.floor(Date.now() / 1000)
-  const day = 86400
-  const points: [string, string, number][] = [
-    ['GOLD', 'II', 45], ['GOLD', 'II', 78], ['GOLD', 'II', 12],
-    ['GOLD', 'II', 55], ['GOLD', 'I', 20], ['GOLD', 'I', 61],
-    ['GOLD', 'I', 88], ['PLATINUM', 'IV', 18], ['PLATINUM', 'IV', 52],
-    ['PLATINUM', 'IV', 74], ['PLATINUM', 'IV', 31], ['PLATINUM', 'III', 15],
-    ['PLATINUM', 'III', 67], ['PLATINUM', 'III', 90], ['PLATINUM', 'II', 22],
-  ]
-  return points.map(([tier, rank, lp], i) => ({
-    tier, rank, lp,
-    recordedAt: now - (points.length - 1 - i) * day,
-  }))
-})()
 
 const TIER_BASE: Record<string, number> = {
   IRON: 0, BRONZE: 400, SILVER: 800, GOLD: 1200,
@@ -69,10 +54,7 @@ export function LpSparkline({ puuid, queueType = 'RANKED_SOLO_5x5' }: LpSparklin
     return () => ro.disconnect()
   }, [])
 
-  const isMock = data.length < 2
-  const display = isMock ? MOCK_DATA : data
-
-  if (display.length < 2) return null
+  if (data.length < 2) return null
 
   const H = 56
   const PAD = { t: 6, b: 6, l: 4, r: 4 }
@@ -80,7 +62,7 @@ export function LpSparkline({ puuid, queueType = 'RANKED_SOLO_5x5' }: LpSparklin
   const innerW = W - PAD.l - PAD.r
   const innerH = H - PAD.t - PAD.b
 
-  const values = display.map(d => toContinuousLp(d.tier, d.rank, d.lp))
+  const values = data.map(d => toContinuousLp(d.tier, d.rank, d.lp))
   const minV = Math.min(...values)
   const maxV = Math.max(...values)
   const range = maxV - minV || 1
@@ -88,7 +70,7 @@ export function LpSparkline({ puuid, queueType = 'RANKED_SOLO_5x5' }: LpSparklin
   const px = (i: number) => PAD.l + (i / (data.length - 1)) * innerW
   const py = (v: number) => PAD.t + innerH - ((v - minV) / range) * innerH
 
-  const points = display.map((d, i) => ({ x: px(i), y: py(values[i]), snap: d }))
+  const points = data.map((d, i) => ({ x: px(i), y: py(values[i]), snap: d }))
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
   const areaPath = `${linePath} L${points[points.length - 1].x.toFixed(1)},${(PAD.t + innerH).toFixed(1)} L${PAD.l},${(PAD.t + innerH).toFixed(1)} Z`
 
@@ -98,11 +80,6 @@ export function LpSparkline({ puuid, queueType = 'RANKED_SOLO_5x5' }: LpSparklin
 
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
-      {isMock && (
-        <div style={{ position: 'absolute', top: 4, right: 0, fontSize: '9px', color: '#64748b', background: 'rgba(15,23,42,0.5)', borderRadius: '3px', padding: '1px 5px', zIndex: 5, pointerEvents: 'none' }}>
-          demo
-        </div>
-      )}
       <svg
         width={W}
         height={H}
