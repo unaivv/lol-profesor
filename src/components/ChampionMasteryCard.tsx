@@ -1,7 +1,6 @@
 import { Star, Lock, Clock } from 'lucide-react'
 import { ChampionMastery } from '../types'
-import { getChampionName } from '../lib/champions'
-import { getChampionImageUrl } from '../utils/ddragon'
+import { getChampionImageUrl, getChampionName } from '../utils/ddragon'
 
 interface TopChampionData {
   championId: number
@@ -17,8 +16,9 @@ interface ChampionMasteryCardProps {
 }
 
 const getMasteryLevelColor = (level: number): string => {
+  if (level >= 10) return 'from-yellow-300 to-amber-400 border-yellow-300'
+  if (level >= 7)  return 'from-yellow-400 to-amber-500 border-yellow-400'
   switch (level) {
-    case 7: return 'from-rose-500 to-orange-500 border-rose-400'
     case 6: return 'from-purple-500 to-pink-500 border-purple-400'
     case 5: return 'from-blue-500 to-cyan-500 border-blue-400'
     case 4: return 'from-emerald-500 to-green-500 border-emerald-400'
@@ -59,7 +59,7 @@ const formatLastPlayed = (timestamp: number): string => {
 }
 
 export function ChampionMasteryCard({ mastery }: ChampionMasteryCardProps) {
-  const championName = mastery.championName || getChampionName(mastery.championId)
+  const championName = getChampionName(mastery.championId)
   const masteryData = mastery as ChampionMastery
   const level = mastery.championLevel || 0
   const isTopPlayed = 'games' in mastery && mastery.games > 0 && !masteryData.championPoints

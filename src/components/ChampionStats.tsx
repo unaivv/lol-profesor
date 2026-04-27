@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Users, Trophy, TrendingUp, BarChart3, Target, Swords, Star } from 'lucide-react'
 import { DetailedMatch, ChampionMastery } from '../types/api'
-import { getChampionImageUrl } from '../utils/ddragon'
+import { getChampionImageUrl, getChampionName, useChampionMap } from '../utils/ddragon'
 
 interface ChampionStatsProps {
   matches: DetailedMatch[]
@@ -56,15 +56,17 @@ const kdaClass = (kda: number) => {
 }
 
 const masteryColor = (level: number) => {
-  if (level >= 7) return '#b45309'
-  if (level >= 5) return '#6d28d9'
-  if (level >= 3) return '#1d4ed8'
+  if (level >= 10) return '#f59e0b'  // gold brillante
+  if (level >= 7)  return '#eab308'  // gold
+  if (level >= 5)  return '#a855f7'  // purple
+  if (level >= 3)  return '#3b82f6'  // blue
   return '#475569'
 }
 
 export function ChampionStats({ matches, playerPuuid, mastery = [] }: ChampionStatsProps) {
   const [sortBy, setSortBy] = useState<SortKey>('games')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const champMapReady = useChampionMap()
 
   const championStats = useMemo(() => {
     // Build match stats indexed by championId
@@ -100,7 +102,7 @@ export function ChampionStats({ matches, playerPuuid, mastery = [] }: ChampionSt
       const ms = matchStats[m.championId] ?? null
       return {
         championId: m.championId,
-        championName: m.championName ?? `Champion ${m.championId}`,
+        championName: getChampionName(m.championId),
         masteryLevel: m.championLevel,
         masteryPoints: m.championPoints,
         games: ms?.games ?? 0,
@@ -123,7 +125,7 @@ export function ChampionStats({ matches, playerPuuid, mastery = [] }: ChampionSt
       const participant = matches.flatMap(m => m.participants ?? []).find(p => p.championId === id)
       rows.push({
         championId: id,
-        championName: participant?.championName ?? `Champion ${id}`,
+        championName: getChampionName(id),
         masteryLevel: 0,
         masteryPoints: 0,
         games: ms.games,
@@ -149,7 +151,7 @@ export function ChampionStats({ matches, playerPuuid, mastery = [] }: ChampionSt
       else { av = a.avgCsPerMinute ?? -1; bv = b.avgCsPerMinute ?? -1 }
       return sortOrder === 'desc' ? bv - av : av - bv
     })
-  }, [matches, mastery, playerPuuid, sortBy, sortOrder])
+  }, [matches, mastery, playerPuuid, sortBy, sortOrder, champMapReady])
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">

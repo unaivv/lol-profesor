@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Star } from 'lucide-react'
 import { ChampionMasteryCard } from './ChampionMasteryCard'
-import { getChampionName } from '../lib/champions'
+import { getChampionName } from '../utils/ddragon'
 import type { DetailedMatch, ChampionMastery } from '../types/api'
 
 interface MostPlayedChampionsProps {
