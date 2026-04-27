@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Radio, Users, Clock, Swords } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { invoke } from '@tauri-apps/api/core'
 import { SpectatorGameData, SpectatorParticipant, ParticipantRank, ParticipantChampStats } from '../types/api'
-import { getChampionImageUrl, getSpellImageUrl } from '../utils/ddragon'
+import { getChampionImageUrl, getSpellImageUrl, getRuneImageUrl } from '../utils/ddragon'
 
 interface SpectatorCardProps {
   puuid: string | undefined
@@ -68,6 +68,7 @@ const TIER_ABBR: Record<string, string> = {
 const getSpellIcon = (spellId: number): string =>
   getSpellImageUrl(SPELL_NAMES[spellId] || 'SummonerFlash')
 
+
 const formatGameLength = (seconds: number): string => {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
@@ -123,16 +124,16 @@ function ParticipantRow({
   isMe: boolean
   onClick: () => void
 }) {
+  const wr = champStats && champStats.games > 0
+    ? Math.round((champStats.wins / champStats.games) * 100)
+    : null
+  const wrColor = wr !== null ? (wr >= 60 ? '#22c55e' : wr >= 50 ? '#94a3b8' : '#ef4444') : '#94a3b8'
+
   const bg = isMe
     ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-600'
     : isBlue
     ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800'
     : 'bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800'
-
-  const wr = champStats && champStats.games > 0
-    ? Math.round((champStats.wins / champStats.games) * 100)
-    : null
-  const wrColor = wr !== null ? (wr >= 60 ? '#22c55e' : wr >= 50 ? '#94a3b8' : '#ef4444') : '#94a3b8'
 
   return (
     <div
@@ -159,6 +160,14 @@ function ParticipantRow({
         <div className="flex items-center gap-1">
           <img src={getSpellIcon(participant.spell1Id)} alt="" className="w-3.5 h-3.5 rounded-sm" />
           <img src={getSpellIcon(participant.spell2Id)} alt="" className="w-3.5 h-3.5 rounded-sm" />
+          {participant.perks?.perkIds?.[0] && getRuneImageUrl(participant.perks.perkIds[0]) && (
+            <img
+              src={getRuneImageUrl(participant.perks.perkIds[0])}
+              alt=""
+              className="w-3.5 h-3.5 rounded-sm"
+              style={{ filter: 'brightness(1.1)' }}
+            />
+          )}
         </div>
         <p style={{ fontSize: '9px', color: '#64748b', marginTop: '1px', lineHeight: 1.2, visibility: champStats && champStats.games > 0 ? 'visible' : 'hidden' }}>
           {champStats && champStats.games > 0
@@ -175,6 +184,8 @@ function ParticipantRow({
 export function SpectatorCard({ puuid, myPuuid }: SpectatorCardProps) {
   const [game, setGame] = useState<SpectatorGameData | null>(null)
   const [loading, setLoading] = useState(false)
+  const [displayTime, setDisplayTime] = useState(0)
+  const fetchedAtRef = useRef<number>(0)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -184,6 +195,10 @@ export function SpectatorCard({ puuid, myPuuid }: SpectatorCardProps) {
       setLoading(true)
       try {
         const data = await invoke<SpectatorGameData | null>('get_live_game_with_ranks', { puuid })
+        if (data) {
+          fetchedAtRef.current = Date.now()
+          setDisplayTime(data.gameLength)
+        }
         setGame(data)
       } catch {
         setGame(null)
@@ -196,6 +211,15 @@ export function SpectatorCard({ puuid, myPuuid }: SpectatorCardProps) {
     const interval = setInterval(checkGame, 30_000)
     return () => clearInterval(interval)
   }, [puuid])
+
+  useEffect(() => {
+    if (!game) return
+    const tick = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - fetchedAtRef.current) / 1000)
+      setDisplayTime(game.gameLength + elapsed)
+    }, 1000)
+    return () => clearInterval(tick)
+  }, [game])
 
   if (loading && !game) {
     return (
@@ -276,7 +300,7 @@ export function SpectatorCard({ puuid, myPuuid }: SpectatorCardProps) {
           <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
             EN VIVO
             <span className="text-xs font-normal text-slate-500 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
-              {formatGameLength(game.gameLength)}
+              {formatGameLength(displayTime)}
             </span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">{queueName} · {mapName}</p>
