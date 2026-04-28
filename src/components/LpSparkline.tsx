@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { invoke } from '@tauri-apps/api/core'
+import { getRankColor } from './RankedComparisonCard/RankedComparisonCard.utils'
 
 interface LpSnapshot {
   tier: string
@@ -52,21 +53,11 @@ export function LpSparkline({ puuid, queueType = 'RANKED_SOLO_5x5', current }: L
     return () => ro.disconnect()
   }, [])
 
-  // Single point: show current LP as a dot with label
-  if (data.length < 2) {
-    if (!current) return null
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '4px', paddingBottom: '2px' }}>
-        <svg width={24} height={24}>
-          <circle cx={12} cy={12} r={5} fill="#60a5fa" opacity={0.8} />
-          <circle cx={12} cy={12} r={2.5} fill="#93c5fd" />
-        </svg>
-        <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: 500 }}>
-          {tierLabel(current.tier, current.rank, current.lp)}
-        </span>
-        <span style={{ fontSize: '10px', color: '#475569' }}>· punto actual</span>
-      </div>
-    )
+  // If no historical data but we have current LP, add it as starting point
+  let displayData = data
+  if (data.length === 0 && current) {
+    const now = Math.floor(Date.now() / 1000)
+    displayData = [{ tier: current.tier, rank: current.rank, lp: current.lp, recordedAt: now }]
   }
 
   const H = 56
@@ -75,21 +66,22 @@ export function LpSparkline({ puuid, queueType = 'RANKED_SOLO_5x5', current }: L
   const innerW = W - PAD.l - PAD.r
   const innerH = H - PAD.t - PAD.b
 
-  const values = data.map(d => toContinuousLp(d.tier, d.rank, d.lp))
-  const minV = Math.min(...values)
-  const maxV = Math.max(...values)
+  const displayValues = displayData.map(d => toContinuousLp(d.tier, d.rank, d.lp))
+  const minV = Math.min(...displayValues)
+  const maxV = Math.max(...displayValues)
   const range = maxV - minV || 1
 
-  const px = (i: number) => PAD.l + (i / (data.length - 1)) * innerW
+  const count = Math.max(displayData.length, 1)
+  const px = (i: number) => PAD.l + (i / (count - 1 || 1)) * innerW
   const py = (v: number) => PAD.t + innerH - ((v - minV) / range) * innerH
 
-  const points = data.map((d, i) => ({ x: px(i), y: py(values[i]), snap: d }))
+  const points = displayData.map((d, i) => ({ x: px(i), y: py(displayValues[i]), snap: d }))
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
   const areaPath = `${linePath} L${points[points.length - 1].x.toFixed(1)},${(PAD.t + innerH).toFixed(1)} L${PAD.l},${(PAD.t + innerH).toFixed(1)} Z`
 
-  const trend = values[values.length - 1] - values[0]
-  const lineColor = trend >= 0 ? '#22c55e' : '#ef4444'
-  const areaColor = trend >= 0 ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'
+  // Use tier color for line, points and tooltip
+  const tierColor = current ? getRankColor(current.tier) : '#3B82F6'
+  const areaColor = `${tierColor}20`
 
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
@@ -100,10 +92,10 @@ export function LpSparkline({ puuid, queueType = 'RANKED_SOLO_5x5', current }: L
         onMouseLeave={() => setTooltip(null)}
       >
         <path d={areaPath} fill={areaColor} />
-        <path d={linePath} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+        <path d={linePath} fill="none" stroke={tierColor} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
         {points.map((p, i) => (
           <g key={i}>
-            <circle cx={p.x} cy={p.y} r={2.5} fill={lineColor} opacity={tooltip?.snap === p.snap ? 1 : 0.5} />
+            <circle cx={p.x} cy={p.y} r={2.5} fill={tierColor} opacity={tooltip?.snap === p.snap ? 1 : 0.5} />
             <rect x={p.x - 10} y={PAD.t} width={20} height={innerH} fill="transparent"
               onMouseEnter={() => setTooltip({ x: p.x, y: p.y, snap: p.snap })} />
           </g>
@@ -120,7 +112,7 @@ export function LpSparkline({ puuid, queueType = 'RANKED_SOLO_5x5', current }: L
           fontWeight: 500, pointerEvents: 'none', whiteSpace: 'nowrap',
           zIndex: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
         }}>
-          <div style={{ color: lineColor, fontWeight: 700 }}>{tierLabel(tooltip.snap.tier, tooltip.snap.rank, tooltip.snap.lp)}</div>
+          <div style={{ color: tierColor, fontWeight: 700 }}>{tierLabel(tooltip.snap.tier, tooltip.snap.rank, tooltip.snap.lp)}</div>
           <div style={{ color: '#94a3b8', fontSize: '10px', marginTop: '1px' }}>{formatDate(tooltip.snap.recordedAt)}</div>
         </div>
       )}

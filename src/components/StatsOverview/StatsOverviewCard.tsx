@@ -28,7 +28,7 @@ export function StatsOverviewCard({ icon, iconBg, value, label, subValue, tier, 
 
     return (
       <div style={{
-        background: 'white',
+        background: 'var(--bg-card)',
         borderRadius: '12px',
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
         border: `3px solid ${getRankColor(tier)}`,
@@ -48,7 +48,7 @@ export function StatsOverviewCard({ icon, iconBg, value, label, subValue, tier, 
               backgroundSize: '350%',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
-              backgroundColor: '#f8fafc',
+              backgroundColor: 'var(--bg-card-subtle)',
               flexShrink: 0
             }}
           />
@@ -66,7 +66,7 @@ export function StatsOverviewCard({ icon, iconBg, value, label, subValue, tier, 
           </div>
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
             Clasificatorias
           </div>
           <div style={{
@@ -79,8 +79,8 @@ export function StatsOverviewCard({ icon, iconBg, value, label, subValue, tier, 
           </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}>{subValue?.split(' • ')[0]}</div>
-          <div style={{ fontSize: '11px', color: '#64748b' }}>{subValue?.split(' • ')[1]}</div>
+          <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{subValue?.split(' • ')[0]}</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{subValue?.split(' • ')[1]}</div>
         </div>
       </div>
     )
@@ -88,10 +88,10 @@ export function StatsOverviewCard({ icon, iconBg, value, label, subValue, tier, 
 
   return (
     <div style={{
-      background: 'white',
+      background: 'var(--bg-card)',
       borderRadius: '12px',
       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      border: '1px solid #e2e8f0',
+      border: '1px solid var(--border-color)',
       padding: '20px',
       display: 'flex',
       alignItems: 'center',
@@ -109,8 +109,8 @@ export function StatsOverviewCard({ icon, iconBg, value, label, subValue, tier, 
         {icon}
       </div>
       <div>
-        <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e293b' }}>{value}</div>
-        {label && <div style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>{label}</div>}
+        <div style={{ fontSize: '28px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{value}</div>
+        {label && <div style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>{label}</div>}
       </div>
     </div>
   )

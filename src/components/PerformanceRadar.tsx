@@ -32,6 +32,32 @@ export interface PerformanceMetrics {
   avgKillParticipation: number
 }
 
+// Función helper para calcular el objetivo de farm basado en duración de la partida
+// Objetivo base: 10 CS/min, a partir de 20 min baja 2 puntos por cada 10 mins extra (mínimo 3)
+const getFarmObjectiveForDuration = (minutes: number): number => {
+  if (minutes <= 20) return 10
+  const extraMinutes = minutes - 20
+  const reduction = Math.floor(extraMinutes / 10) * 2
+  return Math.max(3, 10 - reduction)
+}
+
+// Calcula el promedio de objetivo de farm considerando la duración de cada partida
+const getAverageFarmObjective = (matches: DetailedMatch[]): number => {
+  if (!matches || matches.length === 0) return 10
+  
+  const recentMatches = matches.slice(0, 20)
+  let totalObjective = 0
+  let count = 0
+  
+  recentMatches.forEach(match => {
+    const minutes = (match.gameDuration || 0) / 60
+    totalObjective += getFarmObjectiveForDuration(minutes)
+    count++
+  })
+  
+  return count > 0 ? totalObjective / count : 10
+}
+
 export const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string): RadarMetric[] => {
   if (!matches || matches.length === 0) {
     return [
@@ -45,6 +71,7 @@ export const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string)
   }
 
   const recentMatches = matches.slice(0, 20)
+  const farmObjective = getAverageFarmObjective(matches)
   let totalCsPerMin = 0
   let totalDeathsPer30 = 0
   let totalVisionScore = 0
@@ -108,7 +135,7 @@ export const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string)
   const avgKillParticipation = totalKillParticipation / n
   const winRate = (totalWins / n) * 100
 
-  const farmScore = Math.min(100, (avgCsPerMin / 8) * 100)
+  const farmScore = Math.min(100, (avgCsPerMin / farmObjective) * 100)
   const survivalScore = Math.max(0, 100 - avgDeathsPer30 * 6)
   const visionScoreCalc = Math.min(100, (avgVisionScore / 40) * 100)
   const damageScore = Math.min(100, (avgDpm / 1000) * 100)
@@ -116,7 +143,7 @@ export const calculateMetrics = (matches: DetailedMatch[], playerPuuid?: string)
   const impactScore = (winRate * 0.5) + (avgKillParticipation * 100 * 0.5)
 
   return [
-    { key: 'farm', label: 'Farm', icon: '🌾', value: Math.round(farmScore), tooltip: `CS/min: ${avgCsPerMin.toFixed(1)} / Objetivo: 8` },
+    { key: 'farm', label: 'Farm', icon: '🌾', value: Math.round(farmScore), tooltip: `CS/min: ${avgCsPerMin.toFixed(1)} / Objetivo: ${farmObjective.toFixed(1)}` },
     { key: 'survival', label: 'Supervivencia', icon: '🛡️', value: Math.round(survivalScore), tooltip: `Muertes/30min: ${avgDeathsPer30.toFixed(1)} → 100 - deaths×6` },
     { key: 'vision', label: 'Visión', icon: '👁️', value: Math.round(visionScoreCalc), tooltip: `Vision Score: ${Math.round(avgVisionScore)} / Objetivo: 40` },
     { key: 'damage', label: 'Daño', icon: '⚔️', value: Math.round(damageScore), tooltip: `DPM: ${Math.round(avgDpm)} / Objetivo: 1000` },
@@ -170,9 +197,10 @@ export const calculateRawMetrics = (matches: DetailedMatch[], playerPuuid?: stri
   const avgKda = totalKda / n
   const avgKillParticipation = totalKillParticipation / n
   const winRate = (totalWins / n) * 100
+  const farmObjective = getAverageFarmObjective(matches)
 
   return {
-    farm: Math.round(Math.min(100, (avgCsPerMin / 8) * 100)),
+    farm: Math.round(Math.min(100, (avgCsPerMin / farmObjective) * 100)),
     survival: Math.round(Math.max(0, 100 - avgDeathsPer30 * 6)),
     vision: Math.round(Math.min(100, (avgVisionScore / 40) * 100)),
     damage: Math.round(Math.min(100, (avgDpm / 1000) * 100)),

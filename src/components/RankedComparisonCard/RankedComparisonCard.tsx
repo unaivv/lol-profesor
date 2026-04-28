@@ -15,7 +15,7 @@ function RankedCard({ stats, title, icon: Icon }: RankedCardProps) {
     return (
       <div className={rankCardStyles.empty}>
         <div className={rankCardStyles.emptyIcon}>
-          <Icon className="w-6 h-6 text-slate-400" />
+          <Icon className="w-6 h-6 text-slate-400 dark:text-slate-500" />
         </div>
         <h3 className={rankCardStyles.emptyTitle}>{title}</h3>
         <p className={rankCardStyles.emptyText}>Sin datos</p>
@@ -36,7 +36,7 @@ function RankedCard({ stats, title, icon: Icon }: RankedCardProps) {
             backgroundSize: '350%',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            backgroundColor: '#f1f5f9'
+            backgroundColor: 'var(--bg-card-subtle)'
           }}
         />
         <div className={rankCardStyles.info}>
@@ -91,13 +91,13 @@ export function RankedComparisonCard({ rankedStats }: RankedComparisonCardProps)
       <div className={emptyStyles.container}>
         <div className={emptyStyles.header}>
           <div className={emptyStyles.headerIcon}>
-            <Shield className="w-5 h-5 text-slate-600" />
+            <Shield className="w-5 h-5 text-slate-600 dark:text-slate-300" />
           </div>
           <h2 className={emptyStyles.headerTitle}>Clasificatorias</h2>
         </div>
         <div className={emptyStyles.content}>
           <div className={emptyStyles.iconWrapper}>
-            <Trophy className="w-8 h-8 text-slate-400" />
+            <Trophy className="w-8 h-8 text-slate-400 dark:text-slate-500" />
           </div>
           <h3 className={emptyStyles.title}>Sin datos clasificatorios</h3>
           <p className={emptyStyles.text}>El jugador no tiene partidas clasificatorias esta temporada</p>
