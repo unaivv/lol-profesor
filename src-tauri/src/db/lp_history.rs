@@ -22,9 +22,20 @@ pub fn record(
 ) -> Result<(), ApiError> {
     let conn = pool.get().map_err(|e| ApiError::DatabaseError { message: e.to_string() })?;
 
-    // Always record the snapshot to track progress over time
-    let now = chrono::Utc::now().timestamp();
+    // Only record if tier/rank/lp changed from the last snapshot
+    let last: Option<(String, String, i64)> = conn.query_row(
+        "SELECT tier, rank, lp FROM lp_history WHERE puuid = ?1 AND queue_type = ?2 ORDER BY recorded_at DESC LIMIT 1",
+        rusqlite::params![puuid, queue_type],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    ).ok();
 
+    if let Some((last_tier, last_rank, last_lp)) = last {
+        if last_tier == tier && last_rank == rank && last_lp == lp {
+            return Ok(());
+        }
+    }
+
+    let now = chrono::Utc::now().timestamp();
     log::info!("Recording LP snapshot: puuid={}, queue={}, tier={} {} {} LP", puuid, queue_type, tier, rank, lp);
 
     conn.execute(

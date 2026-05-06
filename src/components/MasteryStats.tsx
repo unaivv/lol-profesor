@@ -136,7 +136,7 @@ export function MasteryStats({ matches }: MasteryStatsProps) {
   }, [matches, sortBy, sortOrder])
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -191,7 +191,7 @@ export function MasteryStats({ matches }: MasteryStatsProps) {
         {championMastery.map((mastery) => (
           <div
             key={mastery.championId}
-            className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all hover:-translate-y-0.5"
+            className="bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-lg transition-all hover:-translate-y-0.5"
           >
             {/* Champion Header */}
             <div className="p-4">
@@ -200,7 +200,7 @@ export function MasteryStats({ matches }: MasteryStatsProps) {
                   <img
                     src={getChampionIcon(mastery.championId)}
                     alt={mastery.championName}
-                    className="w-14 h-14 rounded-xl border-2 border-slate-200 shadow-sm"
+                    className="w-14 h-14 rounded-xl border-2 border-slate-200 dark:border-slate-600 shadow-sm"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement
                       target.src = 'https://ddragon.leagueoflegends.com/cdn/16.7.1/img/champion/Aatrox.png'
@@ -211,40 +211,40 @@ export function MasteryStats({ matches }: MasteryStatsProps) {
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-slate-900 truncate">{mastery.championName}</h3>
-                  <p className="text-xs text-slate-500">{mastery.masteryPoints.toLocaleString()} pts</p>
+                  <h3 className="font-bold text-slate-900 dark:text-white truncate">{mastery.championName}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{mastery.masteryPoints.toLocaleString()} pts</p>
                 </div>
               </div>
 
               {/* Stats */}
               <div className="grid grid-cols-2 gap-2">
-                <div className="bg-white rounded-xl p-2.5 border border-slate-100">
-                  <div className="text-xs text-slate-500 mb-0.5">Partidas</div>
-                  <div className="font-semibold text-slate-900">{mastery.gamesPlayed}</div>
+                <div className="bg-white dark:bg-slate-700 rounded-xl p-2.5 border border-slate-100 dark:border-slate-600">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">Partidas</div>
+                  <div className="font-semibold text-slate-900 dark:text-white">{mastery.gamesPlayed}</div>
                 </div>
-                <div className="bg-white rounded-xl p-2.5 border border-slate-100">
-                  <div className="text-xs text-slate-500 mb-0.5">Win Rate</div>
+                <div className="bg-white dark:bg-slate-700 rounded-xl p-2.5 border border-slate-100 dark:border-slate-600">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">Win Rate</div>
                   <div className={`font-semibold ${getWinRateColor(mastery.winRate)}`}>
                     {mastery.winRate.toFixed(0)}%
                   </div>
                 </div>
-                <div className="bg-white rounded-xl p-2.5 border border-slate-100">
-                  <div className="text-xs text-slate-500 mb-0.5">KDA</div>
-                  <div className="font-semibold text-slate-900">{mastery.avgKDA.toFixed(2)}</div>
+                <div className="bg-white dark:bg-slate-700 rounded-xl p-2.5 border border-slate-100 dark:border-slate-600">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">KDA</div>
+                  <div className="font-semibold text-slate-900 dark:text-white">{mastery.avgKDA.toFixed(2)}</div>
                 </div>
-                <div className="bg-white rounded-xl p-2.5 border border-slate-100">
-                  <div className="text-xs text-slate-500 mb-0.5">CS/min</div>
-                  <div className="font-semibold text-slate-900">{mastery.csPerMinute.toFixed(1)}</div>
+                <div className="bg-white dark:bg-slate-700 rounded-xl p-2.5 border border-slate-100 dark:border-slate-600">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">CS/min</div>
+                  <div className="font-semibold text-slate-900 dark:text-white">{mastery.csPerMinute.toFixed(1)}</div>
                 </div>
               </div>
 
               {/* Progress Bar */}
               <div className="mt-3">
-                <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
                   <span>Progreso M{Math.min(mastery.masteryLevel + 1, 7)}</span>
                   <span>{Math.min(100, (mastery.masteryPoints / 10000) * 100).toFixed(0)}%</span>
                 </div>
-                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                <div className="h-2 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full bg-gradient-to-r ${getMasteryLevelColor(mastery.masteryLevel)}`}
                     style={{ width: `${Math.min(100, (mastery.masteryPoints / 10000) * 100)}%` }}
@@ -253,8 +253,8 @@ export function MasteryStats({ matches }: MasteryStatsProps) {
               </div>
 
               {/* Footer */}
-              <div className="mt-3 pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1 text-slate-500">
+              <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
                   <Clock className="w-3 h-3" />
                   <span>{new Date(mastery.lastPlayTime).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>
                 </div>
@@ -272,11 +272,11 @@ export function MasteryStats({ matches }: MasteryStatsProps) {
 
       {championMastery.length === 0 && (
         <div className="text-center py-12">
-          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Star className="w-8 h-8 text-slate-400" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-1">Sin datos de maestría</h3>
-          <p className="text-sm text-slate-500">No hay partidas disponibles para calcular maestría</p>
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-1">Sin datos de maestría</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400">No hay partidas disponibles para calcular maestría</p>
         </div>
       )}
     </div>
