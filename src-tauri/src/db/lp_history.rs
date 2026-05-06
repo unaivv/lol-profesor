@@ -22,20 +22,21 @@ pub fn record(
 ) -> Result<(), ApiError> {
     let conn = pool.get().map_err(|e| ApiError::DatabaseError { message: e.to_string() })?;
 
-    // Only record if tier/rank/lp changed from the last snapshot
-    let last: Option<(String, String, i64)> = conn.query_row(
-        "SELECT tier, rank, lp FROM lp_history WHERE puuid = ?1 AND queue_type = ?2 ORDER BY recorded_at DESC LIMIT 1",
+    // Record if LP/tier/rank changed OR if last snapshot was more than 24h ago (daily snapshot)
+    let last: Option<(String, String, i64, i64)> = conn.query_row(
+        "SELECT tier, rank, lp, recorded_at FROM lp_history WHERE puuid = ?1 AND queue_type = ?2 ORDER BY recorded_at DESC LIMIT 1",
         rusqlite::params![puuid, queue_type],
-        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
     ).ok();
 
-    if let Some((last_tier, last_rank, last_lp)) = last {
-        if last_tier == tier && last_rank == rank && last_lp == lp {
+    let now = chrono::Utc::now().timestamp();
+    if let Some((last_tier, last_rank, last_lp, last_recorded_at)) = last {
+        let lp_unchanged = last_tier == tier && last_rank == rank && last_lp == lp;
+        let within_24h = (now - last_recorded_at) < 24 * 60 * 60;
+        if lp_unchanged && within_24h {
             return Ok(());
         }
     }
-
-    let now = chrono::Utc::now().timestamp();
     log::info!("Recording LP snapshot: puuid={}, queue={}, tier={} {} {} LP", puuid, queue_type, tier, rank, lp);
 
     conn.execute(
