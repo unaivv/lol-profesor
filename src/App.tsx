@@ -9,7 +9,7 @@ import { AppLayout } from './components/layout/AppLayout'
 import { TitleBar } from './components/TitleBar'
 import { SplashScreen } from './components/SplashScreen'
 import { NotificationCenter } from './components/ui/NotificationCenter'
-import { initChampionMap, initRuneMap } from './utils/ddragon'
+import { initChampionMap, initRuneMap, initItemMap } from './utils/ddragon'
 import { useMyProfile } from './hooks/useMyProfile'
 import { ThemeProvider } from './context/ThemeContext'
 import { NotificationProvider } from './context/NotificationContext'
@@ -32,6 +32,7 @@ function AppInner() {
   useEffect(() => {
     initChampionMap()
     initRuneMap()
+    initItemMap()
   }, [])
 
   useEffect(() => {

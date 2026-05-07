@@ -87,9 +87,35 @@ export function getProfileIconUrl(iconId: number): string {
   return `${BASE_URL}/img/profileicon/${iconId}.png`
 }
 
-// Item image
+// Item image by ID
 export function getItemImageUrl(itemId: number): string {
   return `${BASE_URL}/img/item/${itemId}.png`
+}
+
+// Item name → ID map (loaded once from DDragon)
+let itemNameMap: Record<string, number> = {}  // normalized name -> item id
+let itemsLoaded = false
+
+export function initItemMap(): void {
+  if (itemsLoaded) return
+  fetch(`${BASE_URL}/data/en_US/item.json`)
+    .then(res => res.json())
+    .then((data: { data: Record<string, { name: string }> }) => {
+      for (const [id, item] of Object.entries(data.data)) {
+        itemNameMap[item.name.toLowerCase()] = parseInt(id, 10)
+      }
+      itemsLoaded = true
+    })
+    .catch(() => {})
+}
+
+export function getItemImageUrlByName(itemName: string): string | null {
+  const id = itemNameMap[itemName.toLowerCase()]
+  if (id) return `${BASE_URL}/img/item/${id}.png`
+  // Fuzzy fallback: partial match
+  const key = Object.keys(itemNameMap).find(k => k.includes(itemName.toLowerCase()) || itemName.toLowerCase().includes(k))
+  if (key) return `${BASE_URL}/img/item/${itemNameMap[key]}.png`
+  return null
 }
 
 // Spell image
