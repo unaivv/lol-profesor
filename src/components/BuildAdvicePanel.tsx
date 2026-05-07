@@ -36,6 +36,7 @@ type Tab = 'optimal' | 'vs_lane' | 'vs_comp'
 
 interface BuildAdvicePanelProps {
   myPuuid: string
+  myChampionName: string
   participants: object[]
 }
 
@@ -57,7 +58,7 @@ function RunePill({ name, sub }: { name: string; sub?: string }) {
   )
 }
 
-export function BuildAdvicePanel({ myPuuid, participants }: BuildAdvicePanelProps) {
+export function BuildAdvicePanel({ myPuuid, myChampionName, participants }: BuildAdvicePanelProps) {
   const [advice, setAdvice] = useState<BuildAdvice | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,12 +66,12 @@ export function BuildAdvicePanel({ myPuuid, participants }: BuildAdvicePanelProp
   const [fetched, setFetched] = useState(false)
 
   useEffect(() => {
-    if (fetched || !myPuuid || !participants.length) return
+    if (fetched || !myPuuid || !myChampionName || !participants.length) return
     setFetched(true)
     setLoading(true)
     setError(null)
 
-    invoke<BuildAdvice>('get_live_build_advice', { myPuuid, participants })
+    invoke<BuildAdvice>('get_live_build_advice', { myPuuid, myChampionName, participants })
       .then(setAdvice)
       .catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : String(e)

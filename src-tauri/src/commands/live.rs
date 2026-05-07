@@ -215,6 +215,7 @@ fn role_from_index(idx: usize) -> &'static str {
 #[tauri::command]
 pub async fn get_live_build_advice(
     my_puuid: String,
+    my_champion_name: String,
     participants: Vec<serde_json::Value>,
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, ApiError> {
@@ -222,13 +223,11 @@ pub async fn get_live_build_advice(
         feature: "GROQ_API_KEY".to_string(),
     })?;
 
-    // Find the user's participant entry and their team
-    let me = participants.iter().find(|p| p["puuid"].as_str() == Some(&my_puuid))
-        .ok_or_else(|| ApiError::NotFound { message: "Player not found in participants".to_string() })?;
-
-    let my_team_id = me["teamId"].as_i64().unwrap_or(100);
-    let my_champ_id = me["championId"].as_i64().unwrap_or(0) as u32;
-    let my_champ = get_champion_name(my_champ_id);
+    // Find user's team using puuid; fall back to team 100 if not found
+    let my_team_id = participants.iter()
+        .find(|p| p["puuid"].as_str() == Some(&my_puuid))
+        .and_then(|p| p["teamId"].as_i64())
+        .unwrap_or(100);
 
     // Split teams, preserving original order (approximates role order: top/jg/mid/bot/sup)
     let my_team: Vec<&serde_json::Value> = participants.iter()
@@ -238,61 +237,69 @@ pub async fn get_live_build_advice(
         .filter(|p| p["teamId"].as_i64().unwrap_or(0) != my_team_id)
         .collect();
 
-    // My position index in my team → infer role and lane opponent
+    // My position index → infer role and lane opponent
     let my_idx = my_team.iter().position(|p| p["puuid"].as_str() == Some(&my_puuid)).unwrap_or(0);
     let my_role = role_from_index(my_idx);
 
+    // Use championName field enriched by the frontend (correct DDragon names)
+    let champ_name_from = |p: &&serde_json::Value| -> String {
+        p["championName"].as_str()
+            .filter(|n| !n.is_empty() && !n.starts_with("Champion"))
+            .map(|n| n.to_string())
+            .unwrap_or_else(|| get_champion_name(p["championId"].as_i64().unwrap_or(0) as u32))
+    };
+
     let lane_opponent_champ = enemy_team.get(my_idx)
-        .map(|p| get_champion_name(p["championId"].as_i64().unwrap_or(0) as u32))
-        .unwrap_or_else(|| "Unknown".to_string());
+        .map(|p| champ_name_from(p))
+        .unwrap_or_else(|| "Desconocido".to_string());
 
     let my_team_names: Vec<String> = my_team.iter()
         .enumerate()
-        .map(|(i, p)| format!("{} ({})", get_champion_name(p["championId"].as_i64().unwrap_or(0) as u32), role_from_index(i)))
+        .map(|(i, p)| format!("{} ({})", champ_name_from(p), role_from_index(i)))
         .collect();
 
     let enemy_team_names: Vec<String> = enemy_team.iter()
         .enumerate()
-        .map(|(i, p)| format!("{} ({})", get_champion_name(p["championId"].as_i64().unwrap_or(0) as u32), role_from_index(i)))
+        .map(|(i, p)| format!("{} ({})", champ_name_from(p), role_from_index(i)))
         .collect();
 
     let prompt = format!(
-        r#"You are an expert League of Legends coach. Generate build advice for the following live game situation.
+        r#"Eres un coach experto de League of Legends. Genera consejos de build para la siguiente situación de partida en vivo.
 
-PLAYER: {} playing as {} (role: {})
-MY TEAM: {}
-ENEMY TEAM: {}
-LANE OPPONENT: {} ({})
+JUGADOR: {} jugando como {} (rol: {})
+MI EQUIPO: {}
+EQUIPO ENEMIGO: {}
+RIVAL DE LÍNEA: {} ({})
 
-Generate 3 build scenarios. Respond ONLY with valid JSON in this exact format:
+Genera 3 escenarios de build. Responde SOLO con JSON válido en este formato exacto. TODOS los textos en español:
 {{
   "champion": "{champion}",
   "role": "{role}",
   "optimal": {{
-    "keystone": "Name of the keystone rune",
-    "secondary_tree": "Name of secondary rune tree",
-    "core_items": ["Item1", "Item2", "Item3"],
-    "boots": "Boots name",
-    "situational": ["SituationalItem1", "SituationalItem2"],
-    "tips": "2-3 sentence playstyle tip for this champion in this role"
+    "keystone": "Nombre de la runa primaria",
+    "secondary_tree": "Nombre del árbol de runas secundario",
+    "core_items": ["Objeto1", "Objeto2", "Objeto3"],
+    "boots": "Nombre de las botas",
+    "situational": ["ObjetoSituacional1", "ObjetoSituacional2"],
+    "tips": "2-3 frases en español sobre el estilo de juego de este campeón en este rol"
   }},
   "vs_lane": {{
     "opponent": "{lane_opp}",
-    "keystone": "Adjusted keystone if different, else same",
-    "item_changes": ["Item to prioritize or swap", "Reason why"],
-    "tips": "2-3 sentences on how to play vs this specific lane opponent"
+    "keystone": "Runa ajustada si es diferente, si no la misma",
+    "item_changes": ["Objeto a priorizar o cambiar y por qué"],
+    "tips": "2-3 frases en español sobre cómo jugar contra este rival de línea específico"
   }},
   "vs_comp": {{
-    "comp_type": "Brief label e.g. 'Heavy CC', 'Poke heavy', 'Dive comp'",
-    "item_changes": ["Item against this comp", "Reason why"],
-    "tips": "2-3 sentences on how to adapt to the full enemy team composition"
+    "comp_type": "Etiqueta breve en español ej: 'Composición de CC', 'Poke', 'Dive'",
+    "item_changes": ["Objeto contra esta composición y motivo"],
+    "tips": "2-3 frases en español sobre cómo adaptarse a la composición enemiga"
   }}
 }}"#,
-        my_champ, my_champ, my_role,
+        my_champion_name, my_champion_name, my_role,
         my_team_names.join(", "),
         enemy_team_names.join(", "),
         lane_opponent_champ, my_role,
-        champion = my_champ,
+        champion = my_champion_name,
         role = my_role,
         lane_opp = lane_opponent_champ,
     );

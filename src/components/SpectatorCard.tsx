@@ -5,6 +5,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { SpectatorGameData, SpectatorParticipant, ParticipantRank, ParticipantChampStats } from '../types/api'
 import { getChampionImageUrl, getSpellImageUrl, getRuneImageUrl } from '../utils/ddragon'
 import { BuildAdvicePanel } from './BuildAdvicePanel'
+import { getChampionName } from '../utils/ddragon'
 
 interface SpectatorCardProps {
   puuid: string | undefined
@@ -368,12 +369,24 @@ export function SpectatorCard({ puuid, myPuuid }: SpectatorCardProps) {
       )}
 
       {/* Build advice — only shown when the logged-in user is in the game */}
-      {myPuuid && game.participants.some(p => (p as { puuid?: string }).puuid === myPuuid) && (
-        <BuildAdvicePanel
-          myPuuid={myPuuid}
-          participants={game.participants}
-        />
-      )}
+      {(() => {
+        if (!myPuuid) return null
+        const meParticipant = game.participants.find(p => p.puuid === myPuuid)
+        if (!meParticipant) return null
+        const myChampionName = getChampionName(meParticipant.championId)
+        // Enrich participants with championName so the backend doesn't need the incomplete ID table
+        const enriched = game.participants.map(p => ({
+          ...p,
+          championName: getChampionName(p.championId),
+        }))
+        return (
+          <BuildAdvicePanel
+            myPuuid={myPuuid}
+            myChampionName={myChampionName}
+            participants={enriched}
+          />
+        )
+      })()}
     </div>
   )
 }
