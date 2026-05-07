@@ -200,16 +200,28 @@ fn rank_from_entries(entries: &serde_json::Value, puuid: &str) -> ParticipantRan
     }
 }
 
-/// Returns the role label inferred from a participant's position in their team array (0-4 = top/jg/mid/bot/sup).
-fn role_from_index(idx: usize) -> &'static str {
-    match idx {
-        0 => "Top",
-        1 => "Jungle",
-        2 => "Mid",
-        3 => "ADC/Bot",
-        4 => "Support",
-        _ => "Unknown",
+/// Translates a summoner spell ID to its Spanish name for the Groq prompt.
+fn spell_es(id: i64) -> &'static str {
+    match id {
+        1  => "Purificar",
+        3  => "Agotar",
+        4  => "Flash",
+        6  => "Fantasmal",
+        7  => "Curar",
+        11 => "Castigar",   // Smite
+        12 => "Teletransportar",
+        14 => "Encender",
+        21 => "Barrera",
+        32 => "Bola de nieve",
+        _  => "Hechizo",
     }
+}
+
+/// Formats a participant as "ChampionName (Hechizo1/Hechizo2)" for the Groq prompt.
+fn format_participant(p: &serde_json::Value, champ_name: &str) -> String {
+    let s1 = p["spell1Id"].as_i64().unwrap_or(4);
+    let s2 = p["spell2Id"].as_i64().unwrap_or(4);
+    format!("{} ({}/{})", champ_name, spell_es(s1), spell_es(s2))
 }
 
 #[tauri::command]
@@ -229,17 +241,13 @@ pub async fn get_live_build_advice(
         .and_then(|p| p["teamId"].as_i64())
         .unwrap_or(100);
 
-    // Split teams, preserving original order (approximates role order: top/jg/mid/bot/sup)
+    // Split teams (order in the array is NOT guaranteed to match roles)
     let my_team: Vec<&serde_json::Value> = participants.iter()
         .filter(|p| p["teamId"].as_i64().unwrap_or(0) == my_team_id)
         .collect();
     let enemy_team: Vec<&serde_json::Value> = participants.iter()
         .filter(|p| p["teamId"].as_i64().unwrap_or(0) != my_team_id)
         .collect();
-
-    // My position index → infer role and lane opponent
-    let my_idx = my_team.iter().position(|p| p["puuid"].as_str() == Some(&my_puuid)).unwrap_or(0);
-    let my_role = role_from_index(my_idx);
 
     // Use championName field enriched by the frontend (correct DDragon names)
     let champ_name_from = |p: &&serde_json::Value| -> String {
@@ -249,42 +257,52 @@ pub async fn get_live_build_advice(
             .unwrap_or_else(|| get_champion_name(p["championId"].as_i64().unwrap_or(0) as u32))
     };
 
-    let lane_opponent_champ = enemy_team.get(my_idx)
-        .map(|p| champ_name_from(p))
-        .unwrap_or_else(|| "Desconocido".to_string());
+    // My participant entry (for spell-based role hint)
+    let me = my_team.iter().find(|p| p["puuid"].as_str() == Some(&my_puuid));
+    let my_entry = format_participant(
+        me.copied().unwrap_or(&serde_json::Value::Null),
+        &my_champion_name,
+    );
 
-    let my_team_names: Vec<String> = my_team.iter()
-        .enumerate()
-        .map(|(i, p)| format!("{} ({})", champ_name_from(p), role_from_index(i)))
+    let my_team_fmt: Vec<String> = my_team.iter()
+        .map(|p| format_participant(p, &champ_name_from(p)))
         .collect();
 
-    let enemy_team_names: Vec<String> = enemy_team.iter()
-        .enumerate()
-        .map(|(i, p)| format!("{} ({})", champ_name_from(p), role_from_index(i)))
+    let enemy_team_fmt: Vec<String> = enemy_team.iter()
+        .map(|p| format_participant(p, &champ_name_from(p)))
         .collect();
 
     let prompt = format!(
         r#"Eres un coach experto de League of Legends. Genera consejos de build para la siguiente situación de partida en vivo.
 
-JUGADOR: {} jugando como {} (rol: {})
-MI EQUIPO: {}
-EQUIPO ENEMIGO: {}
-RIVAL DE LÍNEA: {} ({})
+JUGADOR: {}
+IMPORTANTE: El orden de los jugadores en el array NO refleja su rol. Usa los hechizos de invocador y el campeón para deducir el rol del jugador y su rival de línea más probable.
+  - Castigar (Smite) → Jungla
+  - Curar (Heal) → ADC o Support
+  - Teletransportar → Top o Mid
+  - Encender → Mid, Support o Top agresivo
+  - Flash es universal y no determina rol
+
+MI EQUIPO (Campeón + Hechizos):
+{}
+
+EQUIPO ENEMIGO (Campeón + Hechizos):
+{}
 
 Genera 3 escenarios de build. Responde SOLO con JSON válido en este formato exacto. TODOS los textos en español:
 {{
-  "champion": "{champion}",
-  "role": "{role}",
+  "champion": "{}",
+  "role": "rol inferido en español (Top/Jungla/Mid/ADC/Support/ARAM)",
   "optimal": {{
     "keystone": "Nombre de la runa primaria",
     "secondary_tree": "Nombre del árbol de runas secundario",
     "core_items": ["Objeto1", "Objeto2", "Objeto3"],
     "boots": "Nombre de las botas",
     "situational": ["ObjetoSituacional1", "ObjetoSituacional2"],
-    "tips": "2-3 frases en español sobre el estilo de juego de este campeón en este rol"
+    "tips": "2-3 frases en español sobre el estilo de juego de este campeón en su rol"
   }},
   "vs_lane": {{
-    "opponent": "{lane_opp}",
+    "opponent": "campeón rival de línea inferido, o vacío si es ARAM",
     "keystone": "Runa ajustada si es diferente, si no la misma",
     "item_changes": ["Objeto a priorizar o cambiar y por qué"],
     "tips": "2-3 frases en español sobre cómo jugar contra este rival de línea específico"
@@ -295,13 +313,10 @@ Genera 3 escenarios de build. Responde SOLO con JSON válido en este formato exa
     "tips": "2-3 frases en español sobre cómo adaptarse a la composición enemiga"
   }}
 }}"#,
-        my_champion_name, my_champion_name, my_role,
-        my_team_names.join(", "),
-        enemy_team_names.join(", "),
-        lane_opponent_champ, my_role,
-        champion = my_champion_name,
-        role = my_role,
-        lane_opp = lane_opponent_champ,
+        my_entry,
+        my_team_fmt.join("\n"),
+        enemy_team_fmt.join("\n"),
+        my_champion_name,
     );
 
     let groq = GroqApiClient::new(groq_api_key);

@@ -95,6 +95,7 @@ export function getItemImageUrl(itemId: number): string {
 // Item name → ID map (loaded once from DDragon)
 let itemNameMap: Record<string, number> = {}  // normalized name -> item id
 let itemsLoaded = false
+const itemLoadListeners: Array<() => void> = []
 
 export function initItemMap(): void {
   if (itemsLoaded) return
@@ -105,8 +106,21 @@ export function initItemMap(): void {
         itemNameMap[item.name.toLowerCase()] = parseInt(id, 10)
       }
       itemsLoaded = true
+      itemLoadListeners.forEach(fn => fn())
+      itemLoadListeners.length = 0
     })
     .catch(() => {})
+}
+
+export function useItemMap(): boolean {
+  const [ready, setReady] = useState(itemsLoaded)
+  useEffect(() => {
+    if (itemsLoaded) { setReady(true); return }
+    const cb = () => setReady(true)
+    itemLoadListeners.push(cb)
+    return () => { const i = itemLoadListeners.indexOf(cb); if (i >= 0) itemLoadListeners.splice(i, 1) }
+  }, [])
+  return ready
 }
 
 export function getItemImageUrlByName(itemName: string): string | null {

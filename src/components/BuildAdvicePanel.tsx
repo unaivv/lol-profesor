@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { Sparkles, Swords, Users, Loader2, ChevronRight, Shield } from 'lucide-react'
-import { getItemImageUrlByName } from '../utils/ddragon'
+import { getItemImageUrlByName, useItemMap } from '../utils/ddragon'
 
 interface OptimalBuild {
   keystone: string
@@ -116,6 +116,7 @@ export function BuildAdvicePanel({ myPuuid, myChampionName, participants }: Buil
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('optimal')
   const [fetched, setFetched] = useState(false)
+  useItemMap() // subscribe so component re-renders once item.json is loaded
 
   useEffect(() => {
     if (fetched || !myPuuid || !myChampionName || !participants.length) return
