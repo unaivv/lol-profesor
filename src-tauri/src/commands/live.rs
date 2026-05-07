@@ -200,7 +200,7 @@ fn rank_from_entries(entries: &serde_json::Value, puuid: &str) -> ParticipantRan
     }
 }
 
-/// Translates a summoner spell ID to its Spanish name for the Groq prompt.
+/// Translates a summoner spell ID to its Spanish name.
 fn spell_es(id: i64) -> &'static str {
     match id {
         1  => "Purificar",
@@ -208,7 +208,7 @@ fn spell_es(id: i64) -> &'static str {
         4  => "Flash",
         6  => "Fantasmal",
         7  => "Curar",
-        11 => "Castigar",   // Smite
+        11 => "Castigar",
         12 => "Teletransportar",
         14 => "Encender",
         21 => "Barrera",
@@ -217,11 +217,8 @@ fn spell_es(id: i64) -> &'static str {
     }
 }
 
-/// Formats a participant as "ChampionName (Hechizo1/Hechizo2)" for the Groq prompt.
-fn format_participant(p: &serde_json::Value, champ_name: &str) -> String {
-    let s1 = p["spell1Id"].as_i64().unwrap_or(4);
-    let s2 = p["spell2Id"].as_i64().unwrap_or(4);
-    format!("{} ({}/{})", champ_name, spell_es(s1), spell_es(s2))
+fn has_smite(p: &serde_json::Value) -> bool {
+    p["spell1Id"].as_i64() == Some(11) || p["spell2Id"].as_i64() == Some(11)
 }
 
 #[tauri::command]
@@ -235,13 +232,11 @@ pub async fn get_live_build_advice(
         feature: "GROQ_API_KEY".to_string(),
     })?;
 
-    // Find user's team using puuid; fall back to team 100 if not found
     let my_team_id = participants.iter()
         .find(|p| p["puuid"].as_str() == Some(&my_puuid))
         .and_then(|p| p["teamId"].as_i64())
         .unwrap_or(100);
 
-    // Split teams (order in the array is NOT guaranteed to match roles)
     let my_team: Vec<&serde_json::Value> = participants.iter()
         .filter(|p| p["teamId"].as_i64().unwrap_or(0) == my_team_id)
         .collect();
@@ -249,7 +244,7 @@ pub async fn get_live_build_advice(
         .filter(|p| p["teamId"].as_i64().unwrap_or(0) != my_team_id)
         .collect();
 
-    // Use championName field enriched by the frontend (correct DDragon names)
+    // Use championName enriched by the frontend
     let champ_name_from = |p: &&serde_json::Value| -> String {
         p["championName"].as_str()
             .filter(|n| !n.is_empty() && !n.starts_with("Champion"))
@@ -257,66 +252,80 @@ pub async fn get_live_build_advice(
             .unwrap_or_else(|| get_champion_name(p["championId"].as_i64().unwrap_or(0) as u32))
     };
 
-    // My participant entry (for spell-based role hint)
-    let me = my_team.iter().find(|p| p["puuid"].as_str() == Some(&my_puuid));
-    let my_entry = format_participant(
-        me.copied().unwrap_or(&serde_json::Value::Null),
-        &my_champion_name,
-    );
+    // Reliable role detection: Smite = Jungle. Others need champion/spell context.
+    let me_p = my_team.iter().find(|p| p["puuid"].as_str() == Some(&my_puuid));
+    let i_have_smite = me_p.map(|p| has_smite(p)).unwrap_or(false);
+    let my_role = if i_have_smite { "Jungla" } else { "desconocido" };
 
-    let my_team_fmt: Vec<String> = my_team.iter()
-        .map(|p| format_participant(p, &champ_name_from(p)))
-        .collect();
+    // Format teams including spells so Groq can infer roles
+    let fmt_participant = |p: &&serde_json::Value| -> String {
+        let name = champ_name_from(p);
+        let s1 = spell_es(p["spell1Id"].as_i64().unwrap_or(4));
+        let s2 = spell_es(p["spell2Id"].as_i64().unwrap_or(4));
+        format!("{} ({}/{})", name, s1, s2)
+    };
 
-    let enemy_team_fmt: Vec<String> = enemy_team.iter()
-        .map(|p| format_participant(p, &champ_name_from(p)))
-        .collect();
+    let my_team_str: Vec<String> = my_team.iter().map(fmt_participant).collect();
+    let enemy_team_str: Vec<String> = enemy_team.iter().map(fmt_participant).collect();
+
+    // For role == "desconocido", let Groq infer from champion + spells.
+    // For jungle, there is no lane opponent.
+    let role_note = if i_have_smite {
+        "El jugador lleva Castigar (Smite), confirmado Jungla. No tiene rival de linea.".to_string()
+    } else {
+        format!(
+            "El rol del jugador es desconocido. Infierelo a partir de {} y sus hechizos. Identifica el rival de linea mas probable del equipo enemigo.",
+            my_champion_name
+        )
+    };
 
     let prompt = format!(
-        r#"Eres un coach experto de League of Legends. Genera consejos de build para la siguiente situación de partida en vivo.
+        r#"Eres un coach experto de League of Legends. Genera consejos de build para la siguiente situacion de partida en vivo.
 
-JUGADOR: {}
-IMPORTANTE: El orden de los jugadores en el array NO refleja su rol. Usa los hechizos de invocador y el campeón para deducir el rol del jugador y su rival de línea más probable.
-  - Castigar (Smite) → Jungla
-  - Curar (Heal) → ADC o Support
-  - Teletransportar → Top o Mid
-  - Encender → Mid, Support o Top agresivo
-  - Flash es universal y no determina rol
+JUGADOR: {} jugando {} (rol detectado: {})
+NOTA: {}
 
-MI EQUIPO (Campeón + Hechizos):
+MI EQUIPO (campeon + hechizos):
 {}
 
-EQUIPO ENEMIGO (Campeón + Hechizos):
+EQUIPO ENEMIGO (campeon + hechizos):
 {}
 
-Genera 3 escenarios de build. Responde SOLO con JSON válido en este formato exacto. TODOS los textos en español:
+IMPORTANTE: El orden del array NO indica el rol. Usa los hechizos para deducir roles: Castigar=Jungla, Curar=ADC/Support, Teletransportar=Top/Mid, Encender=Mid/Support.
+
+Responde UNICAMENTE con JSON valido, sin texto adicional. TODOS los textos en espanol:
 {{
-  "champion": "{}",
-  "role": "rol inferido en español (Top/Jungla/Mid/ADC/Support/ARAM)",
+  "champion": "{champion}",
+  "role": "{role}",
   "optimal": {{
-    "keystone": "Nombre de la runa primaria",
-    "secondary_tree": "Nombre del árbol de runas secundario",
-    "core_items": ["Objeto1", "Objeto2", "Objeto3"],
-    "boots": "Nombre de las botas",
-    "situational": ["ObjetoSituacional1", "ObjetoSituacional2"],
-    "tips": "2-3 frases en español sobre el estilo de juego de este campeón en su rol"
+    "keystone": "nombre runa primaria",
+    "secondary_tree": "arbol secundario",
+    "core_items": ["Item1", "Item2", "Item3"],
+    "boots": "nombre botas",
+    "situational": ["Item situacional 1", "Item situacional 2"],
+    "tips": "consejos de juego en espanol"
   }},
   "vs_lane": {{
-    "opponent": "campeón rival de línea inferido, o vacío si es ARAM",
-    "keystone": "Runa ajustada si es diferente, si no la misma",
-    "item_changes": ["Objeto a priorizar o cambiar y por qué"],
-    "tips": "2-3 frases en español sobre cómo jugar contra este rival de línea específico"
+    "opponent": "{lane_opp}",
+    "keystone": "runa ajustada",
+    "item_changes": ["cambio de item y motivo"],
+    "tips": "consejos vs rival en espanol"
   }},
   "vs_comp": {{
-    "comp_type": "Etiqueta breve en español ej: 'Composición de CC', 'Poke', 'Dive'",
-    "item_changes": ["Objeto contra esta composición y motivo"],
-    "tips": "2-3 frases en español sobre cómo adaptarse a la composición enemiga"
+    "comp_type": "tipo composicion enemiga",
+    "item_changes": ["item vs composicion y motivo"],
+    "tips": "consejos vs composicion en espanol"
   }}
 }}"#,
-        my_entry,
-        my_team_fmt.join("\n"),
-        enemy_team_fmt.join("\n"),
         my_champion_name,
+        my_champion_name,
+        my_role,
+        role_note,
+        my_team_str.join(", "),
+        enemy_team_str.join(", "),
+        champion = my_champion_name,
+        role = my_role,
+        lane_opp = if i_have_smite { "N/A".to_string() } else { "a determinar segun campeon".to_string() },
     );
 
     let groq = GroqApiClient::new(groq_api_key);
