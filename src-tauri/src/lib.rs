@@ -131,6 +131,7 @@ pub fn run() {
             commands::stats::get_lp_history,
             commands::live::get_live_game,
             commands::live::get_live_game_with_ranks,
+            commands::live::get_live_build_advice,
             commands::analysis::analyze_match,
         ])
         .run(tauri::generate_context!())

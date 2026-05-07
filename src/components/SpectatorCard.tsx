@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { invoke } from '@tauri-apps/api/core'
 import { SpectatorGameData, SpectatorParticipant, ParticipantRank, ParticipantChampStats } from '../types/api'
 import { getChampionImageUrl, getSpellImageUrl, getRuneImageUrl } from '../utils/ddragon'
+import { BuildAdvicePanel } from './BuildAdvicePanel'
 
 interface SpectatorCardProps {
   puuid: string | undefined
@@ -364,6 +365,14 @@ export function SpectatorCard({ puuid, myPuuid }: SpectatorCardProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Build advice — only shown when the logged-in user is in the game */}
+      {myPuuid && game.participants.some(p => (p as { puuid?: string }).puuid === myPuuid) && (
+        <BuildAdvicePanel
+          myPuuid={myPuuid}
+          participants={game.participants}
+        />
       )}
     </div>
   )

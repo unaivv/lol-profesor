@@ -3,6 +3,8 @@ use crate::error::ApiError;
 use crate::models::live_game::{BannedChampion, LiveGame, ParticipantChampStats, ParticipantRank};
 use crate::models::summoner::ComprehensivePlayerData;
 use crate::AppState;
+use crate::api::champions::get_champion_name;
+use crate::api::groq_client::GroqApiClient;
 
 #[tauri::command]
 pub async fn get_live_game(
@@ -196,4 +198,115 @@ fn rank_from_entries(entries: &serde_json::Value, puuid: &str) -> ParticipantRan
             losses: 0,
         },
     }
+}
+
+/// Returns the role label inferred from a participant's position in their team array (0-4 = top/jg/mid/bot/sup).
+fn role_from_index(idx: usize) -> &'static str {
+    match idx {
+        0 => "Top",
+        1 => "Jungle",
+        2 => "Mid",
+        3 => "ADC/Bot",
+        4 => "Support",
+        _ => "Unknown",
+    }
+}
+
+#[tauri::command]
+pub async fn get_live_build_advice(
+    my_puuid: String,
+    participants: Vec<serde_json::Value>,
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, ApiError> {
+    let groq_api_key = state.groq_api_key.clone().ok_or_else(|| ApiError::NotConfigured {
+        feature: "GROQ_API_KEY".to_string(),
+    })?;
+
+    // Find the user's participant entry and their team
+    let me = participants.iter().find(|p| p["puuid"].as_str() == Some(&my_puuid))
+        .ok_or_else(|| ApiError::NotFound { message: "Player not found in participants".to_string() })?;
+
+    let my_team_id = me["teamId"].as_i64().unwrap_or(100);
+    let my_champ_id = me["championId"].as_i64().unwrap_or(0) as u32;
+    let my_champ = get_champion_name(my_champ_id);
+
+    // Split teams, preserving original order (approximates role order: top/jg/mid/bot/sup)
+    let my_team: Vec<&serde_json::Value> = participants.iter()
+        .filter(|p| p["teamId"].as_i64().unwrap_or(0) == my_team_id)
+        .collect();
+    let enemy_team: Vec<&serde_json::Value> = participants.iter()
+        .filter(|p| p["teamId"].as_i64().unwrap_or(0) != my_team_id)
+        .collect();
+
+    // My position index in my team → infer role and lane opponent
+    let my_idx = my_team.iter().position(|p| p["puuid"].as_str() == Some(&my_puuid)).unwrap_or(0);
+    let my_role = role_from_index(my_idx);
+
+    let lane_opponent_champ = enemy_team.get(my_idx)
+        .map(|p| get_champion_name(p["championId"].as_i64().unwrap_or(0) as u32))
+        .unwrap_or_else(|| "Unknown".to_string());
+
+    let my_team_names: Vec<String> = my_team.iter()
+        .enumerate()
+        .map(|(i, p)| format!("{} ({})", get_champion_name(p["championId"].as_i64().unwrap_or(0) as u32), role_from_index(i)))
+        .collect();
+
+    let enemy_team_names: Vec<String> = enemy_team.iter()
+        .enumerate()
+        .map(|(i, p)| format!("{} ({})", get_champion_name(p["championId"].as_i64().unwrap_or(0) as u32), role_from_index(i)))
+        .collect();
+
+    let prompt = format!(
+        r#"You are an expert League of Legends coach. Generate build advice for the following live game situation.
+
+PLAYER: {} playing as {} (role: {})
+MY TEAM: {}
+ENEMY TEAM: {}
+LANE OPPONENT: {} ({})
+
+Generate 3 build scenarios. Respond ONLY with valid JSON in this exact format:
+{{
+  "champion": "{champion}",
+  "role": "{role}",
+  "optimal": {{
+    "keystone": "Name of the keystone rune",
+    "secondary_tree": "Name of secondary rune tree",
+    "core_items": ["Item1", "Item2", "Item3"],
+    "boots": "Boots name",
+    "situational": ["SituationalItem1", "SituationalItem2"],
+    "tips": "2-3 sentence playstyle tip for this champion in this role"
+  }},
+  "vs_lane": {{
+    "opponent": "{lane_opp}",
+    "keystone": "Adjusted keystone if different, else same",
+    "item_changes": ["Item to prioritize or swap", "Reason why"],
+    "tips": "2-3 sentences on how to play vs this specific lane opponent"
+  }},
+  "vs_comp": {{
+    "comp_type": "Brief label e.g. 'Heavy CC', 'Poke heavy', 'Dive comp'",
+    "item_changes": ["Item against this comp", "Reason why"],
+    "tips": "2-3 sentences on how to adapt to the full enemy team composition"
+  }}
+}}"#,
+        my_champ, my_champ, my_role,
+        my_team_names.join(", "),
+        enemy_team_names.join(", "),
+        lane_opponent_champ, my_role,
+        champion = my_champ,
+        role = my_role,
+        lane_opp = lane_opponent_champ,
+    );
+
+    let groq = GroqApiClient::new(groq_api_key);
+    let response_text = tokio::time::timeout(
+        std::time::Duration::from_secs(30),
+        groq.chat_completion(&prompt),
+    )
+    .await
+    .map_err(|_| ApiError::Timeout)??;
+
+    let parsed: serde_json::Value = serde_json::from_str(&response_text)
+        .map_err(|e| ApiError::Unknown { message: format!("Failed to parse build advice: {}", e) })?;
+
+    Ok(parsed)
 }
