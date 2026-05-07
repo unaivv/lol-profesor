@@ -293,27 +293,28 @@ EQUIPO ENEMIGO (campeon + hechizos):
 
 IMPORTANTE: El orden del array NO indica el rol. Usa los hechizos para deducir roles: Castigar=Jungla, Curar=ADC/Support, Teletransportar=Top/Mid, Encender=Mid/Support.
 
-Responde UNICAMENTE con JSON valido, sin texto adicional. TODOS los textos en espanol:
+Responde UNICAMENTE con JSON valido, sin texto adicional.
+REGLA CRITICA: los nombres de campeon, runa, arbol de runas, items y botas DEBEN estar en INGLES exactamente como aparecen en el juego (ej: "Trinity Force", "Kraken Slayer", "Lethal Tempo"). Los textos de tips, role, comp_type e item_changes en espanol.
 {{
   "champion": "{champion}",
   "role": "{role}",
   "optimal": {{
-    "keystone": "nombre runa primaria",
-    "secondary_tree": "arbol secundario",
-    "core_items": ["Item1", "Item2", "Item3"],
-    "boots": "nombre botas",
-    "situational": ["Item situacional 1", "Item situacional 2"],
+    "keystone": "Keystone rune name in English",
+    "secondary_tree": "Secondary tree name in English",
+    "core_items": ["Item1 in English", "Item2 in English", "Item3 in English"],
+    "boots": "Boots name in English",
+    "situational": ["Situational item 1 in English", "Situational item 2 in English"],
     "tips": "consejos de juego en espanol"
   }},
   "vs_lane": {{
     "opponent": "{lane_opp}",
-    "keystone": "runa ajustada",
-    "item_changes": ["cambio de item y motivo"],
+    "keystone": "Keystone rune name in English",
+    "item_changes": ["Nombre del item en ingles: motivo en espanol"],
     "tips": "consejos vs rival en espanol"
   }},
   "vs_comp": {{
-    "comp_type": "tipo composicion enemiga",
-    "item_changes": ["item vs composicion y motivo"],
+    "comp_type": "tipo composicion enemiga en espanol",
+    "item_changes": ["Nombre del item en ingles: motivo en espanol"],
     "tips": "consejos vs composicion en espanol"
   }}
 }}"#,
