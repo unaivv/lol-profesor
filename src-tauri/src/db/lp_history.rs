@@ -22,26 +22,29 @@ pub fn record(
 ) -> Result<(), ApiError> {
     let conn = pool.get().map_err(|e| ApiError::DatabaseError { message: e.to_string() })?;
 
-    // Record if LP/tier/rank changed OR if last snapshot was more than 24h ago (daily snapshot)
+    // Record if LP/tier/rank changed OR if the last snapshot is from a different calendar day (UTC)
     let last: Option<(String, String, i64, i64)> = conn.query_row(
         "SELECT tier, rank, lp, recorded_at FROM lp_history WHERE puuid = ?1 AND queue_type = ?2 ORDER BY recorded_at DESC LIMIT 1",
         rusqlite::params![puuid, queue_type],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
     ).ok();
 
-    let now = chrono::Utc::now().timestamp();
+    let now = chrono::Utc::now();
     if let Some((last_tier, last_rank, last_lp, last_recorded_at)) = last {
         let lp_unchanged = last_tier == tier && last_rank == rank && last_lp == lp;
-        let within_24h = (now - last_recorded_at) < 24 * 60 * 60;
-        if lp_unchanged && within_24h {
+        let last_date = chrono::DateTime::from_timestamp(last_recorded_at, 0)
+            .map(|dt| dt.date_naive());
+        let same_day = last_date == Some(now.date_naive());
+        if lp_unchanged && same_day {
             return Ok(());
         }
     }
+    let now_ts = now.timestamp();
     log::info!("Recording LP snapshot: puuid={}, queue={}, tier={} {} {} LP", puuid, queue_type, tier, rank, lp);
 
     conn.execute(
         "INSERT INTO lp_history (puuid, queue_type, tier, rank, lp, recorded_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        rusqlite::params![puuid, queue_type, tier, rank, lp, now],
+        rusqlite::params![puuid, queue_type, tier, rank, lp, now_ts],
     ).map_err(|e| ApiError::DatabaseError { message: e.to_string() })?;
 
     // Keep only the last 100 snapshots per player/queue to prevent DB bloat
