@@ -293,28 +293,33 @@ EQUIPO ENEMIGO (campeon + hechizos):
 
 IMPORTANTE: El orden del array NO indica el rol. Usa los hechizos para deducir roles: Castigar=Jungla, Curar=ADC/Support, Teletransportar=Top/Mid, Encender=Mid/Support.
 
-Responde UNICAMENTE con JSON valido, sin texto adicional.
-REGLA CRITICA: los nombres de campeon, runa, arbol de runas, items y botas DEBEN estar en INGLES exactamente como aparecen en el juego (ej: "Trinity Force", "Kraken Slayer", "Lethal Tempo"). Los textos de tips, role, comp_type e item_changes en espanol.
+Responde UNICAMENTE con JSON valido, sin texto adicional, sin bloques de codigo markdown.
+REGLAS CRITICAS para los nombres de items, runas y botas:
+- DEBEN estar en INGLES exacto del juego, sin parentesis, sin contexto adicional.
+- CORRECTO: "Trinity Force", "Kraken Slayer", "Lethal Tempo", "Sorcerer's Shoes"
+- INCORRECTO: "Trinity Force (para daño)", "Kraken Slayer - anti tanques"
+- Los campos tips, role y comp_type van en espanol.
+- item_changes es un array de objetos con "item" (nombre exacto en ingles) y "reason" (motivo en espanol).
 {{
   "champion": "{champion}",
   "role": "{role}",
   "optimal": {{
     "keystone": "Keystone rune name in English",
     "secondary_tree": "Secondary tree name in English",
-    "core_items": ["Item1 in English", "Item2 in English", "Item3 in English"],
-    "boots": "Boots name in English",
-    "situational": ["Situational item 1 in English", "Situational item 2 in English"],
+    "core_items": ["Item1", "Item2", "Item3"],
+    "boots": "Boots name",
+    "situational": ["Item1", "Item2"],
     "tips": "consejos de juego en espanol"
   }},
   "vs_lane": {{
     "opponent": "{lane_opp}",
     "keystone": "Keystone rune name in English",
-    "item_changes": ["Nombre del item en ingles: motivo en espanol"],
+    "item_changes": [{{"item": "Item name", "reason": "motivo en espanol"}}],
     "tips": "consejos vs rival en espanol"
   }},
   "vs_comp": {{
     "comp_type": "tipo composicion enemiga en espanol",
-    "item_changes": ["Nombre del item en ingles: motivo en espanol"],
+    "item_changes": [{{"item": "Item name", "reason": "motivo en espanol"}}],
     "tips": "consejos vs composicion en espanol"
   }}
 }}"#,

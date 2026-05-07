@@ -12,16 +12,21 @@ interface OptimalBuild {
   tips: string
 }
 
+interface ItemChange {
+  item: string
+  reason: string
+}
+
 interface VsLane {
   opponent: string
   keystone: string
-  item_changes: string[]
+  item_changes: ItemChange[]
   tips: string
 }
 
 interface VsComp {
   comp_type: string
-  item_changes: string[]
+  item_changes: ItemChange[]
   tips: string
 }
 
@@ -250,11 +255,11 @@ export function BuildAdvicePanel({ myPuuid, myChampionName, participants }: Buil
           {(vsLane.item_changes?.length ?? 0) > 0 && (
             <div>
               <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1.5">Adaptaciones</p>
-              <ul className="space-y-1">
+              <ul className="space-y-1.5">
                 {vsLane.item_changes.map((change, i) => (
-                  <li key={i} className="flex gap-2 text-xs text-slate-600 dark:text-slate-300">
-                    <span className="text-amber-500 flex-shrink-0">•</span>
-                    {change}
+                  <li key={i} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
+                    <ItemPill name={change.item ?? String(change)} />
+                    {change.reason && <span className="pt-1 leading-tight">{change.reason}</span>}
                   </li>
                 ))}
               </ul>
@@ -278,11 +283,11 @@ export function BuildAdvicePanel({ myPuuid, myChampionName, participants }: Buil
           {(vsComp.item_changes?.length ?? 0) > 0 && (
             <div>
               <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1.5">Adaptaciones</p>
-              <ul className="space-y-1">
+              <ul className="space-y-1.5">
                 {vsComp.item_changes.map((change, i) => (
-                  <li key={i} className="flex gap-2 text-xs text-slate-600 dark:text-slate-300">
-                    <span className="text-purple-500 flex-shrink-0">•</span>
-                    {change}
+                  <li key={i} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
+                    <ItemPill name={change.item ?? String(change)} />
+                    {change.reason && <span className="pt-1 leading-tight">{change.reason}</span>}
                   </li>
                 ))}
               </ul>

@@ -123,12 +123,35 @@ export function useItemMap(): boolean {
   return ready
 }
 
+function normalizeItemName(name: string): string {
+  return name
+    .replace(/\(.*?\)/g, '')   // strip parenthetical context: "Wit's End (vs AP)" → "Wit's End"
+    .replace(/['']/g, "'")     // normalize curly apostrophes to straight
+    .replace(/\s+/g, ' ')      // collapse whitespace
+    .trim()
+    .toLowerCase()
+}
+
 export function getItemImageUrlByName(itemName: string): string | null {
-  const id = itemNameMap[itemName.toLowerCase()]
+  if (!itemName?.trim()) return null
+  const normalized = normalizeItemName(itemName)
+
+  // 1. Exact match after normalization
+  const id = itemNameMap[normalized]
   if (id) return `${BASE_URL}/img/item/${id}.png`
-  // Fuzzy fallback: partial match
-  const key = Object.keys(itemNameMap).find(k => k.includes(itemName.toLowerCase()) || itemName.toLowerCase().includes(k))
-  if (key) return `${BASE_URL}/img/item/${itemNameMap[key]}.png`
+
+  // 2. DDragon key contains the query (e.g. "kraken slayer" in "kraken slayer")
+  const key1 = Object.keys(itemNameMap).find(k => k === normalized)
+  if (key1) return `${BASE_URL}/img/item/${itemNameMap[key1]}.png`
+
+  // 3. Partial: query contains DDragon key (handles extra words from Groq)
+  const key2 = Object.keys(itemNameMap).find(k => k.length > 4 && normalized.includes(k))
+  if (key2) return `${BASE_URL}/img/item/${itemNameMap[key2]}.png`
+
+  // 4. Partial: DDragon key contains query
+  const key3 = Object.keys(itemNameMap).find(k => k.length > 4 && k.includes(normalized))
+  if (key3) return `${BASE_URL}/img/item/${itemNameMap[key3]}.png`
+
   return null
 }
 
