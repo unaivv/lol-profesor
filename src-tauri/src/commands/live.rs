@@ -200,6 +200,224 @@ fn rank_from_entries(entries: &serde_json::Value, puuid: &str) -> ParticipantRan
     }
 }
 
+// ── Lolalytics build fetch ────────────────────────────────────────────────────
+
+fn normalize_champ_key(name: &str) -> String {
+    name.chars()
+        .filter(|c| c.is_alphanumeric())
+        .flat_map(|c| c.to_lowercase())
+        .collect()
+}
+
+fn map_role_to_lane(role: &str) -> &'static str {
+    match role.to_lowercase().as_str() {
+        "jungla" | "jungle" | "jg" => "jungle",
+        "top"                       => "top",
+        "mid" | "middle"            => "mid",
+        "adc" | "bot" | "bottom"   => "adc",
+        "support" | "sup" | "supp" => "support",
+        _                           => "default",
+    }
+}
+
+fn extract_best_item_build(data: &serde_json::Value) -> Vec<u64> {
+    let builds = match data["items"]["build"].as_array() {
+        Some(b) => b,
+        None    => return vec![],
+    };
+    // Each entry: [item1, item2, ..., games, wins]. Take the first (highest priority).
+    if let Some(first) = builds.first() {
+        if let Some(arr) = first.as_array() {
+            let len = arr.len();
+            if len > 2 {
+                return arr[..len - 2]
+                    .iter()
+                    .filter_map(|v| v.as_u64())
+                    .filter(|&id| id > 0)
+                    .collect();
+            }
+        }
+    }
+    vec![]
+}
+
+fn extract_best_boots(data: &serde_json::Value) -> Option<u64> {
+    data["items"]["boots"]
+        .as_array()?
+        .iter()
+        // Each entry: [bootId, games, wins]. Sort by wins/games (winrate).
+        .filter_map(|b| {
+            let arr = b.as_array()?;
+            let id    = arr.first()?.as_u64()?;
+            let games = arr.get(1)?.as_f64().unwrap_or(1.0);
+            let wins  = arr.get(2)?.as_f64().unwrap_or(0.0);
+            if id == 0 || games == 0.0 { return None; }
+            Some((id, wins / games))
+        })
+        .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+        .map(|(id, _)| id)
+}
+
+fn extract_best_runes(data: &serde_json::Value) -> (Option<u64>, Option<u64>) {
+    let perks = match data["runes"]["perks"].as_array() {
+        Some(p) => p,
+        None    => return (None, None),
+    };
+    // Each entry: [keystone, rune1, rune2, rune3, secTreeId, rune4, rune5, sh1, sh2, sh3, games, wins]
+    if let Some(best) = perks.first() {
+        if let Some(arr) = best.as_array() {
+            let keystone   = arr.first().and_then(|v| v.as_u64());
+            let sec_tree   = arr.get(4).and_then(|v| v.as_u64());
+            return (keystone, sec_tree);
+        }
+    }
+    (None, None)
+}
+
+#[tauri::command]
+pub async fn get_champion_build(
+    champion_name: String,
+    role: String,
+) -> Result<serde_json::Value, ApiError> {
+    let champ_key = normalize_champ_key(&champion_name);
+    let lane = map_role_to_lane(&role);
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+        .build()
+        .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
+
+    let url = format!("https://lolalytics.com/api/1/champion/{}/", champ_key);
+    let resp = client
+        .get(&url)
+        .query(&[
+            ("lane",   lane),
+            ("tier",   "platinum_plus"),
+            ("patch",  "current"),
+            ("region", "all"),
+            ("queue",  "420"),
+        ])
+        .send()
+        .await
+        .map_err(|e| ApiError::NetworkError { message: format!("Lolalytics unreachable: {}", e) })?;
+
+    if !resp.status().is_success() {
+        return Err(ApiError::NetworkError {
+            message: format!("Lolalytics returned HTTP {}", resp.status()),
+        });
+    }
+
+    let data: serde_json::Value = resp.json().await
+        .map_err(|e| ApiError::Unknown { message: format!("Failed to parse Lolalytics response: {}", e) })?;
+
+    let core_items             = extract_best_item_build(&data);
+    let boots                  = extract_best_boots(&data);
+    let (keystone, sec_tree)   = extract_best_runes(&data);
+
+    let total_games = data["n"].as_u64()
+        .or_else(|| data["header"]["n"].as_u64())
+        .unwrap_or(0);
+
+    Ok(serde_json::json!({
+        "champion":     champion_name,
+        "role":         lane,
+        "core_items":   core_items,
+        "boots":        boots,
+        "keystone_id":  keystone,
+        "sec_tree_id":  sec_tree,
+        "total_games":  total_games,
+        "source":       "lolalytics"
+    }))
+}
+
+#[tauri::command]
+pub async fn get_matchup_data(
+    champion_name: String,
+    role: String,
+    vs_champion: String,
+) -> Result<serde_json::Value, ApiError> {
+    let champ_key = normalize_champ_key(&champion_name);
+    let vs_key    = normalize_champ_key(&vs_champion);
+    let lane      = map_role_to_lane(&role);
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+        .build()
+        .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
+
+    let url = format!("https://lolalytics.com/api/1/champion/{}/", champ_key);
+    let resp = client
+        .get(&url)
+        .query(&[
+            ("lane",   lane),
+            ("vs",     vs_key.as_str()),
+            ("tier",   "platinum_plus"),
+            ("patch",  "current"),
+            ("region", "all"),
+            ("queue",  "420"),
+        ])
+        .send()
+        .await
+        .map_err(|e| ApiError::NetworkError { message: format!("Lolalytics unreachable: {}", e) })?;
+
+    if !resp.status().is_success() {
+        return Err(ApiError::NetworkError {
+            message: format!("Lolalytics matchup returned HTTP {}", resp.status()),
+        });
+    }
+
+    let data: serde_json::Value = resp.json().await
+        .map_err(|e| ApiError::Unknown { message: format!("Failed to parse matchup response: {}", e) })?;
+
+    // Compute winrate from the best build entry [item1..., games, wins]
+    // This is the winrate of the recommended build in this matchup — very actionable.
+    let (winrate, matchup_games) = compute_winrate_from_build(&data);
+
+    let matchup_items = extract_best_item_build(&data);
+    let boots         = extract_best_boots(&data);
+    let (keystone, sec_tree) = extract_best_runes(&data);
+
+    Ok(serde_json::json!({
+        "champion":    champion_name,
+        "vs":          vs_champion,
+        "role":        lane,
+        "winrate":     winrate,
+        "games":       matchup_games,
+        "items":       matchup_items,
+        "boots":       boots,
+        "keystone_id": keystone,
+        "sec_tree_id": sec_tree,
+        "source":      "lolalytics"
+    }))
+}
+
+fn compute_winrate_from_build(data: &serde_json::Value) -> (f64, u64) {
+    // Try top-level fields first
+    if let (Some(n), Some(w)) = (data["n"].as_f64(), data["wins"].as_f64()) {
+        if n > 0.0 { return (w / n * 100.0, n as u64); }
+    }
+
+    // Fallback: extract from the best build entry's last two values [.., games, wins]
+    if let Some(builds) = data["items"]["build"].as_array() {
+        if let Some(first) = builds.first() {
+            if let Some(arr) = first.as_array() {
+                let len = arr.len();
+                if len >= 2 {
+                    let games = arr[len - 2].as_f64().unwrap_or(0.0);
+                    let wins  = arr[len - 1].as_f64().unwrap_or(0.0);
+                    if games > 0.0 { return (wins / games * 100.0, games as u64); }
+                }
+            }
+        }
+    }
+
+    (0.0, 0)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 /// Translates a summoner spell ID to its Spanish name.
 fn spell_es(id: i64) -> &'static str {
     match id {

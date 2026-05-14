@@ -3,9 +3,9 @@ import { Radio, Users, Clock, Swords } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { invoke } from '@tauri-apps/api/core'
 import { SpectatorGameData, SpectatorParticipant, ParticipantRank, ParticipantChampStats } from '../types/api'
-import { getChampionImageUrl, getSpellImageUrl, getRuneImageUrl } from '../utils/ddragon'
+import { getChampionImageUrl, getSpellImageUrl, getRuneImageUrl, getChampionName } from '../utils/ddragon'
 import { BuildAdvicePanel } from './BuildAdvicePanel'
-import { getChampionName } from '../utils/ddragon'
+import { findLaneOpponent } from '../utils/roleDetection'
 
 interface SpectatorCardProps {
   puuid: string | undefined
@@ -373,17 +373,21 @@ export function SpectatorCard({ puuid, myPuuid }: SpectatorCardProps) {
         if (!myPuuid) return null
         const meParticipant = game.participants.find(p => p.puuid === myPuuid)
         if (!meParticipant) return null
+
         const myChampionName = getChampionName(meParticipant.championId)
-        // Enrich participants with championName so the backend doesn't need the incomplete ID table
-        const enriched = game.participants.map(p => ({
-          ...p,
-          championName: getChampionName(p.championId),
-        }))
+
+        const { myRole, opponentPuuid } = findLaneOpponent(myPuuid, game.participants)
+
+        const opponent = opponentPuuid
+          ? game.participants.find(p => p.puuid === opponentPuuid)
+          : null
+
         return (
           <BuildAdvicePanel
-            myPuuid={myPuuid}
             myChampionName={myChampionName}
-            participants={enriched}
+            role={myRole}
+            opponentChampionName={opponent ? getChampionName(opponent.championId) : undefined}
+            opponentChampionId={opponent?.championId}
           />
         )
       })()}

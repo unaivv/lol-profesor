@@ -94,6 +94,7 @@ export function getItemImageUrl(itemId: number): string {
 
 // Item name → ID map (loaded once from DDragon)
 let itemNameMap: Record<string, number> = {}  // normalized name -> item id
+let itemIdMap: Record<number, string> = {}    // item id -> display name
 let itemsLoaded = false
 const itemLoadListeners: Array<() => void> = []
 
@@ -103,13 +104,19 @@ export function initItemMap(): void {
     .then(res => res.json())
     .then((data: { data: Record<string, { name: string }> }) => {
       for (const [id, item] of Object.entries(data.data)) {
-        itemNameMap[item.name.toLowerCase()] = parseInt(id, 10)
+        const numId = parseInt(id, 10)
+        itemNameMap[item.name.toLowerCase()] = numId
+        itemIdMap[numId] = item.name
       }
       itemsLoaded = true
       itemLoadListeners.forEach(fn => fn())
       itemLoadListeners.length = 0
     })
     .catch(() => {})
+}
+
+export function getItemNameById(itemId: number): string {
+  return itemIdMap[itemId] || `Item ${itemId}`
 }
 
 export function useItemMap(): boolean {

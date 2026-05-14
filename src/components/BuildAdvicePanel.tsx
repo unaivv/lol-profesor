@@ -1,302 +1,274 @@
 import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
-import { Sparkles, Swords, Users, Loader2, ChevronRight, Shield } from 'lucide-react'
-import { getItemImageUrlByName, useItemMap } from '../utils/ddragon'
+import { TrendingUp, Loader2, RotateCcw, Swords } from 'lucide-react'
+import { getItemImageUrl, getItemNameById, getRuneImageUrl, getChampionImageUrl, useItemMap } from '../utils/ddragon'
+import type { Role } from '../utils/roleDetection'
 
-interface OptimalBuild {
-  keystone: string
-  secondary_tree: string
-  core_items: string[]
-  boots: string
-  situational: string[]
-  tips: string
-}
-
-interface ItemChange {
-  item: string
-  reason: string
-}
-
-interface VsLane {
-  opponent: string
-  keystone: string
-  item_changes: ItemChange[]
-  tips: string
-}
-
-interface VsComp {
-  comp_type: string
-  item_changes: ItemChange[]
-  tips: string
-}
-
-interface BuildAdvice {
+interface ChampionBuild {
   champion: string
   role: string
-  optimal: OptimalBuild
-  vs_lane: VsLane
-  vs_comp: VsComp
+  core_items: number[]
+  boots: number | null
+  keystone_id: number | null
+  sec_tree_id: number | null
+  total_games: number
 }
 
-type Tab = 'optimal' | 'vs_lane' | 'vs_comp'
+interface MatchupData {
+  champion: string
+  vs: string
+  role: string
+  winrate: number
+  games: number
+  items: number[]
+  boots: number | null
+  keystone_id: number | null
+  sec_tree_id: number | null
+}
 
 interface BuildAdvicePanelProps {
-  myPuuid: string
   myChampionName: string
-  participants: object[]
+  role: Role
+  opponentChampionName?: string
+  opponentChampionId?: number
 }
 
-function ItemIcon({ name }: { name: string }) {
-  const url = getItemImageUrlByName(name)
-  if (!url) return null
+function ItemCell({ id }: { id: number }) {
   return (
-    <img
-      src={url}
-      alt={name}
-      title={name}
-      className="w-7 h-7 rounded-md border border-slate-300 dark:border-slate-600 flex-shrink-0"
-      onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-    />
+    <div className="flex flex-col items-center gap-1">
+      <img
+        src={getItemImageUrl(id)}
+        alt={getItemNameById(id)}
+        title={getItemNameById(id)}
+        className="w-9 h-9 rounded-lg border border-slate-200 dark:border-slate-600 flex-shrink-0"
+        onError={e => { (e.target as HTMLImageElement).style.opacity = '0.3' }}
+      />
+      <span className="text-[9px] text-slate-500 dark:text-slate-400 text-center max-w-[52px] leading-tight line-clamp-2">
+        {getItemNameById(id)}
+      </span>
+    </div>
   )
 }
 
-function ItemPill({ name }: { name: string }) {
-  const url = getItemImageUrlByName(name)
+function WinrateBadge({ winrate, games }: { winrate: number; games: number }) {
+  const color =
+    winrate >= 52 ? '#22c55e' :
+    winrate <= 48 ? '#ef4444' :
+    '#eab308'
+  const label =
+    winrate >= 52 ? 'Favorable' :
+    winrate <= 48 ? 'Difícil'   :
+    'Parejo'
+
   return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600">
-      {url && (
-        <img
-          src={url}
-          alt=""
-          className="w-4 h-4 rounded-sm flex-shrink-0"
-          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-        />
+    <div className="flex items-center gap-2">
+      <span style={{
+        fontSize: '11px', fontWeight: 700, color,
+        background: `${color}22`, borderRadius: '6px', padding: '2px 8px',
+      }}>
+        {winrate.toFixed(1)}% · {label}
+      </span>
+      {games > 0 && (
+        <span className="text-[10px] text-slate-400 dark:text-slate-500">
+          {games < 300 ? `${games} partidas (pocos datos)` : `${games.toLocaleString()} partidas`}
+        </span>
       )}
-      {name}
-    </span>
-  )
-}
-
-function ItemRow({ items, label }: { items: string[]; label: string }) {
-  if (!items?.length) return null
-  return (
-    <div>
-      <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">{label}</p>
-      <div className="flex flex-wrap gap-1.5">
-        {items.map((item, i) => item?.trim() ? <ItemPill key={i} name={item.trim()} /> : null)}
-      </div>
     </div>
   )
 }
 
-function RunePill({ name, sub }: { name: string; sub?: string }) {
-  return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700">
-      <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-      <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">{name}</span>
-      {sub && <span className="text-xs text-amber-600 dark:text-amber-400 ml-1">· {sub}</span>}
-    </div>
-  )
-}
-
-function TipBox({ text, color }: { text?: string; color: 'blue' | 'orange' | 'purple' }) {
-  if (!text) return null
-  const cls = {
-    blue:   'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800 text-blue-700 dark:text-blue-300',
-    orange: 'bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800 text-orange-700 dark:text-orange-300',
-    purple: 'bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800 text-purple-700 dark:text-purple-300',
-  }[color]
-  const iconCls = { blue: 'text-blue-500', orange: 'text-orange-500', purple: 'text-purple-500' }[color]
-  return (
-    <div className={`flex gap-2 p-2.5 rounded-lg border ${cls}`}>
-      <ChevronRight className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${iconCls}`} />
-      <p className="text-xs leading-relaxed">{text}</p>
-    </div>
-  )
-}
-
-export function BuildAdvicePanel({ myPuuid, myChampionName, participants }: BuildAdvicePanelProps) {
-  const [advice, setAdvice] = useState<BuildAdvice | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<Tab>('optimal')
-  const [fetched, setFetched] = useState(false)
-  useItemMap() // subscribe so component re-renders once item.json is loaded
-
-  useEffect(() => {
-    if (fetched || !myPuuid || !myChampionName || !participants.length) return
-    setFetched(true)
-    setLoading(true)
-    setError(null)
-
-    invoke<BuildAdvice>('get_live_build_advice', { myPuuid, myChampionName, participants })
-      .then(setAdvice)
-      .catch((e: unknown) => {
-        const msg = e instanceof Error ? e.message : String(e)
-        setError(msg.includes('GROQ_API_KEY') ? 'Groq API key no configurada' : 'Error generando build. Inténtalo de nuevo.')
-      })
-      .finally(() => setLoading(false))
-  }, [myPuuid, myChampionName, participants, fetched])
-
-  if (loading) {
-    return (
-      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">Build IA</h4>
-        </div>
-        <div className="flex items-center gap-3 py-6 justify-center text-slate-400 dark:text-slate-500">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          <span className="text-sm">Analizando composición...</span>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">Build IA</h4>
-        </div>
-        <p className="text-xs text-rose-500 dark:text-rose-400">{error}</p>
-        <button onClick={() => setFetched(false)} className="mt-2 text-xs text-blue-500 hover:underline">
-          Reintentar
-        </button>
-      </div>
-    )
-  }
-
-  if (!advice) return null
-
-  // Guard: ensure nested objects exist (Groq response may be incomplete for ARAM)
-  const optimal = advice.optimal ?? {}
-  const vsLane  = advice.vs_lane  ?? {}
-  const vsComp  = advice.vs_comp  ?? {}
-
-  const vsLaneLabel = vsLane.opponent ? `vs ${vsLane.opponent}` : 'vs Línea'
-
-  const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: 'optimal',  label: 'Óptima',     icon: Sparkles },
-    { id: 'vs_lane',  label: vsLaneLabel,  icon: Swords   },
-    { id: 'vs_comp',  label: 'vs Comp',    icon: Users    },
+function BuildSection({ build, title }: { build: ChampionBuild; title?: string }) {
+  const allItems = [
+    ...build.core_items,
+    ...(build.boots != null ? [build.boots] : []),
   ]
 
   return (
-    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="w-4 h-4 text-amber-500" />
-        <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">
-          Build IA · <span className="font-normal text-slate-500 dark:text-slate-400">{advice.champion ?? myChampionName} · {advice.role}</span>
-        </h4>
+    <div className="space-y-2">
+      {title && (
+        <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{title}</p>
+      )}
+
+      {build.keystone_id && (
+        <div className="flex items-center gap-1.5">
+          <img
+            src={getRuneImageUrl(build.keystone_id)}
+            alt=""
+            className="w-5 h-5 rounded-full bg-slate-800"
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
+          {build.sec_tree_id && (
+            <img
+              src={getRuneImageUrl(build.sec_tree_id)}
+              alt=""
+              className="w-4 h-4 rounded-full bg-slate-800 opacity-60"
+              onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
+          )}
+          <span className="text-[10px] text-slate-400 dark:text-slate-500">Runas</span>
+        </div>
+      )}
+
+      {allItems.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {allItems.map((id, i) => <ItemCell key={i} id={id} />)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function BuildAdvicePanel({
+  myChampionName,
+  role,
+  opponentChampionName,
+  opponentChampionId,
+}: BuildAdvicePanelProps) {
+  const [build, setBuild]         = useState<ChampionBuild | null>(null)
+  const [matchup, setMatchup]     = useState<MatchupData | null>(null)
+  const [loadingBuild, setLoadingBuild]   = useState(false)
+  const [loadingMatchup, setLoadingMatchup] = useState(false)
+  const [errorBuild, setErrorBuild]       = useState<string | null>(null)
+  const [errorMatchup, setErrorMatchup]   = useState<string | null>(null)
+  const [fetchedBuild, setFetchedBuild]   = useState(false)
+  const [fetchedMatchup, setFetchedMatchup] = useState(false)
+  useItemMap()
+
+  // Fetch base build
+  useEffect(() => {
+    if (fetchedBuild || !myChampionName) return
+    setFetchedBuild(true)
+    setLoadingBuild(true)
+    setErrorBuild(null)
+
+    invoke<ChampionBuild>('get_champion_build', { championName: myChampionName, role })
+      .then(setBuild)
+      .catch(() => setErrorBuild('No se pudo obtener la build de Lolalytics'))
+      .finally(() => setLoadingBuild(false))
+  }, [myChampionName, role, fetchedBuild])
+
+  // Fetch matchup data when opponent is known
+  useEffect(() => {
+    if (fetchedMatchup || !myChampionName || !opponentChampionName) return
+    setFetchedMatchup(true)
+    setLoadingMatchup(true)
+    setErrorMatchup(null)
+
+    invoke<MatchupData>('get_matchup_data', {
+      championName: myChampionName,
+      role,
+      vsChampion: opponentChampionName,
+    })
+      .then(setMatchup)
+      .catch(() => setErrorMatchup('No se pudo obtener datos del matchup'))
+      .finally(() => setLoadingMatchup(false))
+  }, [myChampionName, role, opponentChampionName, fetchedMatchup])
+
+  const retry = () => {
+    setFetchedBuild(false)
+    setBuild(null)
+    setFetchedMatchup(false)
+    setMatchup(null)
+  }
+
+  if (loadingBuild) {
+    return (
+      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+        <div className="flex items-center gap-3 py-4 justify-center text-slate-400 dark:text-slate-500">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span className="text-sm">Cargando build...</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 space-y-4">
+
+      {/* ── Base build ── */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-blue-500" />
+            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">
+              Build · <span className="font-normal text-slate-500 dark:text-slate-400">
+                {myChampionName} · {build?.role ?? role}
+              </span>
+            </h4>
+          </div>
+          {build && build.total_games > 0 && (
+            <span className="text-[10px] text-slate-400 dark:text-slate-500">
+              {build.total_games.toLocaleString()} partidas
+            </span>
+          )}
+        </div>
+
+        {errorBuild ? (
+          <div>
+            <p className="text-xs text-rose-500">{errorBuild}</p>
+            <button onClick={retry} className="mt-1 flex items-center gap-1 text-xs text-blue-500 hover:underline">
+              <RotateCcw className="w-3 h-3" /> Reintentar
+            </button>
+          </div>
+        ) : build ? (
+          <BuildSection build={build} />
+        ) : null}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-3 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
-              tab === id
-                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-            }`}
-          >
-            <Icon className="w-3 h-3" />
-            {label}
-          </button>
-        ))}
-      </div>
+      {/* ── Matchup ── */}
+      {opponentChampionName && (
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
+          <div className="flex items-center gap-2 mb-2">
+            <Swords className="w-4 h-4 text-red-400" />
+            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+              vs
+              {opponentChampionId && (
+                <img
+                  src={getChampionImageUrl(opponentChampionId)}
+                  alt={opponentChampionName}
+                  className="w-5 h-5 rounded-md border border-slate-200 dark:border-slate-600"
+                />
+              )}
+              <span className="font-normal text-slate-500 dark:text-slate-400">{opponentChampionName}</span>
+            </h4>
+          </div>
 
-      {/* Optimal tab */}
-      {tab === 'optimal' && (
-        <div className="space-y-3">
-          {optimal.keystone && (
-            <RunePill name={optimal.keystone} sub={optimal.secondary_tree} />
-          )}
-
-          {/* Items grid with icons */}
-          {(optimal.core_items?.length > 0 || optimal.boots) && (
-            <div>
-              <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">Items principales</p>
-              <div className="flex flex-wrap gap-2">
-                {[...(optimal.core_items ?? []), optimal.boots].filter(Boolean).map((item, i) => (
-                  <div key={i} className="flex flex-col items-center gap-1">
-                    <ItemIcon name={item} />
-                    <span className="text-[9px] text-slate-500 dark:text-slate-400 text-center max-w-[56px] leading-tight">{item}</span>
-                  </div>
-                ))}
-              </div>
+          {loadingMatchup && (
+            <div className="flex items-center gap-2 py-2 text-slate-400 dark:text-slate-500">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span className="text-xs">Cargando matchup...</span>
             </div>
           )}
 
-          <ItemRow items={optimal.situational ?? []} label="Situacionales" />
-          <TipBox text={optimal.tips} color="blue" />
+          {errorMatchup && (
+            <p className="text-xs text-slate-400 dark:text-slate-500 italic">{errorMatchup}</p>
+          )}
+
+          {matchup && !loadingMatchup && (
+            <div className="space-y-2">
+              {matchup.winrate > 0 && (
+                <WinrateBadge winrate={matchup.winrate} games={matchup.games} />
+              )}
+              {matchup.items.length > 0 && (
+                <BuildSection
+                  build={{
+                    champion: myChampionName,
+                    role,
+                    core_items: matchup.items,
+                    boots: matchup.boots,
+                    keystone_id: matchup.keystone_id,
+                    sec_tree_id: matchup.sec_tree_id,
+                    total_games: matchup.games,
+                  }}
+                  title="Build recomendada en este matchup"
+                />
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* vs Lane tab */}
-      {tab === 'vs_lane' && (
-        <div className="space-y-3">
-          {vsLane.opponent ? (
-            <div className="flex items-center gap-2 p-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800">
-              <Swords className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
-              <p className="text-xs font-semibold text-red-700 dark:text-red-300">Enfrentamiento: {vsLane.opponent}</p>
-            </div>
-          ) : (
-            <p className="text-xs text-slate-400 dark:text-slate-500 italic">Sin rival de línea detectado (ARAM u otro modo)</p>
-          )}
-
-          {vsLane.keystone && <RunePill name={vsLane.keystone} />}
-
-          {(vsLane.item_changes?.length ?? 0) > 0 && (
-            <div>
-              <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1.5">Adaptaciones</p>
-              <ul className="space-y-1.5">
-                {vsLane.item_changes.map((change, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
-                    <ItemPill name={change.item ?? String(change)} />
-                    {change.reason && <span className="pt-1 leading-tight">{change.reason}</span>}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <TipBox text={vsLane.tips} color="orange" />
-        </div>
-      )}
-
-      {/* vs Comp tab */}
-      {tab === 'vs_comp' && (
-        <div className="space-y-3">
-          {vsComp.comp_type && (
-            <div className="flex items-center gap-2 p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800">
-              <Shield className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
-              <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">Composición: {vsComp.comp_type}</p>
-            </div>
-          )}
-
-          {(vsComp.item_changes?.length ?? 0) > 0 && (
-            <div>
-              <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1.5">Adaptaciones</p>
-              <ul className="space-y-1.5">
-                {vsComp.item_changes.map((change, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
-                    <ItemPill name={change.item ?? String(change)} />
-                    {change.reason && <span className="pt-1 leading-tight">{change.reason}</span>}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <TipBox text={vsComp.tips} color="purple" />
-        </div>
-      )}
+      <p className="text-[9px] text-slate-400 dark:text-slate-500">Fuente: Lolalytics · Platinum+</p>
     </div>
   )
 }
