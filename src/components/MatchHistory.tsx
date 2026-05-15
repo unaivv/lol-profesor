@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Trophy, Sword } from 'lucide-react'
 import { DetailedMatch, PlayerData } from '../types/api'
 import { MatchCard } from './MatchCard'
+import { MatchHistoryFilters } from './MatchHistoryFilters'
 import { WinRateChart } from './WinRateChart'
 import { calculateRawMetrics } from './PerformanceRadar'
 import { MatchHistorySkeleton } from './ui/SkeletonLayouts'
@@ -16,6 +17,11 @@ interface MatchHistoryProps {
 
 export function MatchHistory({ matches, playerPuuid, currentPlayerData, isLoading }: MatchHistoryProps) {
   const navigate = useNavigate()
+  const [filteredMatches, setFilteredMatches] = useState<DetailedMatch[]>(matches)
+
+  const handleFilterChange = useCallback((filtered: DetailedMatch[]) => {
+    setFilteredMatches(filtered)
+  }, [])
 
   if (isLoading) {
     return <MatchHistorySkeleton />
@@ -68,6 +74,14 @@ export function MatchHistory({ matches, playerPuuid, currentPlayerData, isLoadin
         </div>
       </div>
 
+      {validMatches.length > 0 && (
+        <MatchHistoryFilters
+          matches={validMatches}
+          playerPuuid={playerPuuid}
+          onFilterChange={handleFilterChange}
+        />
+      )}
+
       <div style={{ padding: '16px' }}>
         {validMatches.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 0' }}>
@@ -77,9 +91,17 @@ export function MatchHistory({ matches, playerPuuid, currentPlayerData, isLoadin
             <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>No hay partidas</h3>
             <p style={{ fontSize: '14px', color: '#64748b' }}>Este jugador no tiene partidas recientes</p>
           </div>
+        ) : filteredMatches.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <div style={{ width: '56px', height: '56px', background: 'var(--bg-card-subtle)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+              <Trophy size={28} color="#94a3b8" />
+            </div>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Sin resultados</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Ninguna partida coincide con los filtros aplicados</p>
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {validMatches.map((match) => (
+            {filteredMatches.map((match) => (
               <MatchCard
                 key={match.gameId}
                 match={match}
