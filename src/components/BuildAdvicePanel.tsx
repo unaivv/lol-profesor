@@ -1,30 +1,8 @@
 import { useState, useEffect } from 'react'
-import { invoke } from '@tauri-apps/api/core'
 import { TrendingUp, Loader2, RotateCcw, Swords } from 'lucide-react'
 import { getItemImageUrl, getItemNameById, getRuneImageUrl, getChampionImageUrl, useItemMap } from '../utils/ddragon'
+import { fetchChampionBuild, fetchMatchupData, LolalyticsData } from '../utils/lolalytics'
 import type { Role } from '../utils/roleDetection'
-
-interface ChampionBuild {
-  champion: string
-  role: string
-  core_items: number[]
-  boots: number | null
-  keystone_id: number | null
-  sec_tree_id: number | null
-  total_games: number
-}
-
-interface MatchupData {
-  champion: string
-  vs: string
-  role: string
-  winrate: number
-  games: number
-  items: number[]
-  boots: number | null
-  keystone_id: number | null
-  sec_tree_id: number | null
-}
 
 interface BuildAdvicePanelProps {
   myChampionName: string
@@ -52,21 +30,11 @@ function ItemCell({ id }: { id: number }) {
 }
 
 function WinrateBadge({ winrate, games }: { winrate: number; games: number }) {
-  const color =
-    winrate >= 52 ? '#22c55e' :
-    winrate <= 48 ? '#ef4444' :
-    '#eab308'
-  const label =
-    winrate >= 52 ? 'Favorable' :
-    winrate <= 48 ? 'Difícil'   :
-    'Parejo'
-
+  const color = winrate >= 52 ? '#22c55e' : winrate <= 48 ? '#ef4444' : '#eab308'
+  const label = winrate >= 52 ? 'Favorable' : winrate <= 48 ? 'Difícil' : 'Parejo'
   return (
     <div className="flex items-center gap-2">
-      <span style={{
-        fontSize: '11px', fontWeight: 700, color,
-        background: `${color}22`, borderRadius: '6px', padding: '2px 8px',
-      }}>
+      <span style={{ fontSize: '11px', fontWeight: 700, color, background: `${color}22`, borderRadius: '6px', padding: '2px 8px' }}>
         {winrate.toFixed(1)}% · {label}
       </span>
       {games > 0 && (
@@ -78,38 +46,21 @@ function WinrateBadge({ winrate, games }: { winrate: number; games: number }) {
   )
 }
 
-function BuildSection({ build, title }: { build: ChampionBuild; title?: string }) {
-  const allItems = [
-    ...build.core_items,
-    ...(build.boots != null ? [build.boots] : []),
-  ]
-
+function BuildSection({ data, role }: { data: LolalyticsData; role: string }) {
+  const allItems = [...data.core_items, ...(data.boots != null ? [data.boots] : [])]
   return (
     <div className="space-y-2">
-      {title && (
-        <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{title}</p>
-      )}
-
-      {build.keystone_id && (
+      {data.keystone_id && (
         <div className="flex items-center gap-1.5">
-          <img
-            src={getRuneImageUrl(build.keystone_id)}
-            alt=""
-            className="w-5 h-5 rounded-full bg-slate-800"
-            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-          />
-          {build.sec_tree_id && (
-            <img
-              src={getRuneImageUrl(build.sec_tree_id)}
-              alt=""
-              className="w-4 h-4 rounded-full bg-slate-800 opacity-60"
-              onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-            />
+          <img src={getRuneImageUrl(data.keystone_id)} alt="" className="w-5 h-5 rounded-full bg-slate-800"
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+          {data.sec_tree_id && (
+            <img src={getRuneImageUrl(data.sec_tree_id)} alt="" className="w-4 h-4 rounded-full bg-slate-800 opacity-60"
+              onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
           )}
-          <span className="text-[10px] text-slate-400 dark:text-slate-500">Runas</span>
+          <span className="text-[10px] text-slate-400 dark:text-slate-500">Runas · {role}</span>
         </div>
       )}
-
       {allItems.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {allItems.map((id, i) => <ItemCell key={i} id={id} />)}
@@ -119,60 +70,40 @@ function BuildSection({ build, title }: { build: ChampionBuild; title?: string }
   )
 }
 
-export function BuildAdvicePanel({
-  myChampionName,
-  myChampionId,
-  role,
-  opponentChampionName,
-  opponentChampionId,
-}: BuildAdvicePanelProps) {
-  const [build, setBuild]         = useState<ChampionBuild | null>(null)
-  const [matchup, setMatchup]     = useState<MatchupData | null>(null)
-  const [loadingBuild, setLoadingBuild]   = useState(false)
+export function BuildAdvicePanel({ myChampionName, myChampionId, role, opponentChampionName, opponentChampionId }: BuildAdvicePanelProps) {
+  const [build, setBuild]             = useState<LolalyticsData | null>(null)
+  const [matchup, setMatchup]         = useState<LolalyticsData | null>(null)
+  const [loadingBuild, setLoadingBuild]     = useState(false)
   const [loadingMatchup, setLoadingMatchup] = useState(false)
-  const [errorBuild, setErrorBuild]       = useState<string | null>(null)
-  const [errorMatchup, setErrorMatchup]   = useState<string | null>(null)
-  const [fetchedBuild, setFetchedBuild]   = useState(false)
+  const [errorBuild, setErrorBuild]         = useState<string | null>(null)
+  const [errorMatchup, setErrorMatchup]     = useState<string | null>(null)
+  const [fetchedBuild, setFetchedBuild]     = useState(false)
   const [fetchedMatchup, setFetchedMatchup] = useState(false)
   useItemMap()
 
-  // Fetch base build
   useEffect(() => {
-    if (fetchedBuild || !myChampionName) return
+    if (fetchedBuild || !myChampionId) return
     setFetchedBuild(true)
     setLoadingBuild(true)
-    setErrorBuild(null)
-
-    invoke<ChampionBuild>('get_champion_build', { championName: myChampionName, championId: myChampionId, role })
+    fetchChampionBuild(myChampionId, role)
       .then(setBuild)
-      .catch((e: unknown) => setErrorBuild(typeof e === 'string' ? e : JSON.stringify(e)))
+      .catch((e: unknown) => setErrorBuild(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoadingBuild(false))
-  }, [myChampionName, role, fetchedBuild])
+  }, [myChampionId, role, fetchedBuild])
 
-  // Fetch matchup data when opponent is known
   useEffect(() => {
-    if (fetchedMatchup || !myChampionName || !opponentChampionName) return
+    if (fetchedMatchup || !myChampionId || !opponentChampionId) return
     setFetchedMatchup(true)
     setLoadingMatchup(true)
-    setErrorMatchup(null)
-
-    invoke<MatchupData>('get_matchup_data', {
-      championName: myChampionName,
-      championId: myChampionId,
-      role,
-      vsChampion: opponentChampionName,
-      vsChampionId: opponentChampionId,
-    })
+    fetchMatchupData(myChampionId, role, opponentChampionId)
       .then(setMatchup)
-      .catch((e: unknown) => setErrorMatchup(typeof e === 'string' ? e : JSON.stringify(e)))
+      .catch((e: unknown) => setErrorMatchup(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoadingMatchup(false))
-  }, [myChampionName, role, opponentChampionName, fetchedMatchup])
+  }, [myChampionId, role, opponentChampionId, fetchedMatchup])
 
   const retry = () => {
-    setFetchedBuild(false)
-    setBuild(null)
-    setFetchedMatchup(false)
-    setMatchup(null)
+    setFetchedBuild(false); setBuild(null)
+    setFetchedMatchup(false); setMatchup(null)
   }
 
   if (loadingBuild) {
@@ -188,25 +119,19 @@ export function BuildAdvicePanel({
 
   return (
     <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 space-y-4">
-
-      {/* ── Base build ── */}
+      {/* Build */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-blue-500" />
             <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">
-              Build · <span className="font-normal text-slate-500 dark:text-slate-400">
-                {myChampionName} · {build?.role ?? role}
-              </span>
+              Build · <span className="font-normal text-slate-500 dark:text-slate-400">{myChampionName}</span>
             </h4>
           </div>
           {build && build.total_games > 0 && (
-            <span className="text-[10px] text-slate-400 dark:text-slate-500">
-              {build.total_games.toLocaleString()} partidas
-            </span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500">{build.total_games.toLocaleString()} partidas</span>
           )}
         </div>
-
         {errorBuild ? (
           <div>
             <p className="text-xs text-rose-500">{errorBuild}</p>
@@ -215,11 +140,11 @@ export function BuildAdvicePanel({
             </button>
           </div>
         ) : build ? (
-          <BuildSection build={build} />
+          <BuildSection data={build} role={role} />
         ) : null}
       </div>
 
-      {/* ── Matchup ── */}
+      {/* Matchup */}
       {opponentChampionName && (
         <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
           <div className="flex items-center gap-2 mb-2">
@@ -227,46 +152,23 @@ export function BuildAdvicePanel({
             <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
               vs
               {opponentChampionId && (
-                <img
-                  src={getChampionImageUrl(opponentChampionId)}
-                  alt={opponentChampionName}
-                  className="w-5 h-5 rounded-md border border-slate-200 dark:border-slate-600"
-                />
+                <img src={getChampionImageUrl(opponentChampionId)} alt={opponentChampionName}
+                  className="w-5 h-5 rounded-md border border-slate-200 dark:border-slate-600" />
               )}
               <span className="font-normal text-slate-500 dark:text-slate-400">{opponentChampionName}</span>
             </h4>
           </div>
-
           {loadingMatchup && (
-            <div className="flex items-center gap-2 py-2 text-slate-400 dark:text-slate-500">
+            <div className="flex items-center gap-2 py-2 text-slate-400">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               <span className="text-xs">Cargando matchup...</span>
             </div>
           )}
-
-          {errorMatchup && (
-            <p className="text-xs text-slate-400 dark:text-slate-500 italic">{errorMatchup}</p>
-          )}
-
+          {errorMatchup && <p className="text-xs text-slate-400 italic">{errorMatchup}</p>}
           {matchup && !loadingMatchup && (
             <div className="space-y-2">
-              {matchup.winrate > 0 && (
-                <WinrateBadge winrate={matchup.winrate} games={matchup.games} />
-              )}
-              {matchup.items.length > 0 && (
-                <BuildSection
-                  build={{
-                    champion: myChampionName,
-                    role,
-                    core_items: matchup.items,
-                    boots: matchup.boots,
-                    keystone_id: matchup.keystone_id,
-                    sec_tree_id: matchup.sec_tree_id,
-                    total_games: matchup.games,
-                  }}
-                  title="Build recomendada en este matchup"
-                />
-              )}
+              {matchup.winrate > 0 && <WinrateBadge winrate={matchup.winrate} games={matchup.total_games} />}
+              {matchup.core_items.length > 0 && <BuildSection data={matchup} role={role} />}
             </div>
           )}
         </div>
