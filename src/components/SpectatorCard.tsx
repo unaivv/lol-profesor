@@ -385,6 +385,7 @@ export function SpectatorCard({ puuid, myPuuid }: SpectatorCardProps) {
         return (
           <BuildAdvicePanel
             myChampionName={myChampionName}
+            myChampionId={meParticipant.championId}
             role={myRole}
             opponentChampionName={opponent ? getChampionName(opponent.championId) : undefined}
             opponentChampionId={opponent?.championId}

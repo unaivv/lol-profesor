@@ -28,6 +28,7 @@ interface MatchupData {
 
 interface BuildAdvicePanelProps {
   myChampionName: string
+  myChampionId: number
   role: Role
   opponentChampionName?: string
   opponentChampionId?: number
@@ -120,6 +121,7 @@ function BuildSection({ build, title }: { build: ChampionBuild; title?: string }
 
 export function BuildAdvicePanel({
   myChampionName,
+  myChampionId,
   role,
   opponentChampionName,
   opponentChampionId,
@@ -141,7 +143,7 @@ export function BuildAdvicePanel({
     setLoadingBuild(true)
     setErrorBuild(null)
 
-    invoke<ChampionBuild>('get_champion_build', { championName: myChampionName, role })
+    invoke<ChampionBuild>('get_champion_build', { championName: myChampionName, championId: myChampionId, role })
       .then(setBuild)
       .catch((e: unknown) => setErrorBuild(typeof e === 'string' ? e : JSON.stringify(e)))
       .finally(() => setLoadingBuild(false))
@@ -156,8 +158,10 @@ export function BuildAdvicePanel({
 
     invoke<MatchupData>('get_matchup_data', {
       championName: myChampionName,
+      championId: myChampionId,
       role,
       vsChampion: opponentChampionName,
+      vsChampionId: opponentChampionId,
     })
       .then(setMatchup)
       .catch((e: unknown) => setErrorMatchup(typeof e === 'string' ? e : JSON.stringify(e)))

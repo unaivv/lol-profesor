@@ -213,8 +213,8 @@ fn map_role_to_lane(role: &str) -> &'static str {
     match role.to_lowercase().as_str() {
         "jungla" | "jungle" | "jg" => "jungle",
         "top"                       => "top",
-        "mid" | "middle"            => "mid",
-        "adc" | "bot" | "bottom"   => "adc",
+        "mid" | "middle"            => "middle",
+        "adc" | "bot" | "bottom"   => "bot",
         "support" | "sup" | "supp" => "support",
         _                           => "default",
     }
@@ -277,10 +277,11 @@ fn extract_best_runes(data: &serde_json::Value) -> (Option<u64>, Option<u64>) {
 #[tauri::command]
 pub async fn get_champion_build(
     champion_name: String,
+    champion_id: u32,
     role: String,
 ) -> Result<serde_json::Value, ApiError> {
-    let champ_key = normalize_champ_key(&champion_name);
     let lane = map_role_to_lane(&role);
+    let cid  = champion_id.to_string();
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
@@ -289,14 +290,17 @@ pub async fn get_champion_build(
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
 
     let resp = client
-        .get("https://lolalytics.com/api/tier1/")
+        .get("https://axe.lolalytics.com/mega/")
         .query(&[
-            ("champ",  champ_key.as_str()),
+            ("ep",     "champion"),
+            ("p",      "d"),
+            ("v",      "1"),
+            ("patch",  "current"),
+            ("cid",    cid.as_str()),
             ("lane",   lane),
             ("tier",   "platinum_plus"),
-            ("patch",  "current"),
-            ("region", "all"),
             ("queue",  "420"),
+            ("region", "all"),
         ])
         .send()
         .await
@@ -306,7 +310,7 @@ pub async fn get_champion_build(
     let text = resp.text().await
         .map_err(|e| ApiError::NetworkError { message: format!("Failed to read body: {}", e) })?;
 
-    log::debug!("Lolalytics build response [{}] for {}/{}: {}", status, champ_key, lane, &text[..text.len().min(400)]);
+    log::debug!("Lolalytics build response [{}] for {} cid={} lane={}: {}", status, champion_name, champion_id, lane, &text[..text.len().min(400)]);
 
     if !status.is_success() {
         return Err(ApiError::NetworkError {
@@ -342,12 +346,14 @@ pub async fn get_champion_build(
 #[tauri::command]
 pub async fn get_matchup_data(
     champion_name: String,
+    champion_id: u32,
     role: String,
     vs_champion: String,
+    vs_champion_id: u32,
 ) -> Result<serde_json::Value, ApiError> {
-    let champ_key = normalize_champ_key(&champion_name);
-    let vs_key    = normalize_champ_key(&vs_champion);
-    let lane      = map_role_to_lane(&role);
+    let lane   = map_role_to_lane(&role);
+    let cid    = champion_id.to_string();
+    let vs_cid = vs_champion_id.to_string();
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
@@ -356,15 +362,18 @@ pub async fn get_matchup_data(
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
 
     let resp = client
-        .get("https://lolalytics.com/api/tier1/")
+        .get("https://axe.lolalytics.com/mega/")
         .query(&[
-            ("champ",  champ_key.as_str()),
-            ("lane",   lane),
-            ("vs",     vs_key.as_str()),
-            ("tier",   "platinum_plus"),
+            ("ep",     "champion"),
+            ("p",      "d"),
+            ("v",      "1"),
             ("patch",  "current"),
-            ("region", "all"),
+            ("cid",    cid.as_str()),
+            ("lane",   lane),
+            ("vs",     vs_cid.as_str()),
+            ("tier",   "platinum_plus"),
             ("queue",  "420"),
+            ("region", "all"),
         ])
         .send()
         .await
@@ -374,7 +383,7 @@ pub async fn get_matchup_data(
     let text = resp.text().await
         .map_err(|e| ApiError::NetworkError { message: format!("Failed to read body: {}", e) })?;
 
-    log::debug!("Lolalytics matchup [{}] {}/{} vs {}: {}", status, champ_key, lane, vs_key, &text[..text.len().min(400)]);
+    log::debug!("Lolalytics matchup [{}] {} ({}) vs {} ({}) lane={}: {}", status, champion_name, champion_id, vs_champion, vs_champion_id, lane, &text[..text.len().min(400)]);
 
     if !status.is_success() {
         return Err(ApiError::NetworkError {
