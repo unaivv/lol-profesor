@@ -10,13 +10,14 @@ import { PerformanceRadar } from '../components/PerformanceRadar'
 import { MostPlayedChampions } from '../components/MostPlayedChampions'
 import { ProfileHeader } from '../components/ProfileHeader'
 import { PlayerData } from '../types/api'
+import { RankedProgress } from '../components/RankedProgress'
 import { Trophy, Star, Target, X } from 'lucide-react'
 import { StatsPageSkeleton, MatchHistorySkeleton } from '../components/ui/SkeletonLayouts'
 import { invoke } from '@tauri-apps/api/core'
 import { useMyProfile } from '../hooks/useMyProfile'
 import { useFavorites } from '../hooks/useFavorites'
 
-type TabId = 'summary' | 'champions' | 'mastery' | 'live'
+type TabId = 'summary' | 'champions' | 'mastery' | 'live' | 'progress'
 
 const formatPoints = (points: number): string => {
   if (points >= 1000000) return `${(points / 1000000).toFixed(1)}M`
@@ -249,6 +250,10 @@ export function StatsPage() {
               } catch { return undefined }
             })()}
           />
+        )}
+
+        {activeTab === 'progress' && (
+          <RankedProgress puuid={playerData.puuid} />
         )}
       </div>
     </div>

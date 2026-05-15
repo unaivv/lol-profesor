@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
-import { Home, Users, Star, Zap, Settings, Search, Loader2, AlertCircle, User } from 'lucide-react'
+import { Home, Users, Star, Zap, Settings, Search, Loader2, AlertCircle, User, TrendingUp } from 'lucide-react'
 import { invoke } from '@tauri-apps/api/core'
 import { useMyProfile } from '../../hooks/useMyProfile'
 import { useFavorites } from '../../hooks/useFavorites'
@@ -14,6 +14,7 @@ const NAV_TABS = [
   { id: 'summary', label: 'Resumen', icon: Home },
   { id: 'champions', label: 'Campeones', icon: Users },
   { id: 'mastery', label: 'Maestría', icon: Star },
+  { id: 'progress', label: 'Progreso', icon: TrendingUp },
   { id: 'live', label: 'En Vivo', icon: Zap },
 ]
 
