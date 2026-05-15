@@ -288,10 +288,10 @@ pub async fn get_champion_build(
         .build()
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
 
-    let url = format!("https://lolalytics.com/api/1/champion/{}/", champ_key);
     let resp = client
-        .get(&url)
+        .get("https://lolalytics.com/api/tier1/")
         .query(&[
+            ("champ",  champ_key.as_str()),
             ("lane",   lane),
             ("tier",   "platinum_plus"),
             ("patch",  "current"),
@@ -355,10 +355,10 @@ pub async fn get_matchup_data(
         .build()
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
 
-    let url = format!("https://lolalytics.com/api/1/champion/{}/", champ_key);
     let resp = client
-        .get(&url)
+        .get("https://lolalytics.com/api/tier1/")
         .query(&[
+            ("champ",  champ_key.as_str()),
             ("lane",   lane),
             ("vs",     vs_key.as_str()),
             ("tier",   "platinum_plus"),
