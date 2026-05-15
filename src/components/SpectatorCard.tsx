@@ -5,6 +5,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { SpectatorGameData, SpectatorParticipant, ParticipantRank, ParticipantChampStats } from '../types/api'
 import { getChampionImageUrl, getSpellImageUrl, getRuneImageUrl, getChampionName } from '../utils/ddragon'
 import { BuildAdvicePanel } from './BuildAdvicePanel'
+import { PostGameOverlay } from './PostGameOverlay'
 import { findLaneOpponent } from '../utils/roleDetection'
 import { SpectatorCardSkeleton } from './ui/SkeletonLayouts'
 
@@ -188,8 +189,16 @@ export function SpectatorCard({ puuid, myPuuid }: SpectatorCardProps) {
   const [game, setGame] = useState<SpectatorGameData | null>(null)
   const [loading, setLoading] = useState(false)
   const [displayTime, setDisplayTime] = useState(0)
+  const [showPostGame, setShowPostGame] = useState(false)
   const fetchedAtRef = useRef<number>(0)
+  const wasInGameRef = useRef(false)
+  const mountedRef = useRef(true)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
   useEffect(() => {
     if (!puuid) return
@@ -198,22 +207,40 @@ export function SpectatorCard({ puuid, myPuuid }: SpectatorCardProps) {
       setLoading(true)
       try {
         const data = await invoke<SpectatorGameData | null>('get_live_game_with_ranks', { puuid })
+        if (!mountedRef.current) return
+
         if (data) {
           fetchedAtRef.current = Date.now()
           setDisplayTime(data.gameLength)
+          // Track whether the logged-in user is in this game
+          if (myPuuid && data.participants.some(p => p.puuid === myPuuid)) {
+            wasInGameRef.current = true
+          }
+        } else {
+          // Game gone — fire post-game if the logged-in user was in it
+          if (wasInGameRef.current && myPuuid) {
+            wasInGameRef.current = false
+            setShowPostGame(true)
+          }
         }
         setGame(data)
       } catch {
+        if (!mountedRef.current) return
+        // Treat errors (e.g. 404) the same as game-not-found
+        if (wasInGameRef.current && myPuuid) {
+          wasInGameRef.current = false
+          setShowPostGame(true)
+        }
         setGame(null)
       } finally {
-        setLoading(false)
+        if (mountedRef.current) setLoading(false)
       }
     }
 
     checkGame()
     const interval = setInterval(checkGame, 30_000)
     return () => clearInterval(interval)
-  }, [puuid])
+  }, [puuid, myPuuid])
 
   useEffect(() => {
     if (!game) return
@@ -224,27 +251,34 @@ export function SpectatorCard({ puuid, myPuuid }: SpectatorCardProps) {
     return () => clearInterval(tick)
   }, [game])
 
+  const postGameEl = showPostGame && myPuuid
+    ? <PostGameOverlay puuid={myPuuid} onDismiss={() => setShowPostGame(false)} />
+    : null
+
   if (loading && !game) {
-    return <SpectatorCardSkeleton />
+    return <>{postGameEl}<SpectatorCardSkeleton /></>
   }
 
   if (!game) {
     return (
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
-            <Radio className="w-5 h-5 text-slate-400" />
+      <>
+        {postGameEl}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+              <Radio className="w-5 h-5 text-slate-400" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Partida en Vivo</h2>
           </div>
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Partida en Vivo</h2>
-        </div>
-        <div className="text-center py-8">
-          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Users className="w-8 h-8 text-slate-400" />
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Users className="w-8 h-8 text-slate-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">No hay partida activa</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">El jugador no está en una partida en este momento</p>
           </div>
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">No hay partida activa</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400">El jugador no está en una partida en este momento</p>
         </div>
-      </div>
+      </>
     )
   }
 
@@ -378,6 +412,8 @@ export function SpectatorCard({ puuid, myPuuid }: SpectatorCardProps) {
           />
         )
       })()}
+
+      {postGameEl}
     </div>
   )
 }
