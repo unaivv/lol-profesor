@@ -15,14 +15,72 @@ async function getCurrentPatch(): Promise<string> {
   return cachedPatch
 }
 
+// ─── localStorage helpers ────────────────────────────────────────────────────
+
+const LS_PREFIX = 'lolBuild_'
+
+interface BuildCacheEntry {
+  patch: string
+  data: LolalyticsData
+  cachedAt: number
+}
+
+function lsKey(patch: string, championKey: string, lane: string): string {
+  return `${LS_PREFIX}${patch}_${championKey}_${lane}`
+}
+
+function getCachedBuild(key: string, currentPatch: string): LolalyticsData | null {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const entry = JSON.parse(raw) as BuildCacheEntry
+    if (entry.patch !== currentPatch) return null
+    return entry.data
+  } catch {
+    return null
+  }
+}
+
+function setCachedBuild(key: string, patch: string, data: LolalyticsData): void {
+  try {
+    const entry: BuildCacheEntry = { patch, data, cachedAt: Date.now() }
+    localStorage.setItem(key, JSON.stringify(entry))
+  } catch {
+    // quota exceeded, private mode, etc. — fail silently
+  }
+}
+
+export function clearStaleBuildCache(currentPatch: string): void {
+  try {
+    const toRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (!key?.startsWith(LS_PREFIX)) continue
+      try {
+        const raw = localStorage.getItem(key)
+        if (!raw) continue
+        const entry = JSON.parse(raw) as BuildCacheEntry
+        if (entry.patch !== currentPatch) toRemove.push(key)
+      } catch {
+        toRemove.push(key!)
+      }
+    }
+    for (const key of toRemove) localStorage.removeItem(key)
+  } catch {
+    // localStorage unavailable — fail silently
+  }
+}
+
+// ─── In-memory dedup cache (Promise-level, per session) ──────────────────────
+
 // Cache in-flight and resolved promises to avoid duplicate requests
 const buildCache = new Map<string, Promise<Record<string, unknown>>>()
 
-async function fetchRaw(championKey: string, laneStr: string): Promise<Record<string, unknown>> {
+async function fetchRaw(championKey: string, lane: string): Promise<Record<string, unknown>> {
   const patch = await getCurrentPatch()
-  const cacheKey = `${championKey}:${laneStr}:${patch}`
+  const cacheKey = `${championKey}:${lane}:${patch}`
   if (!buildCache.has(cacheKey)) {
-    const qs = new URLSearchParams({ ep: 'build-full', v: '1', patch, tier: 'platinum_plus', queue: '420', region: 'all', c: championKey, lane: laneStr })
+    const qs = new URLSearchParams({ ep: 'build-full', v: '1', patch, tier: 'platinum_plus', queue: '420', region: 'all', c: championKey, lane })
     const p = fetch(`${BASE}?${qs}`, { headers: HEADERS })
       .then(r => { if (!r.ok) throw new Error(`Lolalytics HTTP ${r.status}`); return r.json() as Promise<Record<string, unknown>> })
       .then(data => { if (data.status === 404) throw new Error('Champion/lane not found'); return data })
@@ -97,8 +155,18 @@ function parse(data: Record<string, unknown>): LolalyticsData {
 }
 
 export async function fetchChampionBuild(championKey: string, role: string): Promise<LolalyticsData> {
-  const data = await fetchRaw(championKey, laneStr(role))
-  return parse(data)
+  const lane = laneStr(role)
+  const patch = await getCurrentPatch()
+  const key = lsKey(patch, championKey, lane)
+
+  // localStorage hit: return immediately without a network request
+  const cached = getCachedBuild(key, patch)
+  if (cached) return cached
+
+  const data = await fetchRaw(championKey, lane)
+  const result = parse(data)
+  setCachedBuild(key, patch, result)
+  return result
 }
 
 export async function fetchMatchupData(
