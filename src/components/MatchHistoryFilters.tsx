@@ -132,14 +132,19 @@ export function MatchHistoryFilters({ matches, playerPuuid, onFilterChange }: Ma
   const isFiltering = outcome !== 'all' || champion !== 'all' || queue !== 'all'
 
   const selectStyle: React.CSSProperties = {
-    background: 'var(--bg-card-subtle)',
-    border: '1px solid var(--border-color)',
+    appearance: 'none',
+    background: '#1e293b',
+    border: '1px solid #334155',
     borderRadius: '8px',
-    color: 'var(--text-primary)',
-    fontSize: '13px',
-    padding: '6px 10px',
+    color: '#f1f5f9',
+    fontSize: '12px',
+    fontWeight: 500,
+    padding: '6px 28px 6px 10px',
     cursor: 'pointer',
     outline: 'none',
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 8px center',
   }
 
   const outcomeButtons: Array<{ value: OutcomeFilter; label: string }> = [
@@ -153,13 +158,13 @@ export function MatchHistoryFilters({ matches, playerPuuid, onFilterChange }: Ma
       display: 'flex',
       flexWrap: 'wrap',
       alignItems: 'center',
-      gap: '10px',
-      padding: '12px 16px',
-      borderBottom: '1px solid var(--border-color)',
-      background: 'var(--bg-card-subtle)',
+      gap: '8px',
+      padding: '10px 16px',
+      borderBottom: '1px solid #1e293b',
+      background: '#0f172a',
     }}>
       {/* Outcome segmented control */}
-      <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+      <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid #334155' }}>
         {outcomeButtons.map(({ value, label }) => (
           <button
             key={value}
@@ -170,8 +175,8 @@ export function MatchHistoryFilters({ matches, playerPuuid, onFilterChange }: Ma
               fontWeight: 600,
               cursor: 'pointer',
               border: 'none',
-              background: outcome === value ? '#2563eb' : 'var(--bg-card-subtle)',
-              color: outcome === value ? '#ffffff' : 'var(--text-secondary)',
+              background: outcome === value ? '#2563eb' : '#1e293b',
+              color: outcome === value ? '#ffffff' : '#94a3b8',
               transition: 'background 0.15s, color 0.15s',
             }}
           >
@@ -208,7 +213,7 @@ export function MatchHistoryFilters({ matches, playerPuuid, onFilterChange }: Ma
       <div style={{
         marginLeft: 'auto',
         fontSize: '12px',
-        color: isFiltering ? 'var(--text-primary)' : 'var(--text-muted)',
+        color: isFiltering ? '#f1f5f9' : '#475569',
         fontWeight: isFiltering ? 600 : 400,
         whiteSpace: 'nowrap',
       }}>
