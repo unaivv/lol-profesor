@@ -3,21 +3,21 @@ use crate::error::ApiError;
 use crate::models::live_game::{BannedChampion, LiveGame, ParticipantChampStats, ParticipantRank};
 use crate::models::summoner::ComprehensivePlayerData;
 use crate::AppState;
+use crate::api::riot_client::RiotApiClient;
 use crate::api::champions::get_champion_name;
 use crate::api::groq_client::GroqApiClient;
 
-#[tauri::command]
-pub async fn get_live_game(
-    puuid: String,
-    state: State<'_, AppState>,
+pub async fn get_live_game_impl(
+    riot: &RiotApiClient,
+    puuid: &str,
 ) -> Result<Option<LiveGame>, ApiError> {
     let url = format!(
         "{}/lol/spectator/v5/active-games/by-summoner/{}",
-        state.riot_client.regional_url(),
+        riot.regional_url(),
         puuid
     );
 
-    match state.riot_client.get::<serde_json::Value>(&url).await {
+    match riot.get::<serde_json::Value>(&url).await {
         Ok(game) => {
             let live = LiveGame {
                 game_id: game["gameId"].clone(),
@@ -46,6 +46,14 @@ pub async fn get_live_game(
         Err(ApiError::NotFound { .. }) => Ok(None),
         Err(e) => Err(e),
     }
+}
+
+#[tauri::command]
+pub async fn get_live_game(
+    puuid: String,
+    state: State<'_, AppState>,
+) -> Result<Option<LiveGame>, ApiError> {
+    get_live_game_impl(&state.riot_client, &puuid).await
 }
 
 #[tauri::command]
@@ -202,12 +210,6 @@ fn rank_from_entries(entries: &serde_json::Value, puuid: &str) -> ParticipantRan
 
 // ── Lolalytics build fetch ────────────────────────────────────────────────────
 
-fn normalize_champ_key(name: &str) -> String {
-    name.chars()
-        .filter(|c| c.is_alphanumeric())
-        .flat_map(|c| c.to_lowercase())
-        .collect()
-}
 
 fn map_role_to_lane(role: &str) -> &'static str {
     match role.to_lowercase().as_str() {
@@ -274,13 +276,13 @@ fn extract_best_runes(data: &serde_json::Value) -> (Option<u64>, Option<u64>) {
     (None, None)
 }
 
-#[tauri::command]
-pub async fn get_champion_build(
-    champion_name: String,
+pub async fn get_champion_build_impl(
+    champion_name: &str,
     champion_id: u32,
-    role: String,
+    role: &str,
+    lolalytics_base_url: &str,
 ) -> Result<serde_json::Value, ApiError> {
-    let lane = map_role_to_lane(&role);
+    let lane = map_role_to_lane(role);
     let cid  = champion_id.to_string();
 
     let client = reqwest::Client::builder()
@@ -289,8 +291,9 @@ pub async fn get_champion_build(
         .build()
         .map_err(|e| ApiError::Unknown { message: e.to_string() })?;
 
+    let url = format!("{}/mega/", lolalytics_base_url);
     let resp = client
-        .get("https://axe.lolalytics.com/mega/")
+        .get(&url)
         .query(&[
             ("ep",     "champion"),
             ("p",      "d"),
@@ -345,6 +348,15 @@ pub async fn get_champion_build(
         "total_games":  total_games,
         "source":       "lolalytics"
     }))
+}
+
+#[tauri::command]
+pub async fn get_champion_build(
+    champion_name: String,
+    champion_id: u32,
+    role: String,
+) -> Result<serde_json::Value, ApiError> {
+    get_champion_build_impl(&champion_name, champion_id, &role, "https://axe.lolalytics.com").await
 }
 
 #[tauri::command]
@@ -597,4 +609,100 @@ REGLAS CRITICAS para los nombres de items, runas y botas:
         .map_err(|e| ApiError::Unknown { message: format!("Failed to parse build advice: {}", e) })?;
 
     Ok(parsed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use httpmock::prelude::*;
+
+    fn riot_client(server: &MockServer) -> RiotApiClient {
+        RiotApiClient::new(server.base_url(), server.base_url(), "test-key".to_string())
+    }
+
+    #[tokio::test]
+    async fn get_live_game_returns_none_when_404() {
+        let server = MockServer::start();
+
+        server.mock(|when, then| {
+            when.method(GET).path_contains("/lol/spectator/v5/active-games/by-summoner/");
+            then.status(404);
+        });
+
+        let riot = riot_client(&server);
+        let result = get_live_game_impl(&riot, "some-puuid").await.unwrap();
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn get_live_game_parses_active_game() {
+        let server = MockServer::start();
+
+        let body = r#"{
+          "gameId": 999888,
+          "gameMode": "CLASSIC",
+          "gameType": "MATCHED_GAME",
+          "gameStartTime": 1700000000000,
+          "mapId": 11,
+          "gameLength": 300,
+          "platformId": "EUW1",
+          "gameQueueConfigId": 420,
+          "participants": [{"puuid":"p1","championId":222,"teamId":100,"spell1Id":4,"spell2Id":12,"summonerName":"TestPlayer","riotId":"TestPlayer#EUW","profileIconId":1234,"perks":{"perkIds":[],"perkStyle":0,"perkSubStyle":0}}],
+          "bannedChampions": []
+        }"#;
+
+        server.mock(|when, then| {
+            when.method(GET).path("/lol/spectator/v5/active-games/by-summoner/p1");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(body);
+        });
+
+        let riot = riot_client(&server);
+        let result = get_live_game_impl(&riot, "p1").await.unwrap();
+
+        assert!(result.is_some());
+        let game = result.unwrap();
+        assert_eq!(game.game_id, 999888);
+        assert_eq!(game.participants.len(), 1);
+        assert_eq!(game.game_mode, "CLASSIC");
+    }
+
+    #[tokio::test]
+    async fn get_champion_build_parses_lolalytics_response() {
+        let server = MockServer::start();
+
+        // The code uses items.build, items.boots, runes.perks
+        // items.build: [[item1, item2, ..., games, wins], ...]
+        // items.boots: [[bootId, games, wins], ...]
+        // runes.perks: [[keystone, rune1, rune2, rune3, secTreeId, rune4, rune5, sh1, sh2, sh3, games, wins], ...]
+        let body = r#"{
+          "n": 15000,
+          "items": {
+            "build": [[3031, 3094, 3046, 10000, 5000]],
+            "boots": [[3006, 9000, 4500]]
+          },
+          "runes": {
+            "perks": [[8008, 9111, 9104, 8014, 8300, 8347, 8345, 5008, 5008, 5003, 10000, 5500]]
+          }
+        }"#;
+
+        server.mock(|when, then| {
+            when.method(GET).path("/mega/");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(body);
+        });
+
+        let result = get_champion_build_impl("Jinx", 222, "adc", &server.base_url()).await.unwrap();
+
+        assert_eq!(result["champion"], "Jinx");
+        assert_eq!(result["source"], "lolalytics");
+        // keystone 8008 = Lethal Tempo
+        assert_eq!(result["keystone_id"], 8008);
+        // boots 3006 = Berserker's Greaves
+        assert_eq!(result["boots"], 3006);
+        // core items present
+        assert!(result["core_items"].as_array().map(|a| !a.is_empty()).unwrap_or(false));
+    }
 }

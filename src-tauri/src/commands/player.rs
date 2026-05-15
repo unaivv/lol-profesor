@@ -8,60 +8,40 @@ use crate::models::match_::Match;
 use crate::models::mastery::ChampionMastery;
 use crate::AppState;
 use crate::api::champions::get_champion_name;
+use crate::api::riot_client::RiotApiClient;
 use crate::db::{summoner_cache, match_cache, player_cache};
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 use super::{extract_perks, participant_from_json};
 
-async fn fetch_account_and_summoner(
-    state: &AppState,
+pub async fn get_summoner_impl(
+    riot: &RiotApiClient,
+    db: &Pool<SqliteConnectionManager>,
     game_name: &str,
     tag_line: &str,
-) -> Result<(RiotAccount, RiotSummoner), ApiError> {
+) -> Result<Summoner, ApiError> {
     let encoded_name = urlencoding::encode(game_name);
     let encoded_tag = urlencoding::encode(tag_line);
 
-    log::info!("Fetching account: gameName={}, tagLine={}", game_name, tag_line);
-
-    let account: RiotAccount = state
-        .riot_client
+    let account: RiotAccount = riot
         .get(&format!(
             "{}/riot/account/v1/accounts/by-riot-id/{}/{}",
-            state.riot_client.global_url(),
+            riot.global_url(),
             encoded_name,
             encoded_tag
         ))
         .await?;
 
-    log::info!("Account found: puuid={}, gameName={}, tagLine={}", account.puuid, account.game_name, account.tag_line);
-
-    let summoner_url = format!(
-        "{}/lol/summoner/v4/summoners/by-puuid/{}",
-        state.riot_client.regional_url(),
-        account.puuid
-    );
-    log::info!("Fetching summoner from: {}", summoner_url);
-
-    let summoner: RiotSummoner = state
-        .riot_client
-        .get(&summoner_url)
-        .await
-        .map_err(|e| {
-            log::error!("Failed to fetch summoner for puuid {}: {}", account.puuid, e);
-            e
-        })?;
-
-    Ok((account, summoner))
-}
-
-#[tauri::command]
-pub async fn get_summoner(
-    game_name: String,
-    tag_line: String,
-    state: State<'_, AppState>,
-) -> Result<Summoner, ApiError> {
-    let (account, summoner) = fetch_account_and_summoner(&state, &game_name, &tag_line).await?;
+    let summoner: RiotSummoner = riot
+        .get(&format!(
+            "{}/lol/summoner/v4/summoners/by-puuid/{}",
+            riot.regional_url(),
+            account.puuid
+        ))
+        .await?;
 
     let _ = summoner_cache::set(
-        &state.db,
+        db,
         &account.puuid,
         &account.game_name,
         &account.tag_line,
@@ -77,6 +57,43 @@ pub async fn get_summoner(
         profile_icon_id: summoner.profile_icon_id,
         region: "EUW".to_string(),
     })
+}
+
+pub async fn get_player_by_puuid_impl(
+    riot: &RiotApiClient,
+    db: &Pool<SqliteConnectionManager>,
+    puuid: &str,
+) -> Result<SummonerBasic, ApiError> {
+    // Check DB cache first
+    if let Ok(Some((game_name, tag_line, icon))) = summoner_cache::get(db, puuid) {
+        return Ok(SummonerBasic { game_name, tag_line, icon });
+    }
+
+    // Fetch from Riot API
+    let url = format!(
+        "{}/riot/account/v1/accounts/by-puuid/{}",
+        riot.global_url(),
+        puuid
+    );
+    let account: RiotAccount = riot.get(&url).await?;
+
+    let _ = summoner_cache::set(db, puuid, &account.game_name, &account.tag_line, 1);
+
+    Ok(SummonerBasic {
+        game_name: account.game_name,
+        tag_line: account.tag_line,
+        icon: 1,
+    })
+}
+
+
+#[tauri::command]
+pub async fn get_summoner(
+    game_name: String,
+    tag_line: String,
+    state: State<'_, AppState>,
+) -> Result<Summoner, ApiError> {
+    get_summoner_impl(&state.riot_client, &state.db, &game_name, &tag_line).await
 }
 
 #[tauri::command]
@@ -445,51 +462,133 @@ pub async fn get_player_by_puuid(
     puuid: String,
     state: State<'_, AppState>,
 ) -> Result<SummonerBasic, ApiError> {
-    // Check DB cache first
-    if let Ok(Some((game_name, tag_line, icon))) = summoner_cache::get(&state.db, &puuid) {
-        return Ok(SummonerBasic {
-            game_name,
-            tag_line,
-            icon,
-        });
-    }
-
-    // Check LRU cache
+    // Check LRU cache first (before DB)
     {
         let mut cache = state.cache.write().await;
         if let Some(val) = cache.get(&puuid) {
             let parts: Vec<&str> = val.splitn(2, '#').collect();
             let game_name = parts.get(0).unwrap_or(&"").to_string();
             let tag_line = parts.get(1).unwrap_or(&"").to_string();
-            return Ok(SummonerBasic {
-                game_name,
-                tag_line,
-                icon: 1,
-            });
+            return Ok(SummonerBasic { game_name, tag_line, icon: 1 });
         }
     }
 
-    // Fetch from Riot API
-    let url = format!(
-        "{}/riot/account/v1/accounts/by-puuid/{}",
-        state.riot_client.global_url(),
-        puuid
-    );
-    let account: RiotAccount = state.riot_client.get(&url).await?;
-
-    let _ = summoner_cache::set(&state.db, &puuid, &account.game_name, &account.tag_line, 1);
+    let result = get_player_by_puuid_impl(&state.riot_client, &state.db, &puuid).await?;
 
     {
         let mut cache = state.cache.write().await;
         cache.put(
             puuid.clone(),
-            format!("{}#{}", account.game_name, account.tag_line),
+            format!("{}#{}", result.game_name, result.tag_line),
         );
     }
 
-    Ok(SummonerBasic {
-        game_name: account.game_name,
-        tag_line: account.tag_line,
-        icon: 1,
-    })
+    Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use httpmock::prelude::*;
+
+    fn test_pool() -> Pool<SqliteConnectionManager> {
+        let manager = SqliteConnectionManager::memory();
+        let pool = Pool::builder().max_size(1).build(manager).unwrap();
+        crate::db::migrations::run(&pool).unwrap();
+        pool
+    }
+
+    fn riot_client(server: &MockServer) -> RiotApiClient {
+        RiotApiClient::new(server.base_url(), server.base_url(), "test-key".to_string())
+    }
+
+    #[tokio::test]
+    async fn get_summoner_returns_correct_fields() {
+        let server = MockServer::start();
+
+        server.mock(|when, then| {
+            when.method(GET).path("/riot/account/v1/accounts/by-riot-id/TestPlayer/EUW");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"puuid":"test-puuid-123","gameName":"TestPlayer","tagLine":"EUW"}"#);
+        });
+
+        server.mock(|when, then| {
+            when.method(GET).path("/lol/summoner/v4/summoners/by-puuid/test-puuid-123");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"id":"summ-id-456","puuid":"test-puuid-123","summonerLevel":150,"profileIconId":1234}"#);
+        });
+
+        let db = test_pool();
+        let riot = riot_client(&server);
+
+        let summoner = get_summoner_impl(&riot, &db, "TestPlayer", "EUW").await.unwrap();
+
+        assert_eq!(summoner.puuid, "test-puuid-123");
+        assert_eq!(summoner.summoner_id, "summ-id-456");
+        assert_eq!(summoner.game_name, "TestPlayer");
+        assert_eq!(summoner.tag_line, "EUW");
+        assert_eq!(summoner.summoner_level, 150);
+        assert_eq!(summoner.profile_icon_id, 1234);
+    }
+
+    #[tokio::test]
+    async fn get_summoner_404_propagates_not_found() {
+        let server = MockServer::start();
+
+        server.mock(|when, then| {
+            when.method(GET).path_contains("/riot/account/v1/accounts/by-riot-id/");
+            then.status(404);
+        });
+
+        let db = test_pool();
+        let riot = riot_client(&server);
+
+        let err = get_summoner_impl(&riot, &db, "NoSuchPlayer", "NOTAG").await.unwrap_err();
+        assert!(matches!(err, ApiError::NotFound { .. }));
+    }
+
+    #[tokio::test]
+    async fn get_player_by_puuid_hits_db_cache() {
+        let server = MockServer::start();
+
+        let db = test_pool();
+        // Pre-populate DB cache
+        crate::db::summoner_cache::set(&db, "cached-puuid", "CachedPlayer", "NA", 42).unwrap();
+
+        // This mock must NOT be called
+        let not_called_mock = server.mock(|when, then| {
+            when.method(GET).path_contains("/riot/account/v1/accounts/by-puuid/cached-puuid");
+            then.status(200)
+                .body(r#"{"puuid":"cached-puuid","gameName":"ShouldNotBeCalled","tagLine":"NA"}"#);
+        });
+
+        let riot = riot_client(&server);
+        let result = get_player_by_puuid_impl(&riot, &db, "cached-puuid").await.unwrap();
+
+        assert_eq!(result.game_name, "CachedPlayer");
+        assert_eq!(result.tag_line, "NA");
+        not_called_mock.assert_hits(0);
+    }
+
+    #[tokio::test]
+    async fn get_player_by_puuid_fetches_when_cache_miss() {
+        let server = MockServer::start();
+
+        server.mock(|when, then| {
+            when.method(GET).path("/riot/account/v1/accounts/by-puuid/fresh-puuid");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"puuid":"fresh-puuid","gameName":"FreshPlayer","tagLine":"EUW"}"#);
+        });
+
+        let db = test_pool(); // empty — cache miss
+        let riot = riot_client(&server);
+
+        let result = get_player_by_puuid_impl(&riot, &db, "fresh-puuid").await.unwrap();
+
+        assert_eq!(result.game_name, "FreshPlayer");
+        assert_eq!(result.tag_line, "EUW");
+    }
 }

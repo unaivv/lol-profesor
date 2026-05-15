@@ -3,45 +3,48 @@ use crate::error::ApiError;
 use crate::models::match_::{Match, MatchDetail};
 use crate::models::timeline::MatchTimeline;
 use crate::AppState;
+use crate::api::riot_client::RiotApiClient;
 use crate::db::match_cache;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 use super::{extract_perks, participant_from_json};
 use futures::future::join_all;
 
-#[tauri::command]
-pub async fn get_match_history(
-    puuid: String,
+pub async fn get_match_history_impl(
+    riot: &RiotApiClient,
+    db: &Pool<SqliteConnectionManager>,
+    puuid: &str,
     count: Option<i64>,
     start: Option<i64>,
-    state: State<'_, AppState>,
 ) -> Result<Vec<Match>, ApiError> {
     let count = count.unwrap_or(20).min(20);
     let start = start.unwrap_or(0);
 
     let url = format!(
         "{}/lol/match/v5/matches/by-puuid/{}/ids?count={}&start={}",
-        state.riot_client.global_url(),
+        riot.global_url(),
         puuid,
         count,
         start
     );
 
-    let match_ids: Vec<String> = state.riot_client.get(&url).await?;
+    let match_ids: Vec<String> = riot.get(&url).await?;
     let mut matches: Vec<Match> = vec![];
 
     for match_id in match_ids.iter().take(10) {
         let match_url = format!(
             "{}/lol/match/v5/matches/{}",
-            state.riot_client.global_url(),
+            riot.global_url(),
             match_id
         );
-        match state.riot_client.get::<serde_json::Value>(&match_url).await {
+        match riot.get::<serde_json::Value>(&match_url).await {
             Ok(match_data) => {
                 let info = &match_data["info"];
-                let _ = match_cache::set_raw(&state.db, match_id, info);
+                let _ = match_cache::set_raw(db, match_id, info);
 
                 let participant = info["participants"]
                     .as_array()
-                    .and_then(|parts| parts.iter().find(|p| p["puuid"].as_str() == Some(&puuid)));
+                    .and_then(|parts| parts.iter().find(|p| p["puuid"].as_str() == Some(puuid)));
 
                 if let Some(p) = participant {
                     let perks = p.get("perks").cloned().unwrap_or(serde_json::Value::Null);
@@ -103,6 +106,16 @@ pub async fn get_match_history(
     }
 
     Ok(matches)
+}
+
+#[tauri::command]
+pub async fn get_match_history(
+    puuid: String,
+    count: Option<i64>,
+    start: Option<i64>,
+    state: State<'_, AppState>,
+) -> Result<Vec<Match>, ApiError> {
+    get_match_history_impl(&state.riot_client, &state.db, &puuid, count, start).await
 }
 
 #[tauri::command]
@@ -273,4 +286,111 @@ pub async fn get_match_timeline(
         frames,
         participants,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use httpmock::prelude::*;
+
+    fn test_pool() -> Pool<SqliteConnectionManager> {
+        let manager = SqliteConnectionManager::memory();
+        let pool = Pool::builder().max_size(1).build(manager).unwrap();
+        crate::db::migrations::run(&pool).unwrap();
+        pool
+    }
+
+    fn riot_client(server: &MockServer) -> RiotApiClient {
+        RiotApiClient::new(server.base_url(), server.base_url(), "test-key".to_string())
+    }
+
+    fn match_detail_body(match_id: &str, puuid: &str) -> String {
+        format!(r#"{{
+          "metadata": {{"matchId": "{}", "participants": ["{}"]}},
+          "info": {{
+            "gameId": 123456,
+            "gameCreation": 1700000000000,
+            "gameDuration": 1800,
+            "gameMode": "CLASSIC",
+            "gameType": "MATCHED_GAME",
+            "gameVersion": "14.1.1",
+            "mapId": 11,
+            "queueId": 420,
+            "participants": [{{
+              "participantId": 1, "teamId": 100, "win": true,
+              "championId": 222, "championName": "Jinx",
+              "riotIdGameName": "TestPlayer", "riotIdTagline": "EUW",
+              "summonerName": "TestPlayer",
+              "kills": 10, "deaths": 2, "assists": 5,
+              "goldEarned": 12000, "totalMinionsKilled": 180, "neutralMinionsKilled": 20,
+              "visionWardsBoughtInGame": 3, "visionScore": 25,
+              "wardsPlaced": 10, "wardsKilled": 5,
+              "totalDamageDealtToChampions": 45000, "totalDamageTaken": 20000, "totalHeal": 1500,
+              "timePlayed": 1800,
+              "item0": 3031, "item1": 3094, "item2": 3046, "item3": 0, "item4": 0, "item5": 0, "item6": 3364,
+              "champLevel": 18,
+              "summoner1Id": 4, "summoner2Id": 12,
+              "perks": {{"styles": [{{"description":"primaryStyle","selections":[{{"perk":8008}},{{"perk":9111}},{{"perk":9104}},{{"perk":8014}}],"style":8000}},{{"description":"subStyle","selections":[{{"perk":8347}},{{"perk":8345}}],"style":8300}}]}},
+              "profileIcon": 1234, "puuid": "{}"
+            }}]
+          }}
+        }}"#, match_id, puuid, puuid)
+    }
+
+    #[tokio::test]
+    async fn get_match_history_returns_parsed_matches() {
+        let server = MockServer::start();
+        let puuid = "test-puuid";
+
+        server.mock(|when, then| {
+            when.method(GET).path(format!("/lol/match/v5/matches/by-puuid/{}/ids", puuid));
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"["EUW1_1","EUW1_2"]"#);
+        });
+
+        server.mock(|when, then| {
+            when.method(GET).path("/lol/match/v5/matches/EUW1_1");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(match_detail_body("EUW1_1", puuid));
+        });
+
+        server.mock(|when, then| {
+            when.method(GET).path("/lol/match/v5/matches/EUW1_2");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(match_detail_body("EUW1_2", puuid));
+        });
+
+        let db = test_pool();
+        let riot = riot_client(&server);
+
+        let matches = get_match_history_impl(&riot, &db, puuid, Some(2), Some(0)).await.unwrap();
+
+        assert_eq!(matches.len(), 2);
+        assert_eq!(matches[0].game_id, "EUW1_1");
+        assert_eq!(matches[0].champion_name, Some("Jinx".to_string()));
+        assert_eq!(matches[0].kills, Some(10));
+        assert_eq!(matches[0].deaths, Some(2));
+    }
+
+    #[tokio::test]
+    async fn get_match_history_empty_ids_returns_empty_vec() {
+        let server = MockServer::start();
+        let puuid = "test-puuid-empty";
+
+        server.mock(|when, then| {
+            when.method(GET).path(format!("/lol/match/v5/matches/by-puuid/{}/ids", puuid));
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"[]"#);
+        });
+
+        let db = test_pool();
+        let riot = riot_client(&server);
+
+        let matches = get_match_history_impl(&riot, &db, puuid, None, None).await.unwrap();
+        assert!(matches.is_empty());
+    }
 }

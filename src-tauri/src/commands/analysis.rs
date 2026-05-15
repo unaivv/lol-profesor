@@ -4,6 +4,8 @@ use crate::models::analysis::{MatchAnalysis, MatchInsight, PlayerStats};
 use crate::AppState;
 use crate::db::{match_cache, analysis_cache};
 use crate::api::groq_client::GroqApiClient;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 
 fn detect_player_role(player: &serde_json::Value) -> String {
     let lane = player["lane"].as_str().unwrap_or("UNKNOWN");
@@ -432,39 +434,32 @@ RESPUESTA (JSON) - IMPORTANTE: Los 4-6 insights deben ser sobre TEMAS DIFERENTES
     Ok(prompt)
 }
 
-#[tauri::command]
-pub async fn analyze_match(
-    match_id: String,
-    puuid: String,
+pub async fn analyze_match_impl(
+    groq_key: &str,
+    groq_base_url: &str,
+    db: &Pool<SqliteConnectionManager>,
+    match_id: &str,
+    puuid: &str,
     recent_metrics: Option<serde_json::Value>,
-    state: State<'_, AppState>,
 ) -> Result<MatchAnalysis, ApiError> {
     // Check analysis cache
-    if let Ok(Some(cached_json)) = analysis_cache::get(&state.db, &match_id, &puuid) {
+    if let Ok(Some(cached_json)) = analysis_cache::get(db, match_id, puuid) {
         if let Ok(analysis) = serde_json::from_str::<MatchAnalysis>(&cached_json) {
             return Ok(analysis);
         }
     }
 
-    // Check Groq API key
-    let groq_api_key = state
-        .groq_api_key
-        .clone()
-        .ok_or_else(|| ApiError::NotConfigured {
-            feature: "GROQ_API_KEY".to_string(),
-        })?;
-
     // Load raw match from SQLite
-    let match_info = match_cache::get_raw(&state.db, &match_id)?.ok_or_else(|| {
+    let match_info = match_cache::get_raw(db, match_id)?.ok_or_else(|| {
         ApiError::NotFound {
             message: format!("Match {} not found in cache. Fetch the match first.", match_id),
         }
     })?;
 
     // Build prompt and call Groq
-    let prompt = build_prompt(&match_info, &puuid, recent_metrics.as_ref())?;
+    let prompt = build_prompt(&match_info, puuid, recent_metrics.as_ref())?;
 
-    let groq = GroqApiClient::new(groq_api_key);
+    let groq = GroqApiClient::new_with_base_url(groq_key.to_string(), groq_base_url.to_string());
     let response_text = tokio::time::timeout(
         std::time::Duration::from_secs(60),
         groq.chat_completion(&prompt),
@@ -482,11 +477,7 @@ pub async fn analyze_match(
     // Extract player stats from match_info
     let participants = match_info["participants"].as_array();
     let player = participants
-        .and_then(|parts| {
-            parts
-                .iter()
-                .find(|p| p["puuid"].as_str() == Some(&puuid))
-        })
+        .and_then(|parts| parts.iter().find(|p| p["puuid"].as_str() == Some(puuid)))
         .ok_or_else(|| ApiError::NotFound {
             message: "Player not found in match data".to_string(),
         })?;
@@ -511,7 +502,7 @@ pub async fn analyze_match(
         .collect();
 
     let analysis = MatchAnalysis {
-        match_id: match_id.clone(),
+        match_id: match_id.to_string(),
         insights,
         summary: parsed["summary"].as_str().unwrap_or("").to_string(),
         player_stats: PlayerStats {
@@ -524,8 +515,162 @@ pub async fn analyze_match(
 
     // Save to analysis cache
     if let Ok(json) = serde_json::to_string(&analysis) {
-        let _ = analysis_cache::set(&state.db, &match_id, &puuid, &json);
+        let _ = analysis_cache::set(db, match_id, puuid, &json);
     }
 
     Ok(analysis)
+}
+
+#[tauri::command]
+pub async fn analyze_match(
+    match_id: String,
+    puuid: String,
+    recent_metrics: Option<serde_json::Value>,
+    state: State<'_, AppState>,
+) -> Result<MatchAnalysis, ApiError> {
+    let groq_api_key = state
+        .groq_api_key
+        .clone()
+        .ok_or_else(|| ApiError::NotConfigured {
+            feature: "GROQ_API_KEY".to_string(),
+        })?;
+
+    analyze_match_impl(
+        &groq_api_key,
+        "https://api.groq.com",
+        &state.db,
+        &match_id,
+        &puuid,
+        recent_metrics,
+    ).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use httpmock::prelude::*;
+    use serde_json::json;
+
+    fn test_pool() -> Pool<SqliteConnectionManager> {
+        let manager = SqliteConnectionManager::memory();
+        let pool = Pool::builder().max_size(1).build(manager).unwrap();
+        crate::db::migrations::run(&pool).unwrap();
+        pool
+    }
+
+    fn minimal_match_info(puuid: &str) -> serde_json::Value {
+        json!({
+            "gameId": 123456,
+            "gameCreation": 1700000000000_i64,
+            "gameDuration": 1800,
+            "gameMode": "CLASSIC",
+            "gameType": "MATCHED_GAME",
+            "gameVersion": "14.1.1",
+            "mapId": 11,
+            "queueId": 420,
+            "participants": [{
+                "participantId": 1, "teamId": 100, "win": true,
+                "championId": 222, "championName": "Jinx",
+                "riotIdGameName": "TestPlayer", "riotIdTagline": "EUW",
+                "summonerName": "TestPlayer",
+                "kills": 10, "deaths": 2, "assists": 5,
+                "goldEarned": 12000, "totalMinionsKilled": 180, "neutralMinionsKilled": 20,
+                "visionWardsBoughtInGame": 3, "visionScore": 25,
+                "wardsPlaced": 10, "wardsKilled": 5,
+                "totalDamageDealtToChampions": 45000, "totalDamageTaken": 20000, "totalHeal": 1500,
+                "timePlayed": 1800,
+                "item0": 3031, "item1": 3094, "item2": 3046, "item3": 0, "item4": 0, "item5": 0, "item6": 3364,
+                "champLevel": 18,
+                "summoner1Id": 4, "summoner2Id": 12,
+                "lane": "BOTTOM", "role": "CARRY",
+                "perks": {"styles": [{"description":"primaryStyle","selections":[{"perk":8008},{"perk":9111},{"perk":9104},{"perk":8014}],"style":8000},{"description":"subStyle","selections":[{"perk":8347},{"perk":8345}],"style":8300}]},
+                "profileIcon": 1234, "puuid": puuid
+            }]
+        })
+    }
+
+    #[tokio::test]
+    async fn analyze_match_returns_cached_analysis() {
+        let server = MockServer::start();
+        let db = test_pool();
+        let puuid = "test-puuid";
+        let match_id = "EUW1_CACHED";
+
+        // Pre-populate analysis cache
+        let cached = MatchAnalysis {
+            match_id: match_id.to_string(),
+            insights: vec![MatchInsight {
+                insight_type: "positive".to_string(),
+                title: "Cached insight".to_string(),
+                description: "From cache".to_string(),
+                priority: 1,
+            }],
+            summary: "Cached summary".to_string(),
+            player_stats: PlayerStats {
+                kda: "10/2/5".to_string(),
+                damage: 45000,
+                vision_score: 25,
+                cs: 200,
+            },
+        };
+        let json_str = serde_json::to_string(&cached).unwrap();
+        analysis_cache::set(&db, match_id, puuid, &json_str).unwrap();
+
+        // Groq must NOT be called
+        let groq_mock = server.mock(|when, then| {
+            when.method(POST).path("/openai/v1/chat/completions");
+            then.status(200).body("{}");
+        });
+
+        let result = analyze_match_impl(
+            "fake-key",
+            &server.base_url(),
+            &db,
+            match_id,
+            puuid,
+            None,
+        ).await.unwrap();
+
+        assert_eq!(result.summary, "Cached summary");
+        assert_eq!(result.insights[0].title, "Cached insight");
+        groq_mock.assert_hits(0);
+    }
+
+    #[tokio::test]
+    async fn analyze_match_calls_groq_when_no_cache() {
+        let server = MockServer::start();
+        let db = test_pool();
+        let puuid = "test-puuid-groq";
+        let match_id = "EUW1_GROQ_TEST";
+
+        // Pre-populate match_cache (required by analyze_match_impl)
+        let match_info = minimal_match_info(puuid);
+        match_cache::set_raw(&db, match_id, &match_info).unwrap();
+
+        let groq_response = r#"{"choices":[{"message":{"content":"{\"insights\":[{\"type\":\"positive\",\"title\":\"Great KDA\",\"description\":\"You performed well\",\"priority\":1}],\"summary\":\"Strong performance overall\",\"player_stats\":{\"kda\":\"10/2/5\",\"damage\":45000,\"vision_score\":25,\"cs\":200}}"}}]}"#;
+
+        server.mock(|when, then| {
+            when.method(POST).path("/openai/v1/chat/completions");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(groq_response);
+        });
+
+        let result = analyze_match_impl(
+            "fake-groq-key",
+            &server.base_url(),
+            &db,
+            match_id,
+            puuid,
+            None,
+        ).await.unwrap();
+
+        assert_eq!(result.match_id, match_id);
+        assert_eq!(result.summary, "Strong performance overall");
+        assert!(!result.insights.is_empty());
+        assert_eq!(result.insights[0].title, "Great KDA");
+        // player stats from match data
+        assert_eq!(result.player_stats.kda, "10/2/5");
+        assert_eq!(result.player_stats.damage, 45000);
+    }
 }
