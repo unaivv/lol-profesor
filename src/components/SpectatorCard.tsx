@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { Radio, Users, Clock, Swords } from 'lucide-react'
+import { Radio, Users, Swords } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { invoke } from '@tauri-apps/api/core'
 import { SpectatorGameData, SpectatorParticipant, ParticipantRank, ParticipantChampStats } from '../types/api'
 import { getChampionImageUrl, getSpellImageUrl, getRuneImageUrl, getChampionName } from '../utils/ddragon'
 import { BuildAdvicePanel } from './BuildAdvicePanel'
 import { findLaneOpponent } from '../utils/roleDetection'
+import { SpectatorCardSkeleton } from './ui/SkeletonLayouts'
 
 interface SpectatorCardProps {
   puuid: string | undefined
@@ -224,22 +225,7 @@ export function SpectatorCard({ puuid, myPuuid }: SpectatorCardProps) {
   }, [game])
 
   if (loading && !game) {
-    return (
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center animate-pulse">
-            <Radio className="w-5 h-5 text-slate-400" />
-          </div>
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Partida en Vivo</h2>
-        </div>
-        <div className="text-center py-8">
-          <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center mx-auto mb-3 animate-pulse">
-            <Clock className="w-6 h-6 text-slate-400" />
-          </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Verificando partida activa...</p>
-        </div>
-      </div>
-    )
+    return <SpectatorCardSkeleton />
   }
 
   if (!game) {

@@ -11,6 +11,7 @@ import { MostPlayedChampions } from '../components/MostPlayedChampions'
 import { ProfileHeader } from '../components/ProfileHeader'
 import { PlayerData } from '../types/api'
 import { Trophy, Star, Target, X } from 'lucide-react'
+import { StatsPageSkeleton, MatchHistorySkeleton } from '../components/ui/SkeletonLayouts'
 import { invoke } from '@tauri-apps/api/core'
 import { useMyProfile } from '../hooks/useMyProfile'
 import { useFavorites } from '../hooks/useFavorites'
@@ -145,12 +146,7 @@ export function StatsPage() {
   }, [activeTab, playerData?.puuid, extendedMatches])
 
   if (isLoading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px' }}>
-        <img src="/logo_sin_texto_sin_fondo.png" alt="" style={{ width: '56px', height: '56px', objectFit: 'contain', marginBottom: '16px', opacity: 0.8, animation: 'pulse 1.5s ease-in-out infinite' }} />
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Cargando estadísticas...</p>
-      </div>
-    )
+    return <StatsPageSkeleton />
   }
 
   if (error) {
@@ -212,10 +208,7 @@ export function StatsPage() {
 
         {activeTab === 'champions' && (
           loadingExtended ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 40px' }}>
-              <img src="/logo_sin_texto_sin_fondo.png" alt="" style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '16px', opacity: 0.6, animation: 'pulse 1.5s ease-in-out infinite' }} />
-              <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Cargando últimas 100 partidas...</p>
-            </div>
+            <MatchHistorySkeleton />
           ) : (
             <ChampionStats
               matches={extendedMatches ?? playerData.matches?.filter(m => m.participants) ?? []}

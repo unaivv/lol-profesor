@@ -5,15 +5,21 @@ import { DetailedMatch, PlayerData } from '../types/api'
 import { MatchCard } from './MatchCard'
 import { WinRateChart } from './WinRateChart'
 import { calculateRawMetrics } from './PerformanceRadar'
+import { MatchHistorySkeleton } from './ui/SkeletonLayouts'
 
 interface MatchHistoryProps {
   matches: DetailedMatch[]
   playerPuuid?: string
   currentPlayerData?: PlayerData | null
+  isLoading?: boolean
 }
 
-export function MatchHistory({ matches, playerPuuid, currentPlayerData }: MatchHistoryProps) {
+export function MatchHistory({ matches, playerPuuid, currentPlayerData, isLoading }: MatchHistoryProps) {
   const navigate = useNavigate()
+
+  if (isLoading) {
+    return <MatchHistorySkeleton />
+  }
   const validMatches = matches.filter((m): m is DetailedMatch =>
     m && typeof m.gameId === 'string' && Array.isArray(m.participants)
   )
