@@ -146,6 +146,8 @@ export function StatsPage() {
       .finally(() => setLoadingExtended(false))
   }, [activeTab, playerData?.puuid, extendedMatches])
 
+  const stableMatches = useMemo(() => playerData?.matches ?? [], [playerData?.matches])
+
   if (isLoading) {
     return <StatsPageSkeleton />
   }
@@ -171,7 +173,6 @@ export function StatsPage() {
     )
   }
 
-  const stableMatches = useMemo(() => playerData?.matches ?? [], [playerData?.matches])
   const hasMatches = stableMatches.length > 0
 
   return (
