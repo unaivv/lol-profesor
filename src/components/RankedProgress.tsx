@@ -204,14 +204,39 @@ export function RankedProgress({ puuid }: RankedProgressProps) {
   const [queue, setQueue] = useState<QueueType>('RANKED_SOLO_5x5')
   const [snapshots, setSnapshots] = useState<LpSnapshot[]>([])
   const [loading, setLoading] = useState(true)
+  const initializedRef = useRef(false)
 
+  // On first load, fetch both queues to pick the right default
   useEffect(() => {
+    initializedRef.current = false
+    setLoading(true)
+    Promise.all([
+      invoke<LpSnapshot[]>('get_lp_history', { puuid, queueType: 'RANKED_SOLO_5x5', limit: 100 }).catch(() => []),
+      invoke<LpSnapshot[]>('get_lp_history', { puuid, queueType: 'RANKED_FLEX_SR', limit: 100 }).catch(() => []),
+    ]).then(([solo, flex]) => {
+      if (solo.length > 0) {
+        setQueue('RANKED_SOLO_5x5')
+        setSnapshots(solo)
+      } else if (flex.length > 0) {
+        setQueue('RANKED_FLEX_SR')
+        setSnapshots(flex)
+      } else {
+        setQueue('RANKED_SOLO_5x5')
+        setSnapshots([])
+      }
+      initializedRef.current = true  // mark init done AFTER setting state
+    }).finally(() => setLoading(false))
+  }, [puuid])
+
+  // Re-fetch when user manually switches queue (skips the initial render)
+  useEffect(() => {
+    if (!initializedRef.current) return
     setLoading(true)
     invoke<LpSnapshot[]>('get_lp_history', { puuid, queueType: queue, limit: 100 })
       .then(data => setSnapshots(data))
       .catch(() => setSnapshots([]))
       .finally(() => setLoading(false))
-  }, [puuid, queue])
+  }, [queue])
 
   const stats = computeSessionStats(snapshots)
   const latestSnap = snapshots[0]
