@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { DetailedMatch } from '../types/api'
 
-type OutcomeFilter = 'all' | 'win' | 'loss'
-
 interface MatchHistoryFiltersProps {
   matches: DetailedMatch[]
   playerPuuid?: string
@@ -17,12 +15,12 @@ const QUEUE_LABELS: Record<number, string> = {
   450: 'ARAM',
 }
 
-function getQueueLabel(queueId?: number): string {
+export function getQueueLabel(queueId?: number): string {
   if (queueId === undefined || queueId === null) return 'Otro'
   return QUEUE_LABELS[queueId] ?? 'Otro'
 }
 
-function getPlayerOutcome(match: DetailedMatch, playerPuuid?: string): boolean | null {
+export function getPlayerOutcome(match: DetailedMatch, playerPuuid?: string): boolean | null {
   if (!match.participants?.length) return null
   const p = playerPuuid
     ? match.participants.find((x) => x.puuid === playerPuuid)
@@ -30,12 +28,39 @@ function getPlayerOutcome(match: DetailedMatch, playerPuuid?: string): boolean |
   return p?.win ?? null
 }
 
-function getPlayerChampion(match: DetailedMatch, playerPuuid?: string): string | null {
+export function getPlayerChampion(match: DetailedMatch, playerPuuid?: string): string | null {
   if (!match.participants?.length) return null
   const p = playerPuuid
     ? match.participants.find((x) => x.puuid === playerPuuid)
     : match.participants[0]
   return p?.championName ?? null
+}
+
+export type OutcomeFilter = 'all' | 'win' | 'loss'
+
+export function filterMatches(
+  matches: DetailedMatch[],
+  outcome: OutcomeFilter,
+  champion: string,
+  queue: string,
+  playerPuuid?: string,
+): DetailedMatch[] {
+  return matches.filter((m) => {
+    if (outcome !== 'all') {
+      const win = getPlayerOutcome(m, playerPuuid)
+      if (win === null) return false
+      if (outcome === 'win' && !win) return false
+      if (outcome === 'loss' && win) return false
+    }
+    if (champion !== 'all') {
+      if (getPlayerChampion(m, playerPuuid) !== champion) return false
+    }
+    if (queue !== 'all') {
+      const label = getQueueLabel(m.queueId)
+      if (label !== queue) return false
+    }
+    return true
+  })
 }
 
 export function MatchHistoryFilters({ matches, playerPuuid, onFilterChange }: MatchHistoryFiltersProps) {

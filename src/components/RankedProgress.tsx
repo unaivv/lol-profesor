@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { getRankColor } from './RankedComparisonCard/RankedComparisonCard.utils'
 
-interface LpSnapshot {
+export interface LpSnapshot {
   tier: string
   rank: string
   lp: number
@@ -42,7 +42,7 @@ interface SessionStats {
   gamesToday: number
 }
 
-function computeSessionStats(snapshots: LpSnapshot[]): SessionStats {
+export function computeSessionStats(snapshots: LpSnapshot[]): SessionStats {
   const nowSec = Date.now() / 1000
   const cutoff = nowSec - 86400 // 24h
 
