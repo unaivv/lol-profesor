@@ -101,12 +101,37 @@ function laneStr(role: string): string {
 }
 
 export interface LolalyticsData {
-  core_items:   number[]
-  boots:        number | null
-  keystone_id:  number | null
-  sec_tree_id:  number | null
-  total_games:  number
-  winrate:      number
+  core_items:        number[]
+  boots:             number | null
+  keystone_id:       number | null
+  sec_tree_id:       number | null
+  total_games:       number
+  winrate:           number
+  skill_order?:      string        // e.g. "QWEQQQREQQER..."
+  situational_items?: number[]    // item IDs from item4/item5 slots
+}
+
+const SKILL_DIGIT: Record<string, string> = { '1': 'Q', '2': 'W', '3': 'E', '4': 'R' }
+
+function extractSkillOrder(data: Record<string, unknown>): string | undefined {
+  const pick = (data.summary as Record<string, unknown>)?.pick as Record<string, unknown> | undefined
+  const so = pick?.skillorder as { id?: number } | undefined
+  if (!so?.id) return undefined
+  return String(so.id).split('').map(d => SKILL_DIGIT[d] ?? '').filter(Boolean).join('')
+}
+
+function extractSituationalItems(data: Record<string, unknown>): number[] | undefined {
+  const pick = (data.summary as Record<string, unknown>)?.pick as Record<string, unknown> | undefined
+  const items = pick?.items as Record<string, unknown> | undefined
+  if (!items) return undefined
+  const ids: number[] = []
+  for (const slot of ['item4', 'item5'] as const) {
+    const arr = items[slot] as Array<{ id: number }> | undefined
+    if (Array.isArray(arr) && arr.length > 0 && arr[0].id > 0) {
+      ids.push(arr[0].id)
+    }
+  }
+  return ids.length > 0 ? ids : undefined
 }
 
 function extractBestBuild(data: Record<string, unknown>): number[] {
@@ -144,7 +169,7 @@ function extractRunes(data: Record<string, unknown>): [number | null, number | n
 
 function parse(data: Record<string, unknown>): LolalyticsData {
   const [keystone, secTree] = extractRunes(data)
-  return {
+  const result: LolalyticsData = {
     core_items:  extractBestBuild(data),
     boots:       extractBoots(data),
     keystone_id: keystone,
@@ -152,6 +177,11 @@ function parse(data: Record<string, unknown>): LolalyticsData {
     total_games: typeof data.n === 'number' ? data.n : 0,
     winrate:     typeof data.avgWr === 'number' ? data.avgWr : 0,
   }
+  const skillOrder = extractSkillOrder(data)
+  if (skillOrder) result.skill_order = skillOrder
+  const situational = extractSituationalItems(data)
+  if (situational) result.situational_items = situational
+  return result
 }
 
 export async function fetchChampionBuild(championKey: string, role: string): Promise<LolalyticsData> {

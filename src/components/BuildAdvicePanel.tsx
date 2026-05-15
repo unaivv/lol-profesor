@@ -46,8 +46,24 @@ function WinrateBadge({ winrate, games }: { winrate: number; games: number }) {
   )
 }
 
+const SKILL_COLORS: Record<string, string> = {
+  Q: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
+  W: 'bg-green-500/20 text-green-400 border-green-500/40',
+  E: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40',
+  R: 'bg-purple-500/20 text-purple-400 border-purple-500/40',
+}
+
+function SkillBadge({ skill }: { skill: string }) {
+  return (
+    <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold border ${SKILL_COLORS[skill] ?? 'bg-slate-700 text-slate-300 border-slate-600'}`}>
+      {skill}
+    </span>
+  )
+}
+
 function BuildSection({ data, role }: { data: LolalyticsData; role: string }) {
   const allItems = [...data.core_items, ...(data.boots != null ? [data.boots] : [])]
+  const skillBadges = data.skill_order ? data.skill_order.slice(0, 12).split('') : []
   return (
     <div className="space-y-2">
       {data.keystone_id && (
@@ -55,7 +71,7 @@ function BuildSection({ data, role }: { data: LolalyticsData; role: string }) {
           <img src={getRuneImageUrl(data.keystone_id)} alt="" className="w-5 h-5 rounded-full bg-slate-800"
             onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
           {data.sec_tree_id && (
-            <img src={getRuneImageUrl(data.sec_tree_id)} alt="" className="w-4 h-4 rounded-full bg-slate-800 opacity-60"
+            <img src={getRuneImageUrl(data.sec_tree_id)} alt="" className="w-5 h-5 rounded-full bg-slate-800"
               onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
           )}
           <span className="text-[10px] text-slate-400 dark:text-slate-500">Runas · {role}</span>
@@ -64,6 +80,27 @@ function BuildSection({ data, role }: { data: LolalyticsData; role: string }) {
       {allItems.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {allItems.map((id, i) => <ItemCell key={i} id={id} />)}
+        </div>
+      )}
+      {skillBadges.length > 0 && (
+        <div className="space-y-0.5">
+          <span className="text-[10px] text-slate-400 dark:text-slate-500">Orden de habilidades</span>
+          <div className="flex flex-wrap items-center gap-0.5 mt-0.5">
+            {skillBadges.map((s, i) => (
+              <span key={i} className="flex items-center gap-0.5">
+                <SkillBadge skill={s} />
+                {i < skillBadges.length - 1 && <span className="text-[8px] text-slate-500">›</span>}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {data.situational_items && data.situational_items.length > 0 && (
+        <div className="space-y-0.5">
+          <span className="text-[10px] text-slate-400 dark:text-slate-500">Ítems situacionales</span>
+          <div className="flex flex-wrap gap-2 mt-0.5">
+            {data.situational_items.map((id, i) => <ItemCell key={i} id={id} />)}
+          </div>
         </div>
       )}
     </div>
