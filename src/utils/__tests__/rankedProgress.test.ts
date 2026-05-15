@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { computeSessionStats, type LpSnapshot } from '../../components/RankedProgress'
+import { computeSessionStats, pickDefaultQueue, type LpSnapshot } from '../../components/RankedProgress'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -189,5 +189,23 @@ describe('computeSessionStats — streak', () => {
     const stats = computeSessionStats(snapshots)
     expect(stats.streak.direction).toBe('win')
     expect(stats.streak.count).toBe(1)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('pickDefaultQueue', () => {
+  const dummySnap: LpSnapshot = { tier: 'GOLD', rank: 'II', lp: 50, recordedAt: 0 }
+
+  it('returns solo when solo has data', () => {
+    expect(pickDefaultQueue([dummySnap], [dummySnap])).toBe('RANKED_SOLO_5x5')
+  })
+
+  it('returns flex when solo is empty but flex has data', () => {
+    expect(pickDefaultQueue([], [dummySnap])).toBe('RANKED_FLEX_SR')
+  })
+
+  it('returns solo when both queues are empty', () => {
+    expect(pickDefaultQueue([], [])).toBe('RANKED_SOLO_5x5')
   })
 })

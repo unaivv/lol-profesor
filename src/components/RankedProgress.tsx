@@ -200,6 +200,12 @@ function StatCard({
   )
 }
 
+export function pickDefaultQueue(solo: LpSnapshot[], flex: LpSnapshot[]): QueueType {
+  if (solo.length > 0) return 'RANKED_SOLO_5x5'
+  if (flex.length > 0) return 'RANKED_FLEX_SR'
+  return 'RANKED_SOLO_5x5'
+}
+
 export function RankedProgress({ puuid }: RankedProgressProps) {
   const [queue, setQueue] = useState<QueueType>('RANKED_SOLO_5x5')
   const [snapshots, setSnapshots] = useState<LpSnapshot[]>([])
@@ -214,16 +220,9 @@ export function RankedProgress({ puuid }: RankedProgressProps) {
       invoke<LpSnapshot[]>('get_lp_history', { puuid, queueType: 'RANKED_SOLO_5x5', limit: 100 }).catch(() => []),
       invoke<LpSnapshot[]>('get_lp_history', { puuid, queueType: 'RANKED_FLEX_SR', limit: 100 }).catch(() => []),
     ]).then(([solo, flex]) => {
-      if (solo.length > 0) {
-        setQueue('RANKED_SOLO_5x5')
-        setSnapshots(solo)
-      } else if (flex.length > 0) {
-        setQueue('RANKED_FLEX_SR')
-        setSnapshots(flex)
-      } else {
-        setQueue('RANKED_SOLO_5x5')
-        setSnapshots([])
-      }
+      const defaultQueue = pickDefaultQueue(solo, flex)
+      setQueue(defaultQueue)
+      setSnapshots(defaultQueue === 'RANKED_FLEX_SR' ? flex : solo)
       initializedRef.current = true  // mark init done AFTER setting state
     }).finally(() => setLoading(false))
   }, [puuid])
