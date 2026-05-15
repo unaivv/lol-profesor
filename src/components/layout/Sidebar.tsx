@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
-import { Home, Users, Star, Zap, Settings, Search, Loader2, AlertCircle, User, TrendingUp } from 'lucide-react'
+import { Home, Users, Star, Zap, Settings, Search, Loader2, AlertCircle, User, TrendingUp, GitCompare } from 'lucide-react'
 import { invoke } from '@tauri-apps/api/core'
 import { useMyProfile } from '../../hooks/useMyProfile'
 import { useFavorites } from '../../hooks/useFavorites'
@@ -134,6 +134,7 @@ export function Sidebar() {
 
   const onPlayerPage = location.pathname === '/me' || location.pathname.startsWith('/player/')
   const onSettings = location.pathname === '/settings'
+  const onCompare = location.pathname === '/compare'
   const activeTab = searchParams.get('tab') || 'summary'
 
   const handleSearch = (e: React.FormEvent) => {
@@ -319,6 +320,10 @@ export function Sidebar() {
 
       {/* Settings */}
       <div style={{ padding: '8px', borderTop: `1px solid ${BORDER}` }}>
+        <button onClick={() => navigate('/compare')} style={navBtn(onCompare)}>
+          <GitCompare size={14} />
+          Comparar
+        </button>
         <button onClick={() => navigate('/settings')} style={navBtn(onSettings)}>
           <Settings size={14} />
           Configuración

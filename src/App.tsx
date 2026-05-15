@@ -5,6 +5,7 @@ import { StatsPage } from './pages/StatsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { MatchDetailPage } from './pages/MatchDetailPage'
+import { ComparisonPage } from './pages/ComparisonPage'
 import { AppLayout } from './components/layout/AppLayout'
 import { TitleBar } from './components/TitleBar'
 import { SplashScreen } from './components/SplashScreen'
@@ -57,6 +58,7 @@ function AppInner() {
             <Route path="/me" element={<StatsPage />} />
             <Route path="/player/:region/:gameName/:tagLine" element={<StatsPage />} />
             <Route path="/match/:gameId" element={<MatchDetailPage />} />
+            <Route path="/compare" element={<ComparisonPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
