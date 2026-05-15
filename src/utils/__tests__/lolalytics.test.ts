@@ -1,20 +1,26 @@
-/**
- * @vitest-environment jsdom
- *
- * Tests for lolalytics cache helpers and parse logic.
- * HTTP calls are fully mocked — no network required.
- */
+// Tests for lolalytics cache helpers and parse logic.
+// HTTP calls are fully mocked — no network required.
+// localStorage mocked via vi.stubGlobal — no jsdom needed.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// ── Shared mock response ─────────────────────────────────────────────────────
-// Matches the REAL shape that parse() reads:
-//   - item1/item2/item3/boots  → top-level arrays of arrays  [[id, n, w], ...]
-//   - n / avgWr                → top-level numbers
-//   - summary.pick.skillorder  → { id: number }
-//   - summary.pick.items       → { item4: [{id,n,w}], item5: [{id,n,w}] }
-//   - summary.pick.runes       → { set: { pri: [keystoneId] }, page: { sec: index } }
+// ── In-memory localStorage mock (works in node environment) ─────────────────
+function createLocalStorageMock() {
+  let store: Record<string, string> = {}
+  return {
+    getItem: (key: string) => store[key] ?? null,
+    setItem: (key: string, value: string) => { store[key] = String(value) },
+    removeItem: (key: string) => { delete store[key] },
+    clear: () => { store = {} },
+    get length() { return Object.keys(store).length },
+    key: (index: number) => Object.keys(store)[index] ?? null,
+  }
+}
 
+const localStorageMock = createLocalStorageMock()
+vi.stubGlobal('localStorage', localStorageMock)
+
+// ── Shared mock response ─────────────────────────────────────────────────────
 const MOCK_RESPONSE = {
   item1:  [[3031, 5000, 2500]],
   item2:  [[3094, 4000, 2000]],
@@ -31,27 +37,14 @@ const MOCK_RESPONSE = {
       },
       runes: {
         set:  { pri: [8008] },
-        page: { sec: 2 },        // index 2 → TREE_IDS[2] = 8200 (Sorcery)
+        page: { sec: 2 },   // index 2 → TREE_IDS[2] = 8200 (Sorcery)
       },
     },
   },
 }
 
-// ── DDragon versions mock (needed by getCurrentPatch) ────────────────────────
-const CURRENT_PATCH = '16.10'
-
-function makeFetch(body: unknown) {
-  return vi.fn().mockResolvedValue({
-    ok: true,
-    status: 200,
-    json: () => Promise.resolve(body),
-  })
-}
-
-// ── Helpers to isolate module state between tests ────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 async function freshModule() {
-  // Each import gets a fresh module instance (vitest isolates by default with
-  // dynamic import + vi.resetModules())
   vi.resetModules()
   const mod = await import('../lolalytics')
   return mod
@@ -61,22 +54,18 @@ async function freshModule() {
 
 describe('lolalytics — localStorage cache helpers', () => {
   beforeEach(() => {
-    localStorage.clear()
+    localStorageMock.clear()
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
-    localStorage.clear()
+    localStorageMock.clear()
   })
 
   it('getCachedBuild returns null when nothing stored', async () => {
     const { clearStaleBuildCache } = await freshModule()
-    // clearStaleBuildCache uses the same prefix — if nothing stored, no error
     expect(() => clearStaleBuildCache('16.10')).not.toThrow()
-    // The function itself doesn't expose getCachedBuild, but we can test
-    // fetchChampionBuild behaviour (cache miss → fetch called)
-    const fetchMock = makeFetch(['16.10.1', '16.9.1'])
-    // Patch the lolalytics fetch *and* the DDragon versions fetch
+
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(['16.10.1']) })
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(MOCK_RESPONSE) }),
@@ -84,19 +73,17 @@ describe('lolalytics — localStorage cache helpers', () => {
     const { fetchChampionBuild } = await freshModule()
     const result = await fetchChampionBuild('jinx', 'adc')
     expect(result.core_items).toHaveLength(3)
-    // fetch was called twice: once for DDragon versions, once for lolalytics
     expect(vi.mocked(globalThis.fetch).mock.calls.length).toBe(2)
   })
 
   it('clearStaleBuildCache removes entries with a different patch', async () => {
-    // Manually store an entry with an old patch
     const oldEntry = JSON.stringify({ patch: '16.9', data: {}, cachedAt: Date.now() })
-    localStorage.setItem('lolBuild_old_entry', oldEntry)
+    localStorageMock.setItem('lolBuild_old_entry', oldEntry)
 
     const { clearStaleBuildCache } = await freshModule()
     clearStaleBuildCache('16.10')
 
-    expect(localStorage.getItem('lolBuild_old_entry')).toBeNull()
+    expect(localStorageMock.getItem('lolBuild_old_entry')).toBeNull()
   })
 
   it('clearStaleBuildCache keeps entries with the current patch', async () => {
@@ -105,20 +92,20 @@ describe('lolalytics — localStorage cache helpers', () => {
       data: { core_items: [3031], boots: 3006, keystone_id: 8008, sec_tree_id: 8200, total_games: 100, winrate: 50 },
       cachedAt: Date.now(),
     })
-    localStorage.setItem('lolBuild_16.10_jinx_bottom', entry)
+    localStorageMock.setItem('lolBuild_16.10_jinx_bottom', entry)
 
     const { clearStaleBuildCache } = await freshModule()
     clearStaleBuildCache('16.10')
 
-    expect(localStorage.getItem('lolBuild_16.10_jinx_bottom')).not.toBeNull()
+    expect(localStorageMock.getItem('lolBuild_16.10_jinx_bottom')).not.toBeNull()
   })
 
   it('clearStaleBuildCache silently removes corrupt entries', async () => {
-    localStorage.setItem('lolBuild_corrupt', 'not-valid-json{{{')
+    localStorageMock.setItem('lolBuild_corrupt', 'not-valid-json{{{')
 
     const { clearStaleBuildCache } = await freshModule()
     expect(() => clearStaleBuildCache('16.10')).not.toThrow()
-    expect(localStorage.getItem('lolBuild_corrupt')).toBeNull()
+    expect(localStorageMock.getItem('lolBuild_corrupt')).toBeNull()
   })
 })
 
@@ -126,13 +113,13 @@ describe('lolalytics — localStorage cache helpers', () => {
 
 describe('lolalytics — fetchChampionBuild', () => {
   beforeEach(() => {
-    localStorage.clear()
+    localStorageMock.clear()
     vi.resetModules()
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
-    localStorage.clear()
+    localStorageMock.clear()
   })
 
   it('parses core_items correctly (item1, item2, item3 top-level arrays)', async () => {
@@ -142,7 +129,6 @@ describe('lolalytics — fetchChampionBuild', () => {
     )
     const { fetchChampionBuild } = await freshModule()
     const result = await fetchChampionBuild('jinx', 'adc')
-
     expect(result.core_items).toEqual([3031, 3094, 3046])
   })
 
@@ -153,7 +139,6 @@ describe('lolalytics — fetchChampionBuild', () => {
     )
     const { fetchChampionBuild } = await freshModule()
     const result = await fetchChampionBuild('jinx', 'adc')
-
     expect(result.boots).toBe(3006)
   })
 
@@ -164,9 +149,8 @@ describe('lolalytics — fetchChampionBuild', () => {
     )
     const { fetchChampionBuild } = await freshModule()
     const result = await fetchChampionBuild('jinx', 'adc')
-
     expect(result.keystone_id).toBe(8008)
-    expect(result.sec_tree_id).toBe(8200)   // TREE_IDS[2]
+    expect(result.sec_tree_id).toBe(8200)
   })
 
   it('parses total_games and winrate from top-level n/avgWr', async () => {
@@ -176,7 +160,6 @@ describe('lolalytics — fetchChampionBuild', () => {
     )
     const { fetchChampionBuild } = await freshModule()
     const result = await fetchChampionBuild('jinx', 'adc')
-
     expect(result.total_games).toBe(15000)
     expect(result.winrate).toBe(8000)
   })
@@ -188,7 +171,6 @@ describe('lolalytics — fetchChampionBuild', () => {
     )
     const { fetchChampionBuild } = await freshModule()
     const result = await fetchChampionBuild('jinx', 'adc')
-
     // 213114 → digits 2,1,3,1,1,4 → W,Q,E,Q,Q,R
     expect(result.skill_order).toBe('WQEQQR')
   })
@@ -200,7 +182,6 @@ describe('lolalytics — fetchChampionBuild', () => {
     )
     const { fetchChampionBuild } = await freshModule()
     const result = await fetchChampionBuild('jinx', 'adc')
-
     expect(result.situational_items).toEqual([3072, 3036])
   })
 
@@ -211,24 +192,17 @@ describe('lolalytics — fetchChampionBuild', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const { fetchChampionBuild } = await freshModule()
-
     await fetchChampionBuild('jinx', 'adc')
-    await fetchChampionBuild('jinx', 'adc')   // second call
+    await fetchChampionBuild('jinx', 'adc')
 
-    // DDragon versions (1) + lolalytics data (1) = 2 total.
-    // The second fetchChampionBuild call should use localStorage, so fetch stays at 2.
+    // DDragon (1) + lolalytics (1) = 2 total; second call hits localStorage
     expect(fetchMock.mock.calls.length).toBe(2)
   })
 
   it('handles missing skill_order gracefully (returns undefined)', async () => {
     const noSkillOrder = {
       ...MOCK_RESPONSE,
-      summary: {
-        pick: {
-          ...MOCK_RESPONSE.summary.pick,
-          skillorder: undefined,
-        },
-      },
+      summary: { pick: { ...MOCK_RESPONSE.summary.pick, skillorder: undefined } },
     }
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(['16.10.1']) })
@@ -236,19 +210,13 @@ describe('lolalytics — fetchChampionBuild', () => {
     )
     const { fetchChampionBuild } = await freshModule()
     const result = await fetchChampionBuild('ahri', 'mid')
-
     expect(result.skill_order).toBeUndefined()
   })
 
   it('handles missing situational items gracefully (returns undefined)', async () => {
     const noItems = {
       ...MOCK_RESPONSE,
-      summary: {
-        pick: {
-          ...MOCK_RESPONSE.summary.pick,
-          items: undefined,
-        },
-      },
+      summary: { pick: { ...MOCK_RESPONSE.summary.pick, items: undefined } },
     }
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(['16.10.1']) })
@@ -256,7 +224,6 @@ describe('lolalytics — fetchChampionBuild', () => {
     )
     const { fetchChampionBuild } = await freshModule()
     const result = await fetchChampionBuild('ahri', 'mid')
-
     expect(result.situational_items).toBeUndefined()
   })
 
@@ -265,12 +232,9 @@ describe('lolalytics — fetchChampionBuild', () => {
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(['16.10.1']) })
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(MOCK_RESPONSE) })
     vi.stubGlobal('fetch', fetchMock)
-
     const { fetchChampionBuild } = await freshModule()
     await fetchChampionBuild('leesin', 'jungle')
-
-    const lolalyticsCall = fetchMock.mock.calls[1][0] as string
-    expect(lolalyticsCall).toContain('lane=jungle')
+    expect(fetchMock.mock.calls[1][0] as string).toContain('lane=jungle')
   })
 
   it('maps role "adc" to lane "bottom" in the request URL', async () => {
@@ -278,12 +242,9 @@ describe('lolalytics — fetchChampionBuild', () => {
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(['16.10.1']) })
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(MOCK_RESPONSE) })
     vi.stubGlobal('fetch', fetchMock)
-
     const { fetchChampionBuild } = await freshModule()
     await fetchChampionBuild('jinx', 'adc')
-
-    const lolalyticsCall = fetchMock.mock.calls[1][0] as string
-    expect(lolalyticsCall).toContain('lane=bottom')
+    expect(fetchMock.mock.calls[1][0] as string).toContain('lane=bottom')
   })
 
   it('maps role "mid" to lane "middle" in the request URL', async () => {
@@ -291,11 +252,8 @@ describe('lolalytics — fetchChampionBuild', () => {
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(['16.10.1']) })
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(MOCK_RESPONSE) })
     vi.stubGlobal('fetch', fetchMock)
-
     const { fetchChampionBuild } = await freshModule()
     await fetchChampionBuild('yasuo', 'mid')
-
-    const lolalyticsCall = fetchMock.mock.calls[1][0] as string
-    expect(lolalyticsCall).toContain('lane=middle')
+    expect(fetchMock.mock.calls[1][0] as string).toContain('lane=middle')
   })
 })
