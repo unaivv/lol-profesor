@@ -302,9 +302,13 @@ pub async fn get_champion_build(
             ("queue",  "420"),
             ("region", "all"),
         ])
+        .header("Referer", "https://lolalytics.com/")
+        .header("Origin", "https://lolalytics.com")
+        .header("Accept", "application/json, */*")
+        .header("Accept-Language", "en-US,en;q=0.9")
         .send()
         .await
-        .map_err(|e| ApiError::NetworkError { message: format!("Lolalytics unreachable: {}", e) })?;
+        .map_err(|e| ApiError::NetworkError { message: format!("Lolalytics unreachable: {:#}", e) })?;
 
     let status = resp.status();
     let text = resp.text().await
@@ -375,9 +379,13 @@ pub async fn get_matchup_data(
             ("queue",  "420"),
             ("region", "all"),
         ])
+        .header("Referer", "https://lolalytics.com/")
+        .header("Origin", "https://lolalytics.com")
+        .header("Accept", "application/json, */*")
+        .header("Accept-Language", "en-US,en;q=0.9")
         .send()
         .await
-        .map_err(|e| ApiError::NetworkError { message: format!("Lolalytics unreachable: {}", e) })?;
+        .map_err(|e| ApiError::NetworkError { message: format!("Lolalytics unreachable: {:#}", e) })?;
 
     let status = resp.status();
     let text = resp.text().await
