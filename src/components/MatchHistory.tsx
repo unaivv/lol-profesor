@@ -23,16 +23,21 @@ export function MatchHistory({ matches, playerPuuid, currentPlayerData, isLoadin
     setFilteredMatches(filtered)
   }, [])
 
-  if (isLoading) {
-    return <MatchHistorySkeleton />
-  }
-  const validMatches = matches.filter((m): m is DetailedMatch =>
-    m && typeof m.gameId === 'string' && Array.isArray(m.participants)
+  const validMatches = useMemo(() =>
+    matches.filter((m): m is DetailedMatch =>
+      m && typeof m.gameId === 'string' && Array.isArray(m.participants)
+    ),
+    [matches]
   )
+
   const recentMetrics = useMemo(
     () => calculateRawMetrics(validMatches, playerPuuid),
     [validMatches, playerPuuid]
   )
+
+  if (isLoading) {
+    return <MatchHistorySkeleton />
+  }
 
   const containerStyle: React.CSSProperties = {
     background: 'var(--bg-card)',

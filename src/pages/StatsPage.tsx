@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { StatsOverview } from '../components/StatsOverview'
 import { MatchHistory } from '../components/MatchHistory'
@@ -171,7 +171,8 @@ export function StatsPage() {
     )
   }
 
-  const hasMatches = (playerData?.matches?.length || 0) > 0
+  const stableMatches = useMemo(() => playerData?.matches ?? [], [playerData?.matches])
+  const hasMatches = stableMatches.length > 0
 
   return (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -195,7 +196,7 @@ export function StatsPage() {
             <div className="xl:col-span-8 space-y-6">
               <RankedComparisonCard rankedStats={playerData.rankedStats as any} />
               {hasMatches ? (
-                <MatchHistory matches={playerData.matches || []} playerPuuid={playerData.puuid} currentPlayerData={playerData} />
+                <MatchHistory matches={stableMatches} playerPuuid={playerData.puuid} currentPlayerData={playerData} />
               ) : (
                 <EmptyState icon={Target} title="Sin historial de partidas" description="No se encontraron partidas recientes." />
               )}
