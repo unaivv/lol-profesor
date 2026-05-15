@@ -143,7 +143,7 @@ export function BuildAdvicePanel({
 
     invoke<ChampionBuild>('get_champion_build', { championName: myChampionName, role })
       .then(setBuild)
-      .catch((e: unknown) => setErrorBuild(String(e)))
+      .catch((e: unknown) => setErrorBuild(typeof e === 'string' ? e : JSON.stringify(e)))
       .finally(() => setLoadingBuild(false))
   }, [myChampionName, role, fetchedBuild])
 
@@ -160,7 +160,7 @@ export function BuildAdvicePanel({
       vsChampion: opponentChampionName,
     })
       .then(setMatchup)
-      .catch((e: unknown) => setErrorMatchup(String(e)))
+      .catch((e: unknown) => setErrorMatchup(typeof e === 'string' ? e : JSON.stringify(e)))
       .finally(() => setLoadingMatchup(false))
   }, [myChampionName, role, opponentChampionName, fetchedMatchup])
 
