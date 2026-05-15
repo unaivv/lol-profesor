@@ -86,3 +86,76 @@ pub fn get_history(
     let snapshots: Result<Vec<_>, _> = rows.collect();
     snapshots.map_err(|e| ApiError::DatabaseError { message: e.to_string() })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_pool() -> r2d2::Pool<r2d2_sqlite::SqliteConnectionManager> {
+        let manager = r2d2_sqlite::SqliteConnectionManager::memory();
+        let pool = r2d2::Pool::builder().max_size(1).build(manager).unwrap();
+        crate::db::migrations::run(&pool).unwrap();
+        pool
+    }
+
+    #[test]
+    fn record_and_retrieve_snapshot() {
+        let pool = test_pool();
+        record(&pool, "puuid-1", "RANKED_SOLO_5x5", "GOLD", "II", 75).unwrap();
+        let history = get_history(&pool, "puuid-1", "RANKED_SOLO_5x5", 10).unwrap();
+        assert_eq!(history.len(), 1);
+        assert_eq!(history[0].tier, "GOLD");
+        assert_eq!(history[0].rank, "II");
+        assert_eq!(history[0].lp, 75);
+    }
+
+    #[test]
+    fn duplicate_same_day_and_same_lp_not_recorded_twice() {
+        let pool = test_pool();
+        record(&pool, "puuid-dup", "RANKED_SOLO_5x5", "PLATINUM", "I", 50).unwrap();
+        record(&pool, "puuid-dup", "RANKED_SOLO_5x5", "PLATINUM", "I", 50).unwrap();
+        let history = get_history(&pool, "puuid-dup", "RANKED_SOLO_5x5", 10).unwrap();
+        assert_eq!(history.len(), 1, "Same LP same day should not be recorded twice");
+    }
+
+    #[test]
+    fn changed_lp_is_always_recorded() {
+        let pool = test_pool();
+        record(&pool, "puuid-lp", "RANKED_SOLO_5x5", "GOLD", "I", 50).unwrap();
+        record(&pool, "puuid-lp", "RANKED_SOLO_5x5", "GOLD", "I", 75).unwrap();
+        record(&pool, "puuid-lp", "RANKED_SOLO_5x5", "GOLD", "I", 0).unwrap();
+        let history = get_history(&pool, "puuid-lp", "RANKED_SOLO_5x5", 10).unwrap();
+        assert_eq!(history.len(), 3, "Each LP change should be recorded");
+    }
+
+    #[test]
+    fn queue_types_are_independent() {
+        let pool = test_pool();
+        record(&pool, "puuid-q", "RANKED_SOLO_5x5", "GOLD",     "II", 30).unwrap();
+        record(&pool, "puuid-q", "RANKED_FLEX_SR",  "PLATINUM", "IV", 60).unwrap();
+        let solo = get_history(&pool, "puuid-q", "RANKED_SOLO_5x5", 10).unwrap();
+        let flex = get_history(&pool, "puuid-q", "RANKED_FLEX_SR",  10).unwrap();
+        assert_eq!(solo.len(), 1);
+        assert_eq!(flex.len(), 1);
+        assert_eq!(solo[0].tier, "GOLD");
+        assert_eq!(flex[0].tier, "PLATINUM");
+    }
+
+    #[test]
+    fn empty_history_returns_empty_vec() {
+        let pool = test_pool();
+        let history = get_history(&pool, "nonexistent", "RANKED_SOLO_5x5", 10).unwrap();
+        assert!(history.is_empty());
+    }
+
+    #[test]
+    fn history_respects_limit() {
+        let pool = test_pool();
+        // Insert 5 entries with different LP values (different LP = always recorded)
+        for lp in [10i64, 20, 30, 40, 50] {
+            record(&pool, "puuid-limit", "RANKED_SOLO_5x5", "SILVER", "I", lp).unwrap();
+        }
+        let history = get_history(&pool, "puuid-limit", "RANKED_SOLO_5x5", 3).unwrap();
+        assert_eq!(history.len(), 3);
+    }
+}

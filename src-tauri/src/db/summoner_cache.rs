@@ -61,3 +61,56 @@ pub fn set(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_pool() -> r2d2::Pool<r2d2_sqlite::SqliteConnectionManager> {
+        let manager = r2d2_sqlite::SqliteConnectionManager::memory();
+        let pool = r2d2::Pool::builder().max_size(1).build(manager).unwrap();
+        crate::db::migrations::run(&pool).unwrap();
+        pool
+    }
+
+    #[test]
+    fn set_and_get_returns_entry() {
+        let pool = test_pool();
+        set(&pool, "puuid-1", "TestPlayer", "EUW", 123).unwrap();
+        let result = get(&pool, "puuid-1").unwrap();
+        assert!(result.is_some());
+        let (name, tag, icon) = result.unwrap();
+        assert_eq!(name, "TestPlayer");
+        assert_eq!(tag, "EUW");
+        assert_eq!(icon, 123);
+    }
+
+    #[test]
+    fn get_missing_returns_none() {
+        let pool = test_pool();
+        let result = get(&pool, "nonexistent-puuid").unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn set_overwrites_existing_entry() {
+        let pool = test_pool();
+        set(&pool, "puuid-update", "OldName", "EUW", 1).unwrap();
+        set(&pool, "puuid-update", "NewName", "NA",  2).unwrap();
+        let (name, tag, icon) = get(&pool, "puuid-update").unwrap().unwrap();
+        assert_eq!(name, "NewName");
+        assert_eq!(tag, "NA");
+        assert_eq!(icon, 2);
+    }
+
+    #[test]
+    fn multiple_puuids_are_independent() {
+        let pool = test_pool();
+        set(&pool, "puuid-a", "PlayerA", "EUW", 10).unwrap();
+        set(&pool, "puuid-b", "PlayerB", "NA",  20).unwrap();
+        let (name_a, _, _) = get(&pool, "puuid-a").unwrap().unwrap();
+        let (name_b, _, _) = get(&pool, "puuid-b").unwrap().unwrap();
+        assert_eq!(name_a, "PlayerA");
+        assert_eq!(name_b, "PlayerB");
+    }
+}

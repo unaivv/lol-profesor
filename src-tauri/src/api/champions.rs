@@ -167,6 +167,7 @@ pub fn get_champion_name(id: u32) -> String {
         165 => "Viego",
         166 => "Jhin",
         221 => "Zeri",
+        222 => "Jinx",
         223 => "TahmKench",
         234 => "Viego",
         235 => "Senna",
@@ -174,4 +175,34 @@ pub fn get_champion_name(id: u32) -> String {
         id => return format!("Champion_{}", id),
     }
     .to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn known_ids_map_to_correct_names() {
+        assert_eq!(get_champion_name(1),   "Annie");
+        assert_eq!(get_champion_name(22),  "Ashe");
+        assert_eq!(get_champion_name(51),  "Lucian");
+        assert_eq!(get_champion_name(64),  "Viego");
+        assert_eq!(get_champion_name(157), "Yasuo");
+        assert_eq!(get_champion_name(222), "Jinx");
+    }
+
+    #[test]
+    fn unknown_id_returns_champion_prefix() {
+        assert_eq!(get_champion_name(9999), "Champion_9999");
+        assert_eq!(get_champion_name(0),    "Champion_0");
+    }
+
+    #[test]
+    fn sampled_ids_return_non_empty_names() {
+        for id in [4, 11, 17, 64, 99, 157, 222, 235] {
+            let name = get_champion_name(id);
+            assert!(!name.is_empty(), "Champion {} should have a non-empty name", id);
+            assert!(!name.starts_with("Champion_"), "Champion {} should have a real name, got {}", id, name);
+        }
+    }
 }

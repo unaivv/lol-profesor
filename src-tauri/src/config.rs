@@ -110,3 +110,87 @@ impl Config {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn euw_routes_correctly() {
+        let r = Region::from_str("EUW");
+        assert_eq!(r.regional_url(), "https://euw1.api.riotgames.com");
+        assert_eq!(r.global_url(),   "https://europe.api.riotgames.com");
+    }
+
+    #[test]
+    fn na_routes_correctly() {
+        let r = Region::from_str("NA");
+        assert_eq!(r.regional_url(), "https://na1.api.riotgames.com");
+        assert_eq!(r.global_url(),   "https://americas.api.riotgames.com");
+    }
+
+    #[test]
+    fn kr_and_jp_route_to_asia() {
+        assert_eq!(Region::from_str("KR").global_url(), "https://asia.api.riotgames.com");
+        assert_eq!(Region::from_str("JP").global_url(), "https://asia.api.riotgames.com");
+    }
+
+    #[test]
+    fn tr_and_ru_route_to_europe() {
+        assert_eq!(Region::from_str("TR").global_url(), "https://europe.api.riotgames.com");
+        assert_eq!(Region::from_str("RU").global_url(), "https://europe.api.riotgames.com");
+    }
+
+    #[test]
+    fn br_lan_las_route_to_americas() {
+        for region_str in ["BR", "LAN", "LAS", "LA1", "LA2", "BR1"] {
+            assert_eq!(
+                Region::from_str(region_str).global_url(),
+                "https://americas.api.riotgames.com",
+                "Region {} should route to americas",
+                region_str
+            );
+        }
+    }
+
+    #[test]
+    fn oce_routes_to_sea() {
+        assert_eq!(Region::from_str("OCE").global_url(), "https://sea.api.riotgames.com");
+        assert_eq!(Region::from_str("OC1").global_url(), "https://sea.api.riotgames.com");
+    }
+
+    #[test]
+    fn aliases_normalize_to_same_url() {
+        assert_eq!(
+            Region::from_str("NA").regional_url(),
+            Region::from_str("NA1").regional_url()
+        );
+        assert_eq!(
+            Region::from_str("EUN").regional_url(),
+            Region::from_str("EUN1").regional_url()
+        );
+        assert_eq!(
+            Region::from_str("BR").regional_url(),
+            Region::from_str("BR1").regional_url()
+        );
+    }
+
+    #[test]
+    fn unknown_region_defaults_to_euw() {
+        let r = Region::from_str("XYZ");
+        assert_eq!(r.regional_url(), "https://euw1.api.riotgames.com");
+        assert_eq!(r.global_url(),   "https://europe.api.riotgames.com");
+    }
+
+    #[test]
+    fn region_from_str_is_case_insensitive() {
+        assert_eq!(
+            Region::from_str("euw").regional_url(),
+            Region::from_str("EUW").regional_url()
+        );
+        assert_eq!(
+            Region::from_str("na1").regional_url(),
+            Region::from_str("NA1").regional_url()
+        );
+    }
+}

@@ -122,3 +122,135 @@ pub fn participant_from_json(
         perk_sub_style: sub_style,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn make_perks(primary_style: i64, primary_selections: &[i64], sub_style: i64, sub_selections: &[i64]) -> serde_json::Value {
+        let primary: Vec<_> = primary_selections.iter().map(|p| json!({"perk": p})).collect();
+        let sub: Vec<_> = sub_selections.iter().map(|p| json!({"perk": p})).collect();
+        json!({
+            "styles": [
+                {"style": primary_style, "selections": primary},
+                {"style": sub_style,     "selections": sub}
+            ]
+        })
+    }
+
+    #[test]
+    fn extract_perks_precision_with_inspiration_secondary() {
+        let perks = make_perks(
+            8000, &[8008, 9101, 9104, 8014],
+            8300, &[8313, 8321],
+        );
+        let (p0, p1, p2, p3, p4, p5, pri, sub) = extract_perks(&perks);
+        assert_eq!(p0, 8008); // Lethal Tempo
+        assert_eq!(p1, 9101);
+        assert_eq!(p2, 9104);
+        assert_eq!(p3, 8313);
+        assert_eq!(p4, 8321);
+        assert_eq!(p5, 0);    // no third secondary selection
+        assert_eq!(pri, 8000);
+        assert_eq!(sub, 8300);
+    }
+
+    #[test]
+    fn extract_perks_from_empty_object_returns_zeros() {
+        let (p0, p1, p2, p3, p4, p5, pri, sub) = extract_perks(&json!({}));
+        assert_eq!((p0, p1, p2, p3, p4, p5, pri, sub), (0, 0, 0, 0, 0, 0, 0, 0));
+    }
+
+    #[test]
+    fn extract_perks_missing_secondary_returns_zeros_for_p3_p4() {
+        let perks = make_perks(8100, &[8112, 8139, 8138, 8136], 0, &[]);
+        let (_, _, _, p3, p4, _, _, sub) = extract_perks(&perks);
+        assert_eq!(p3, 0);
+        assert_eq!(p4, 0);
+        assert_eq!(sub, 0);
+    }
+
+    fn minimal_participant_json() -> serde_json::Value {
+        json!({
+            "participantId": 1,
+            "teamId": 100,
+            "win": true,
+            "championId": 222,
+            "championName": "Jinx",
+            "riotIdGameName": "TestPlayer",
+            "riotIdTagline": "EUW",
+            "kills": 10, "deaths": 2, "assists": 5,
+            "goldEarned": 15000,
+            "totalMinionsKilled": 180, "neutralMinionsKilled": 20,
+            "totalDamageDealtToChampions": 30000, "totalDamageTaken": 20000,
+            "totalHeal": 500, "timePlayed": 1800,
+            "visionScore": 15, "wardsPlaced": 5, "wardsKilled": 2,
+            "visionWardsBoughtInGame": 1,
+            "item0": 3031, "item1": 3006, "item2": 3046,
+            "item3": 0, "item4": 0, "item5": 0, "item6": 3364,
+            "champLevel": 18, "summoner1Id": 4, "summoner2Id": 21,
+            "profileIconId": 123,
+            "perks": {
+                "styles": [
+                    {"style": 8000, "selections": [{"perk": 8008}, {"perk": 9101}, {"perk": 9104}, {"perk": 8014}]},
+                    {"style": 8300, "selections": [{"perk": 8313}, {"perk": 8321}, {"perk": 8352}]}
+                ]
+            }
+        })
+    }
+
+    #[test]
+    fn participant_from_json_parses_basic_fields() {
+        let p = participant_from_json(&minimal_participant_json(), "");
+        assert_eq!(p.champion_id, 222);
+        assert_eq!(p.champion_name, "Jinx");
+        assert_eq!(p.kills, 10);
+        assert_eq!(p.deaths, 2);
+        assert_eq!(p.assists, 5);
+        assert!(p.win);
+        assert_eq!(p.team_id, 100);
+        assert_eq!(p.champion_level, 18);
+        assert_eq!(p.item0, 3031);
+        assert_eq!(p.summoner1_id, 4);
+    }
+
+    #[test]
+    fn participant_summoner_name_prefers_riot_id() {
+        let p = participant_from_json(&minimal_participant_json(), "ignored");
+        assert_eq!(p.summoner_name, "TestPlayer#EUW");
+    }
+
+    #[test]
+    fn participant_falls_back_to_provided_summoner_name() {
+        let mut json = minimal_participant_json();
+        json["riotIdGameName"] = json!("");
+        json["riotIdTagline"] = json!("");
+        let p = participant_from_json(&json, "FallbackName#TAG");
+        assert_eq!(p.summoner_name, "FallbackName#TAG");
+    }
+
+    #[test]
+    fn participant_perks_parsed_correctly() {
+        let p = participant_from_json(&minimal_participant_json(), "");
+        assert_eq!(p.perk0, 8008);          // Lethal Tempo
+        assert_eq!(p.perk_primary_style, 8000); // Precision
+        assert_eq!(p.perk_sub_style, 8300);     // Inspiration
+    }
+
+    #[test]
+    fn participant_from_json_handles_missing_optional_fields() {
+        let sparse = json!({
+            "participantId": 2,
+            "teamId": 200,
+            "win": false,
+            "championId": 1,
+            "championName": "Annie"
+        });
+        let p = participant_from_json(&sparse, "");
+        assert_eq!(p.kills, 0);
+        assert_eq!(p.deaths, 0);
+        assert!(!p.win);
+        assert_eq!(p.summoner_name, "");
+    }
+}

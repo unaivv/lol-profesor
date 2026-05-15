@@ -112,3 +112,118 @@ impl RiotApiClient {
         &self.global_url
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use httpmock::prelude::*;
+
+    fn client(server: &MockServer) -> RiotApiClient {
+        RiotApiClient::new(server.base_url(), server.base_url(), "test-key".to_string())
+    }
+
+    #[tokio::test]
+    async fn get_200_parses_json() {
+        let server = MockServer::start();
+        server.mock(|when, then| {
+            when.method(GET).path("/test/endpoint").header("X-Riot-Token", "test-key");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"puuid":"abc123","gameName":"TestPlayer","tagLine":"EUW"}"#);
+        });
+
+        let url = format!("{}/test/endpoint", server.base_url());
+        let result: serde_json::Value = client(&server).get(&url).await.unwrap();
+
+        assert_eq!(result["puuid"], "abc123");
+        assert_eq!(result["gameName"], "TestPlayer");
+    }
+
+    #[tokio::test]
+    async fn get_404_returns_not_found() {
+        let server = MockServer::start();
+        server.mock(|when, then| {
+            when.method(GET).path("/missing");
+            then.status(404);
+        });
+
+        let url = format!("{}/missing", server.base_url());
+        let err = client(&server).get::<serde_json::Value>(&url).await.unwrap_err();
+        assert!(matches!(err, ApiError::NotFound { .. }));
+    }
+
+    #[tokio::test]
+    async fn get_403_returns_api_key_invalid() {
+        let server = MockServer::start();
+        server.mock(|when, then| {
+            when.method(GET).path("/forbidden");
+            then.status(403);
+        });
+
+        let url = format!("{}/forbidden", server.base_url());
+        let err = client(&server).get::<serde_json::Value>(&url).await.unwrap_err();
+        assert!(matches!(err, ApiError::ApiKeyInvalid));
+    }
+
+    #[tokio::test]
+    async fn get_429_returns_rate_limited_with_retry_after() {
+        let server = MockServer::start();
+        // Return 429 for all 3 attempts — Retry-After: 0 makes sleep instant
+        server.mock(|when, then| {
+            when.method(GET).path("/rate-limited");
+            then.status(429).header("Retry-After", "0");
+        });
+
+        let url = format!("{}/rate-limited", server.base_url());
+        let err = client(&server).get::<serde_json::Value>(&url).await.unwrap_err();
+        match err {
+            ApiError::RateLimited { retry_after } => assert_eq!(retry_after, 0),
+            other => panic!("Expected RateLimited, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn get_429_uses_default_retry_after_when_header_missing() {
+        let server = MockServer::start();
+        server.mock(|when, then| {
+            when.method(GET).path("/rate-limited-no-header");
+            then.status(429); // no Retry-After header
+        });
+
+        let url = format!("{}/rate-limited-no-header", server.base_url());
+        let err = client(&server).get::<serde_json::Value>(&url).await.unwrap_err();
+        match err {
+            ApiError::RateLimited { retry_after } => assert_eq!(retry_after, 5),
+            other => panic!("Expected RateLimited, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn get_sends_api_key_header() {
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(GET).path("/key-check").header("X-Riot-Token", "test-key");
+            then.status(200).body(r#"{"ok":true}"#);
+        });
+
+        let url = format!("{}/key-check", server.base_url());
+        let _: serde_json::Value = client(&server).get(&url).await.unwrap();
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn get_match_ids_parses_array() {
+        let server = MockServer::start();
+        server.mock(|when, then| {
+            when.method(GET).path("/match-ids");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"["EUW1_100","EUW1_101","EUW1_102"]"#);
+        });
+
+        let url = format!("{}/match-ids", server.base_url());
+        let ids: Vec<String> = client(&server).get(&url).await.unwrap();
+        assert_eq!(ids.len(), 3);
+        assert_eq!(ids[0], "EUW1_100");
+    }
+}
