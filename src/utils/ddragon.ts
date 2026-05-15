@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 
-const DD_VERSION = '16.8.1'
+const DD_VERSION = '16.10.1'
 const BASE_URL = `https://ddragon.leagueoflegends.com/cdn/${DD_VERSION}`
 
 let championMap: Record<number, string> = {}       // id -> ddragonKey (for images)
@@ -50,6 +50,10 @@ export function useChampionMap(): boolean {
 
 export function getChampionName(championId: number): string {
   return championNameMap[championId] || `Champion ${championId}`
+}
+
+export function getChampionDDragonKey(championId: number): string {
+  return (championMap[championId] || '').toLowerCase()
 }
 
 // Champion image from ID

@@ -7,7 +7,8 @@
         "build": "vite build",
         "tauri": "cd src-tauri && npm run tauri",
         "tauri:dev": "cd src-tauri && npm run tauri:dev",
-        "tauri:build": "cd src-tauri && npm run tauri:build"
+        "tauri:build": "cd src-tauri && npm run tauri:build",
+        "test": "vitest run"
     },
     "keywords": [
         "league-of-legends",
@@ -41,5 +42,8 @@
         "tailwindcss": "^4.2.4",
         "typescript": "^6.0.3",
         "vite": "^8.0.10"
+    },
+    "devDependencies": {
+        "vitest": "^4.1.6"
     }
 }

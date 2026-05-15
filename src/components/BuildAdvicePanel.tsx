@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { TrendingUp, Loader2, RotateCcw, Swords } from 'lucide-react'
-import { getItemImageUrl, getItemNameById, getRuneImageUrl, getChampionImageUrl, useItemMap } from '../utils/ddragon'
+import { getItemImageUrl, getItemNameById, getRuneImageUrl, getChampionImageUrl, getChampionDDragonKey, useItemMap, useChampionMap } from '../utils/ddragon'
 import { fetchChampionBuild, fetchMatchupData, LolalyticsData } from '../utils/lolalytics'
 import type { Role } from '../utils/roleDetection'
 
@@ -80,26 +80,31 @@ export function BuildAdvicePanel({ myChampionName, myChampionId, role, opponentC
   const [fetchedBuild, setFetchedBuild]     = useState(false)
   const [fetchedMatchup, setFetchedMatchup] = useState(false)
   useItemMap()
+  const championMapReady = useChampionMap()
 
   useEffect(() => {
-    if (fetchedBuild || !myChampionId) return
+    if (fetchedBuild || !myChampionId || !championMapReady) return
+    const key = getChampionDDragonKey(myChampionId)
+    if (!key) return
     setFetchedBuild(true)
     setLoadingBuild(true)
-    fetchChampionBuild(myChampionId, role)
+    fetchChampionBuild(key, role)
       .then(setBuild)
       .catch((e: unknown) => setErrorBuild(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoadingBuild(false))
-  }, [myChampionId, role, fetchedBuild])
+  }, [myChampionId, role, fetchedBuild, championMapReady])
 
   useEffect(() => {
-    if (fetchedMatchup || !myChampionId || !opponentChampionId) return
+    if (fetchedMatchup || !myChampionId || !opponentChampionId || !championMapReady) return
+    const key = getChampionDDragonKey(myChampionId)
+    if (!key) return
     setFetchedMatchup(true)
     setLoadingMatchup(true)
-    fetchMatchupData(myChampionId, role, opponentChampionId)
+    fetchMatchupData(key, role, opponentChampionId)
       .then(setMatchup)
       .catch((e: unknown) => setErrorMatchup(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoadingMatchup(false))
-  }, [myChampionId, role, opponentChampionId, fetchedMatchup])
+  }, [myChampionId, role, opponentChampionId, fetchedMatchup, championMapReady])
 
   const retry = () => {
     setFetchedBuild(false); setBuild(null)

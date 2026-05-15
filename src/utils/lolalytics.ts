@@ -1,19 +1,45 @@
-const BASE = 'https://axe.lolalytics.com/mega/'
+const BASE = 'https://a1.lolalytics.com/mega/'
 
-function lane(role: string): string {
+const HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Referer': 'https://lolalytics.com/',
+}
+
+let cachedPatch: string | null = null
+
+async function getCurrentPatch(): Promise<string> {
+  if (cachedPatch) return cachedPatch
+  const resp = await fetch('https://ddragon.leagueoflegends.com/api/versions.json')
+  const versions = await resp.json() as string[]
+  cachedPatch = versions[0].split('.').slice(0, 2).join('.')
+  return cachedPatch
+}
+
+// Cache in-flight and resolved promises to avoid duplicate requests
+const buildCache = new Map<string, Promise<Record<string, unknown>>>()
+
+async function fetchRaw(championKey: string, laneStr: string): Promise<Record<string, unknown>> {
+  const patch = await getCurrentPatch()
+  const cacheKey = `${championKey}:${laneStr}:${patch}`
+  if (!buildCache.has(cacheKey)) {
+    const qs = new URLSearchParams({ ep: 'build-full', v: '1', patch, tier: 'platinum_plus', queue: '420', region: 'all', c: championKey, lane: laneStr })
+    const p = fetch(`${BASE}?${qs}`, { headers: HEADERS })
+      .then(r => { if (!r.ok) throw new Error(`Lolalytics HTTP ${r.status}`); return r.json() as Promise<Record<string, unknown>> })
+      .then(data => { if (data.status === 404) throw new Error('Champion/lane not found'); return data })
+    buildCache.set(cacheKey, p)
+  }
+  return buildCache.get(cacheKey)!
+}
+
+function laneStr(role: string): string {
   switch (role) {
     case 'jungle':  return 'jungle'
     case 'top':     return 'top'
     case 'mid':     return 'middle'
-    case 'adc':     return 'bot'
+    case 'adc':     return 'bottom'
     case 'support': return 'support'
-    default:        return 'default'
+    default:        return 'bottom'
   }
-}
-
-function buildUrl(params: Record<string, string>): string {
-  const qs = new URLSearchParams({ ep: 'champion', p: 'd', v: '1', patch: 'current', tier: 'platinum_plus', queue: '420', region: 'all', ...params })
-  return `${BASE}?${qs}`
 }
 
 export interface LolalyticsData {
@@ -26,81 +52,72 @@ export interface LolalyticsData {
 }
 
 function extractBestBuild(data: Record<string, unknown>): number[] {
-  const builds = (data?.items as Record<string, unknown>)?.build
-  if (!Array.isArray(builds) || builds.length === 0) return []
-  const first = builds[0] as number[]
-  if (!Array.isArray(first) || first.length <= 2) return []
-  return first.slice(0, -2).filter(id => id > 0)
+  const items: number[] = []
+  for (const slot of ['item1', 'item2', 'item3']) {
+    const arr = data[slot] as number[][] | undefined
+    if (Array.isArray(arr) && arr.length > 0 && Array.isArray(arr[0]) && (arr[0][0] as number) > 0) {
+      items.push(arr[0][0] as number)
+    }
+  }
+  return items
 }
 
 function extractBoots(data: Record<string, unknown>): number | null {
-  const bootsArr = (data?.items as Record<string, unknown>)?.boots
-  if (!Array.isArray(bootsArr) || bootsArr.length === 0) return null
-  // Each entry: [id, games, wins]. Best winrate.
-  let best: [number, number] | null = null
-  for (const entry of bootsArr as number[][]) {
-    if (!Array.isArray(entry) || entry[0] === 0) continue
-    const wr = entry[1] > 0 ? entry[2] / entry[1] : 0
-    if (!best || wr > best[1]) best = [entry[0], wr]
+  const arr = data.boots as number[][] | undefined
+  if (Array.isArray(arr) && arr.length > 0 && Array.isArray(arr[0]) && (arr[0][0] as number) > 0) {
+    return arr[0][0] as number
   }
-  return best ? best[0] : null
+  return null
 }
+
+// Tree IDs indexed by lolalytics page.pri/sec (0=Precision, 1=Domination, 2=Sorcery, 3=Resolve, 4=Inspiration)
+const TREE_IDS = [8000, 8100, 8200, 8400, 8300]
 
 function extractRunes(data: Record<string, unknown>): [number | null, number | null] {
-  const perks = (data?.runes as Record<string, unknown>)?.perks
-  if (!Array.isArray(perks) || perks.length === 0) return [null, null]
-  const best = perks[0] as number[]
-  if (!Array.isArray(best) || best.length < 5) return [null, null]
-  return [best[0] ?? null, best[4] ?? null]
+  const runes = ((data.summary as Record<string, unknown>)?.pick as Record<string, unknown>)?.runes as Record<string, unknown> | undefined
+  if (!runes) return [null, null]
+  const set = runes.set as { pri?: number[] } | undefined
+  const page = runes.page as { sec?: number } | undefined
+  const keystone = set?.pri?.[0] ?? null
+  const secIdx = page?.sec
+  const secTree = secIdx != null && secIdx >= 0 && secIdx < TREE_IDS.length ? TREE_IDS[secIdx] : null
+  return [keystone ?? null, secTree]
 }
 
-function computeWinrate(data: Record<string, unknown>): [number, number] {
-  // Try top-level n/wins
-  if (typeof data.n === 'number' && typeof data.wins === 'number' && data.n > 0) {
-    return [data.wins / data.n * 100, data.n]
-  }
-  // Fallback: last two elements of best build entry [items..., games, wins]
-  const builds = (data?.items as Record<string, unknown>)?.build
-  if (Array.isArray(builds) && builds.length > 0) {
-    const first = builds[0] as number[]
-    if (Array.isArray(first) && first.length >= 2) {
-      const games = first[first.length - 2]
-      const wins  = first[first.length - 1]
-      if (games > 0) return [wins / games * 100, games]
-    }
-  }
-  return [0, 0]
-}
-
-function parse(data: Record<string, unknown>, includeWinrate = false): LolalyticsData {
+function parse(data: Record<string, unknown>): LolalyticsData {
   const [keystone, secTree] = extractRunes(data)
-  const [winrate, totalGames] = includeWinrate ? computeWinrate(data) : [0, (data.n as number) ?? 0]
   return {
     core_items:  extractBestBuild(data),
     boots:       extractBoots(data),
     keystone_id: keystone,
     sec_tree_id: secTree,
-    total_games: totalGames,
-    winrate,
+    total_games: typeof data.n === 'number' ? data.n : 0,
+    winrate:     typeof data.avgWr === 'number' ? data.avgWr : 0,
   }
 }
 
-export async function fetchChampionBuild(championId: number, role: string): Promise<LolalyticsData> {
-  const url = buildUrl({ cid: String(championId), lane: lane(role) })
-  const resp = await fetch(url)
-  if (!resp.ok) throw new Error(`Lolalytics HTTP ${resp.status}`)
-  const data = await resp.json() as Record<string, unknown>
+export async function fetchChampionBuild(championKey: string, role: string): Promise<LolalyticsData> {
+  const data = await fetchRaw(championKey, laneStr(role))
   return parse(data)
 }
 
 export async function fetchMatchupData(
-  championId: number,
+  championKey: string,
   role: string,
   vsChampionId: number,
 ): Promise<LolalyticsData> {
-  const url = buildUrl({ cid: String(championId), lane: lane(role), vs: String(vsChampionId) })
-  const resp = await fetch(url)
-  if (!resp.ok) throw new Error(`Lolalytics HTTP ${resp.status}`)
-  const data = await resp.json() as Record<string, unknown>
-  return parse(data, true)
+  const lane = laneStr(role)
+  const data = await fetchRaw(championKey, lane)
+  const enemy = (data.enemy as Record<string, number[][]> | undefined)?.[lane] ?? []
+  const entry = enemy.find(e => Array.isArray(e) && e[0] === vsChampionId)
+  if (!entry) throw new Error('Matchup data not found')
+  const [, winrate, , , , games] = entry
+  return {
+    core_items:  [],
+    boots:       null,
+    keystone_id: null,
+    sec_tree_id: null,
+    total_games: games ?? 0,
+    winrate:     winrate ?? 0,
+  }
 }
