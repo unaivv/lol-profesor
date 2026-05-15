@@ -143,7 +143,7 @@ export function BuildAdvicePanel({
 
     invoke<ChampionBuild>('get_champion_build', { championName: myChampionName, role })
       .then(setBuild)
-      .catch(() => setErrorBuild('No se pudo obtener la build de Lolalytics'))
+      .catch((e: unknown) => setErrorBuild(String(e)))
       .finally(() => setLoadingBuild(false))
   }, [myChampionName, role, fetchedBuild])
 
@@ -160,7 +160,7 @@ export function BuildAdvicePanel({
       vsChampion: opponentChampionName,
     })
       .then(setMatchup)
-      .catch(() => setErrorMatchup('No se pudo obtener datos del matchup'))
+      .catch((e: unknown) => setErrorMatchup(String(e)))
       .finally(() => setLoadingMatchup(false))
   }, [myChampionName, role, opponentChampionName, fetchedMatchup])
 

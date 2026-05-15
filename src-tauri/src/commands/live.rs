@@ -302,14 +302,22 @@ pub async fn get_champion_build(
         .await
         .map_err(|e| ApiError::NetworkError { message: format!("Lolalytics unreachable: {}", e) })?;
 
-    if !resp.status().is_success() {
+    let status = resp.status();
+    let text = resp.text().await
+        .map_err(|e| ApiError::NetworkError { message: format!("Failed to read body: {}", e) })?;
+
+    log::debug!("Lolalytics build response [{}] for {}/{}: {}", status, champ_key, lane, &text[..text.len().min(400)]);
+
+    if !status.is_success() {
         return Err(ApiError::NetworkError {
-            message: format!("Lolalytics returned HTTP {}", resp.status()),
+            message: format!("Lolalytics HTTP {} — {}", status, &text[..text.len().min(200)]),
         });
     }
 
-    let data: serde_json::Value = resp.json().await
-        .map_err(|e| ApiError::Unknown { message: format!("Failed to parse Lolalytics response: {}", e) })?;
+    let data: serde_json::Value = serde_json::from_str(&text)
+        .map_err(|e| ApiError::Unknown {
+            message: format!("JSON parse error: {} | body: {}", e, &text[..text.len().min(300)]),
+        })?;
 
     let core_items             = extract_best_item_build(&data);
     let boots                  = extract_best_boots(&data);
@@ -362,14 +370,22 @@ pub async fn get_matchup_data(
         .await
         .map_err(|e| ApiError::NetworkError { message: format!("Lolalytics unreachable: {}", e) })?;
 
-    if !resp.status().is_success() {
+    let status = resp.status();
+    let text = resp.text().await
+        .map_err(|e| ApiError::NetworkError { message: format!("Failed to read body: {}", e) })?;
+
+    log::debug!("Lolalytics matchup [{}] {}/{} vs {}: {}", status, champ_key, lane, vs_key, &text[..text.len().min(400)]);
+
+    if !status.is_success() {
         return Err(ApiError::NetworkError {
-            message: format!("Lolalytics matchup returned HTTP {}", resp.status()),
+            message: format!("Lolalytics matchup HTTP {} — {}", status, &text[..text.len().min(200)]),
         });
     }
 
-    let data: serde_json::Value = resp.json().await
-        .map_err(|e| ApiError::Unknown { message: format!("Failed to parse matchup response: {}", e) })?;
+    let data: serde_json::Value = serde_json::from_str(&text)
+        .map_err(|e| ApiError::Unknown {
+            message: format!("JSON parse error: {} | body: {}", e, &text[..text.len().min(300)]),
+        })?;
 
     // Compute winrate from the best build entry [item1..., games, wins]
     // This is the winrate of the recommended build in this matchup — very actionable.
