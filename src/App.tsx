@@ -15,6 +15,7 @@ import { useMyProfile } from './hooks/useMyProfile'
 import { ThemeProvider } from './context/ThemeContext'
 import { NotificationProvider } from './context/NotificationContext'
 import { useUpdateCheck } from './hooks/useUpdateCheck'
+import { useGameAlerts } from './hooks/useGameAlerts'
 
 const isMac = navigator.userAgent.includes('Mac OS')
 
@@ -29,6 +30,7 @@ function AppInner() {
   const navigate = useNavigate()
 
   useUpdateCheck(!splash)
+  useGameAlerts()
 
   useEffect(() => {
     initChampionMap()
