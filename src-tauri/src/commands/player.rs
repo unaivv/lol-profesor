@@ -160,13 +160,17 @@ pub async fn get_comprehensive_player(
 
     let puuid = account.puuid.clone();
 
+    const CACHE_TTL_SECS: i64 = 300; // 5 minutes
     if !force_refresh {
         if let Ok(Some((cached_data, cached_at))) = player_cache::get(&state.db, &puuid) {
-            return Ok(CachedPlayerResponse {
-                data: cached_data,
-                cached_at: Some(cached_at),
-                is_cached: true,
-            });
+            let age = chrono::Utc::now().timestamp() - cached_at;
+            if age < CACHE_TTL_SECS {
+                return Ok(CachedPlayerResponse {
+                    data: cached_data,
+                    cached_at: Some(cached_at),
+                    is_cached: true,
+                });
+            }
         }
     }
 
