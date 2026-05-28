@@ -1,11 +1,10 @@
 import { useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { check } from '@tauri-apps/plugin-updater'
+import { relaunch } from '@tauri-apps/plugin-process'
 import { useNotifications } from '../context/NotificationContext'
 
 export function useUpdateCheck(enabled: boolean) {
   const { push } = useNotifications()
-  const navigate = useNavigate()
   const checked = useRef(false)
 
   useEffect(() => {
@@ -20,7 +19,12 @@ export function useUpdateCheck(enabled: boolean) {
           title: 'Nueva versión disponible',
           message: `v${update.version} lista para instalar`,
           persistent: true,
-          action: { label: 'Actualizar', onClick: () => navigate('/settings') },
+          action: {
+            label: 'Actualizar',
+            onClick: () => {
+              update.downloadAndInstall().then(() => relaunch()).catch(() => {})
+            },
+          },
         })
       })
       .catch(() => { /* silent fail */ })
