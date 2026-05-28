@@ -105,6 +105,48 @@ pub async fn get_lp_history(
     crate::db::lp_history::get_history(&state.db, &puuid, &queue_type, limit)
 }
 
+/// Fetches current ranked data from Riot and records an LP snapshot.
+/// Called when the user opens the progress screen to ensure the chart is up to date.
+#[tauri::command]
+pub async fn sync_lp(
+    puuid: String,
+    region: String,
+    state: State<'_, AppState>,
+) -> Result<(), ApiError> {
+    let region_obj = crate::config::Region::from_str(&region);
+    let riot_client = crate::api::riot_client::RiotApiClient::new(
+        region_obj.regional_url().to_string(),
+        region_obj.global_url().to_string(),
+        state.config.riot_api_key.clone(),
+    );
+
+    let ranked_url = format!(
+        "{}/lol/league/v4/entries/by-puuid/{}",
+        region_obj.regional_url(),
+        puuid
+    );
+
+    let entries: Vec<serde_json::Value> = riot_client.get(&ranked_url).await?;
+
+    for entry in &entries {
+        let queue_type = entry["queueType"].as_str().unwrap_or("");
+        if queue_type != "RANKED_SOLO_5x5" && queue_type != "RANKED_FLEX_SR" {
+            continue;
+        }
+        let tier = entry["tier"].as_str().unwrap_or("");
+        let rank = entry["rank"].as_str().unwrap_or("");
+        let lp = entry["leaguePoints"].as_i64().unwrap_or(0);
+
+        if !tier.is_empty() {
+            let _ = crate::db::lp_history::record(
+                &state.db, &puuid, queue_type, tier, rank, lp,
+            );
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

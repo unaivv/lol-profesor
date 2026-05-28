@@ -255,7 +255,7 @@ export function StatsPage() {
         )}
 
         {activeTab === 'progress' && (
-          <RankedProgress puuid={playerData.puuid} />
+          <RankedProgress puuid={playerData.puuid} region={region ?? 'EUW'} />
         )}
       </div>
     </div>

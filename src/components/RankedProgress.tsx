@@ -13,6 +13,7 @@ type QueueType = 'RANKED_SOLO_5x5' | 'RANKED_FLEX_SR'
 
 interface RankedProgressProps {
   puuid: string
+  region: string
   queueType?: QueueType
 }
 
@@ -206,26 +207,32 @@ export function pickDefaultQueue(solo: LpSnapshot[], flex: LpSnapshot[]): QueueT
   return 'RANKED_SOLO_5x5'
 }
 
-export function RankedProgress({ puuid }: RankedProgressProps) {
+export function RankedProgress({ puuid, region }: RankedProgressProps) {
   const [queue, setQueue] = useState<QueueType>('RANKED_SOLO_5x5')
   const [snapshots, setSnapshots] = useState<LpSnapshot[]>([])
   const [loading, setLoading] = useState(true)
   const initializedRef = useRef(false)
 
-  // On first load, fetch both queues to pick the right default
+  // On first load, sync current LP then fetch both queues to pick the right default
   useEffect(() => {
     initializedRef.current = false
     setLoading(true)
-    Promise.all([
-      invoke<LpSnapshot[]>('get_lp_history', { puuid, queueType: 'RANKED_SOLO_5x5', limit: 100 }).catch(() => []),
-      invoke<LpSnapshot[]>('get_lp_history', { puuid, queueType: 'RANKED_FLEX_SR', limit: 100 }).catch(() => []),
-    ]).then(([solo, flex]) => {
-      const defaultQueue = pickDefaultQueue(solo, flex)
-      setQueue(defaultQueue)
-      setSnapshots(defaultQueue === 'RANKED_FLEX_SR' ? flex : solo)
-      initializedRef.current = true  // mark init done AFTER setting state
-    }).finally(() => setLoading(false))
-  }, [puuid])
+
+    // Sync current LP from Riot API first (fire-and-wait), then load history
+    invoke('sync_lp', { puuid, region })
+      .catch(() => {})
+      .finally(() => {
+        Promise.all([
+          invoke<LpSnapshot[]>('get_lp_history', { puuid, queueType: 'RANKED_SOLO_5x5', limit: 100 }).catch(() => []),
+          invoke<LpSnapshot[]>('get_lp_history', { puuid, queueType: 'RANKED_FLEX_SR', limit: 100 }).catch(() => []),
+        ]).then(([solo, flex]) => {
+          const defaultQueue = pickDefaultQueue(solo, flex)
+          setQueue(defaultQueue)
+          setSnapshots(defaultQueue === 'RANKED_FLEX_SR' ? flex : solo)
+          initializedRef.current = true
+        }).finally(() => setLoading(false))
+      })
+  }, [puuid, region])
 
   // Re-fetch when user manually switches queue (skips the initial render)
   useEffect(() => {
